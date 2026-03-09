@@ -6,7 +6,12 @@ const normalizeBaseURL = (baseURL: string) => {
 
 export default defineEventHandler((event) => {
   const runtimeConfig = useRuntimeConfig(event)
-  const appBaseURL = normalizeBaseURL(runtimeConfig.app.baseURL || '/')
+  const appBaseURL = normalizeBaseURL(
+    (runtimeConfig as any)?.app?.baseURL ||
+      (runtimeConfig as any)?.public?.appBaseURL ||
+      process.env.NUXT_APP_BASE_URL ||
+      '/'
+  )
   const appBasePrefix = appBaseURL === '/' ? '' : appBaseURL.slice(0, -1)
   const requestUrl = event.node.req.url
 

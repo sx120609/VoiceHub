@@ -33,7 +33,12 @@ export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
   const pathname = url.pathname
   const runtimeConfig = useRuntimeConfig(event)
-  const routePath = stripBaseFromPath(pathname, runtimeConfig.app.baseURL || '/')
+  const baseURL =
+    (runtimeConfig as any)?.app?.baseURL ||
+    (runtimeConfig as any)?.public?.appBaseURL ||
+    process.env.NUXT_APP_BASE_URL ||
+    '/'
+  const routePath = stripBaseFromPath(pathname, baseURL)
 
   // 跳过非API路由
   if (!routePath.startsWith('/api/')) {
