@@ -14,17 +14,20 @@
       @submit.prevent="handleRegister"
     >
       <div class="form-group">
-        <label for="qqNumber">QQ号</label>
-        <div class="input-wrapper">
+        <label for="emailPrefix">邮箱</label>
+        <div class="input-wrapper email-split">
           <input
-            id="qqNumber"
-            v-model="form.email"
+            id="emailPrefix"
+            v-model="form.emailPrefix"
             :class="{ 'input-error': error }"
-            placeholder="例如：123456789（系统自动补全@qq.com）"
+            placeholder="请输入邮箱前缀"
             required
             type="text"
             @input="error = ''"
           >
+          <select class="email-domain-select" disabled>
+            <option value="@qq.com">@qq.com</option>
+          </select>
         </div>
       </div>
 
@@ -142,7 +145,7 @@ const auth = useAuth()
 const route = useRoute()
 
 const form = ref({
-  email: '',
+  emailPrefix: '',
   password: '',
   confirmPassword: '',
   verificationCode: ''
@@ -164,10 +167,9 @@ let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
 const qqNumberRegex = /^[1-9]\d{4,10}$/
 
-const normalizeQQNumberInput = (value: string): string =>
-  value.trim().toLowerCase().replace(/@qq\.com$/i, '')
+const normalizeQQPrefixInput = (value: string): string => value.trim().toLowerCase()
 
-const toQQEmail = (value: string): string => `${normalizeQQNumberInput(value)}@qq.com`
+const toQQEmail = (value: string): string => `${normalizeQQPrefixInput(value)}@qq.com`
 
 const stopCooldownTimer = () => {
   if (cooldownTimer) {
@@ -200,14 +202,14 @@ const goAfterLogin = async () => {
 }
 
 const handleRegister = async () => {
-  if (!form.value.email || !form.value.password) {
+  if (!form.value.emailPrefix || !form.value.password) {
     error.value = '请完整填写注册信息'
     return
   }
 
-  const qqNumber = normalizeQQNumberInput(form.value.email)
+  const qqNumber = normalizeQQPrefixInput(form.value.emailPrefix)
   if (!qqNumberRegex.test(qqNumber)) {
-    error.value = '请输入正确的QQ号'
+    error.value = '请输入正确的QQ邮箱前缀'
     return
   }
 
@@ -236,7 +238,7 @@ const handleRegister = async () => {
 
     if (response?.requiresEmailVerification) {
       pendingVerification.value = true
-      pendingEmail.value = response.email || toQQEmail(form.value.email)
+      pendingEmail.value = response.email || toQQEmail(form.value.emailPrefix)
       verificationSent.value = !!response.verificationSent
       form.value.verificationCode = ''
       if (verificationSent.value) {
@@ -355,6 +357,12 @@ const handleResend = async () => {
   position: relative;
 }
 
+.email-split {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .input-wrapper input {
   width: 100%;
   padding: 12px 14px;
@@ -364,6 +372,19 @@ const handleResend = async () => {
   color: var(--text-primary);
   font-size: 14px;
   transition: border-color 0.2s;
+}
+
+.email-domain-select {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  appearance: none;
+  opacity: 1;
 }
 
 .input-wrapper input:focus {
