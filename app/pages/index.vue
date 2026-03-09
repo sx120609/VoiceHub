@@ -5,7 +5,7 @@
       <div class="top-bar">
         <div class="logo-section">
           <NuxtLink class="logo-link" to="/">
-            <img alt="VoiceHub Logo" class="logo-image" :src="logo" >
+            <img alt="VoiceHub Logo" class="logo-image" :src="proxiedSiteLogoUrl" >
           </NuxtLink>
           <!-- 横线和学校logo -->
           <div v-if="schoolLogoHomeUrl && schoolLogoHomeUrl.trim()" class="logo-divider-container">
@@ -640,7 +640,6 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import logo from '~~/public/images/logo.svg'
 import Icon from '~/components/UI/Icon.vue'
 import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 
@@ -657,6 +656,7 @@ const router = useRouter()
 // 站点配置
 const {
   siteTitle,
+  logoUrl: siteLogoUrl,
   description: siteDescription,
   guidelines: submissionGuidelines,
   icp: icpNumber,
@@ -1227,6 +1227,35 @@ const filteredSongs = computed(() => {
 })
 const loading = computed(() => songs?.loading?.value || false)
 const error = computed(() => songs?.error?.value || '')
+
+const defaultSiteLogoUrl = '/images/logo.svg'
+
+const firstSiteLogoUrl = computed(() => {
+  const rawValue = String(siteLogoUrl.value || '').trim()
+  if (!rawValue) {
+    return defaultSiteLogoUrl
+  }
+
+  const firstUrl = rawValue
+    .split(/[\n,，;；]+/)
+    .map((item) => item.trim())
+    .find(Boolean)
+
+  return firstUrl || defaultSiteLogoUrl
+})
+
+const proxiedSiteLogoUrl = computed(() => {
+  const currentLogo = firstSiteLogoUrl.value
+  if (!currentLogo) {
+    return defaultSiteLogoUrl
+  }
+
+  if (currentLogo.startsWith('http://')) {
+    return `${withApiBase('/api/proxy/image', apiBase.value)}?url=${encodeURIComponent(currentLogo)}`
+  }
+
+  return currentLogo
+})
 
 // 处理学校logo的HTTP/HTTPS代理
 const proxiedSchoolLogoUrl = computed(() => {
