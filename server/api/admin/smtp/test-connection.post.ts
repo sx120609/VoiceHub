@@ -1,4 +1,21 @@
 import { SmtpService } from '~~/server/services/smtpService'
+import { db } from '~/drizzle/db'
+import { systemSettings } from '~/drizzle/schema'
+
+const resolveSmtpPassword = async (password: string | null | undefined) => {
+  if (password && password !== '****************') {
+    return password
+  }
+
+  const settingsResult = await db
+    .select({
+      smtpPassword: systemSettings.smtpPassword
+    })
+    .from(systemSettings)
+    .limit(1)
+
+  return settingsResult[0]?.smtpPassword || null
+}
 
 export default defineEventHandler(async (event) => {
   // 检查请求方法
@@ -37,7 +54,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    if (!body.smtpHost || !body.smtpUsername || !body.smtpPassword) {
+    if (!body.smtpHost || !body.smtpUsername) {
       return {
         success: false,
         message: '请填写完整的SMTP配置信息'
@@ -53,10 +70,13 @@ export default defineEventHandler(async (event) => {
 
     try {
       // 如果密码是掩码，则使用原始配置中的密码
-      const testPassword =
-        body.smtpPassword === '****************'
-          ? originalConfig?.auth?.pass || body.smtpPassword
-          : body.smtpPassword
+      const testPassword = await resolveSmtpPassword(body.smtpPassword)
+      if (!testPassword) {
+        return {
+          success: false,
+          message: '未检测到SMTP密码，请重新输入授权码后保存配置'
+        }
+      }
 
       // 设置测试配置
       smtpService.smtpConfig = {
@@ -73,12 +93,28 @@ export default defineEventHandler(async (event) => {
 
       // 创建测试transporter
       const nodemailer = await import('nodemailer')
-      smtpService.transporter = nodemailer.default.createTransport({
+      const transporterConfig: any = {
         host: smtpService.smtpConfig.host,
         port: smtpService.smtpConfig.port,
         secure: smtpService.smtpConfig.secure,
         auth: smtpService.smtpConfig.auth
-      })
+      }
+
+      if (smtpService.smtpConfig.port === 587 && !smtpService.smtpConfig.secure) {
+        transporterConfig.requireTLS = true
+        transporterConfig.tls = {
+          rejectUnauthorized: false
+        }
+      } else if (smtpService.smtpConfig.port === 465) {
+        transporterConfig.secure = true
+      } else if (smtpService.smtpConfig.port === 25) {
+        transporterConfig.secure = false
+        transporterConfig.tls = {
+          rejectUnauthorized: false
+        }
+      }
+
+      smtpService.transporter = nodemailer.default.createTransport(transporterConfig)
 
       // 测试连接
       const result = await smtpService.testConnection()

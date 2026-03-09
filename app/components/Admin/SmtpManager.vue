@@ -11,7 +11,15 @@
       <div class="flex items-center gap-3">
         <button
           class="flex items-center gap-2 px-6 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50"
-          :disabled="reloading"
+          :disabled="saving || reloading || testing"
+          @click="resetConfig"
+        >
+          <RotateCcw :size="14" />
+          重置配置
+        </button>
+        <button
+          class="flex items-center gap-2 px-6 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50"
+          :disabled="reloading || saving || testing"
           @click="reloadSmtpConfig"
         >
           <RotateCw :size="14" :class="reloading ? 'animate-spin' : ''" />
@@ -149,6 +157,14 @@
               <label class="text-[10px] font-black text-zinc-600 uppercase tracking-widest px-1"
                 >测试接收邮箱</label
               >
+              <button
+                class="flex items-center gap-2 px-4 py-2 mb-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition-all disabled:opacity-50"
+                :disabled="testing || !config.smtpEnabled"
+                @click="testConnection"
+              >
+                <Server :size="14" />
+                {{ testing ? '测试中...' : '测试SMTP连接' }}
+              </button>
               <div class="flex gap-2">
                 <input
                   v-model="testEmail"
@@ -204,7 +220,7 @@ import { onMounted, ref } from 'vue'
 import { useToast } from '~/composables/useToast'
 import EmailTemplateManager from '~/components/Admin/EmailTemplateManager.vue'
 import CustomSelect from '~/components/UI/Common/CustomSelect.vue'
-import { Server, Save, Check, Send, CheckCircle, XCircle, RotateCw } from 'lucide-vue-next'
+import { Server, Save, Check, Send, CheckCircle, XCircle, RotateCw, RotateCcw } from 'lucide-vue-next'
 
 const { showToast: showNotification } = useToast()
 
@@ -290,7 +306,8 @@ const reloadSmtpConfig = async () => {
   reloading.value = true
   try {
     const response = await $fetch('/api/admin/smtp/reload', {
-      method: 'POST'
+      method: 'POST',
+      timeout: 15000
     })
     if (!response.success) {
       throw new Error(response.message || 'SMTP重载失败')
@@ -311,13 +328,19 @@ const testConnection = async () => {
     return
   }
 
+  if (!config.value.smtpUsername) {
+    showNotification('请先填写SMTP发件人账号', 'error')
+    return
+  }
+
   testing.value = true
   testResult.value = null
 
   try {
     const response = await $fetch('/api/admin/smtp/test-connection', {
       method: 'POST',
-      body: config.value
+      body: config.value,
+      timeout: 20000
     })
 
     testResult.value = response
@@ -334,6 +357,16 @@ const testConnection = async () => {
 
 // 发送测试邮件
 const sendTestEmail = async () => {
+  if (!config.value.smtpEnabled) {
+    showNotification('请先启用SMTP服务', 'error')
+    return
+  }
+
+  if (!config.value.smtpHost || !config.value.smtpUsername) {
+    showNotification('请先完成SMTP基础配置', 'error')
+    return
+  }
+
   if (!testEmail.value) {
     showNotification('请输入测试邮箱地址', 'error')
     return
@@ -348,7 +381,8 @@ const sendTestEmail = async () => {
       body: {
         ...config.value,
         testEmail: testEmail.value
-      }
+      },
+      timeout: 20000
     })
 
     testResult.value = response
