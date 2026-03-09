@@ -3,6 +3,7 @@ import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { cacheService } from '../../../services/cacheService'
+import { requireQQEmail } from '~~/server/utils/qq-email'
 
 export default defineEventHandler(async (event) => {
   // 检查认证和权限
@@ -35,10 +36,12 @@ export default defineEventHandler(async (event) => {
 
     try {
       // 验证必填字段
-      if (!userData.name || !userData.username || !userData.password) {
+      if (!userData.name || !userData.username || !userData.password || !userData.email) {
         results.failed++
         continue
       }
+
+      const qqEmail = requireQQEmail(userData.email)
 
       // 检查用户名是否已存在
       const existingUser = await db
@@ -48,6 +51,13 @@ export default defineEventHandler(async (event) => {
         .limit(1)
 
       if (existingUser.length > 0) {
+        results.failed++
+        continue
+      }
+
+      // 检查 QQ 邮箱是否已存在
+      const existingEmail = await db.select().from(users).where(eq(users.email, qqEmail)).limit(1)
+      if (existingEmail.length > 0) {
         results.failed++
         continue
       }
@@ -82,7 +92,9 @@ export default defineEventHandler(async (event) => {
           password: hashedPassword,
           role: validRole,
           grade: userData.grade,
-          class: userData.class
+          class: userData.class,
+          email: qqEmail,
+          emailVerified: true
         })
         .returning()
 

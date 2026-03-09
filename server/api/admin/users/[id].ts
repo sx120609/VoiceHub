@@ -1,6 +1,7 @@
 import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
+import { requireQQEmail } from '~~/server/utils/qq-email'
 
 export default defineEventHandler(async (event) => {
   // 检查认证和权限
@@ -27,18 +28,35 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'PUT') {
     const body = await readBody(event)
 
-    if (!body.name) {
+    if (!body.name || !body.email) {
       throw createError({
         statusCode: 400,
-        message: '姓名不能为空'
+        message: '姓名和QQ邮箱不能为空'
       })
     }
 
     try {
+      const qqEmail = requireQQEmail(body.email)
+
+      const existingEmailUserResult = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, qqEmail))
+        .limit(1)
+      const existingEmailUser = existingEmailUserResult[0]
+      if (existingEmailUser && existingEmailUser.id !== id) {
+        throw createError({
+          statusCode: 400,
+          message: '该QQ邮箱已被其他用户绑定'
+        })
+      }
+
       const updatedUserResult = await db
         .update(users)
         .set({
           name: body.name,
+          email: qqEmail,
+          emailVerified: true,
           role: body.role,
           grade: body.grade,
           class: body.class
@@ -47,6 +65,8 @@ export default defineEventHandler(async (event) => {
         .returning({
           id: users.id,
           name: users.name,
+          email: users.email,
+          emailVerified: users.emailVerified,
           role: users.role,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
@@ -60,6 +80,9 @@ export default defineEventHandler(async (event) => {
       return updatedUser
     } catch (error) {
       console.error('更新用户失败:', error)
+      if ((error as any)?.statusCode) {
+        throw error
+      }
       throw createError({
         statusCode: 500,
         message: '更新用户失败'
@@ -108,6 +131,9 @@ export default defineEventHandler(async (event) => {
       return { success: true }
     } catch (error) {
       console.error('删除用户失败:', error)
+      if ((error as any)?.statusCode) {
+        throw error
+      }
       throw createError({
         statusCode: 500,
         message: '删除用户失败'

@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt'
 import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
+import { requireQQEmail } from '~~/server/utils/qq-email'
 
 export default defineEventHandler(async (event) => {
   // 检查认证和权限
@@ -16,14 +17,16 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   // 验证必填字段
-  if (!body.name || !body.username || !body.password) {
+  if (!body.name || !body.username || !body.password || !body.email) {
     throw createError({
       statusCode: 400,
-      message: '姓名、账号名和密码不能为空'
+      message: '姓名、账号名、QQ邮箱和密码不能为空'
     })
   }
 
   try {
+    const qqEmail = requireQQEmail(body.email)
+
     // 检查用户名是否已存在
     const existingUserResult = await db
       .select()
@@ -36,6 +39,15 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         message: '账号名已存在'
+      })
+    }
+
+    // 检查 QQ 邮箱是否已存在
+    const existingEmailResult = await db.select().from(users).where(eq(users.email, qqEmail)).limit(1)
+    if (existingEmailResult[0]) {
+      throw createError({
+        statusCode: 400,
+        message: '该QQ邮箱已被其他用户绑定'
       })
     }
 
@@ -78,12 +90,16 @@ export default defineEventHandler(async (event) => {
         password: hashedPassword,
         role: validRole,
         grade: body.grade,
-        class: body.class
+        class: body.class,
+        email: qqEmail,
+        emailVerified: true
       })
       .returning({
         id: users.id,
         name: users.name,
         username: users.username,
+        email: users.email,
+        emailVerified: users.emailVerified,
         role: users.role,
         grade: users.grade,
         class: users.class,
@@ -109,6 +125,9 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error) {
     console.error('创建用户失败:', error)
+    if ((error as any)?.statusCode) {
+      throw error
+    }
     throw createError({
       statusCode: 500,
       message: '创建用户失败'

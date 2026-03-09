@@ -1,7 +1,3 @@
-import { db } from '~/drizzle/db'
-import { users } from '~/drizzle/schema'
-import { eq } from 'drizzle-orm'
-
 export default defineEventHandler(async (event) => {
   // 检查请求方法
   if (getMethod(event) !== 'POST') {
@@ -21,27 +17,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  try {
-    // 解绑邮箱
-    await db
-      .update(users)
-      .set({
-        email: null,
-        emailVerified: false,
-        emailVerifiedAt: null
-      })
-      .where(eq(users.id, user.id))
-
-    return {
-      success: true,
-      message: '邮箱已解绑'
-    }
-  } catch (error) {
-    console.error('解绑邮箱失败:', error)
-
-    throw createError({
-      statusCode: 500,
-      message: '解绑邮箱失败'
-    })
-  }
+  throw createError({
+    statusCode: 403,
+    message: '当前系统已启用强制QQ邮箱，不能解绑邮箱'
+  })
 })

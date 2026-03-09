@@ -39,6 +39,7 @@ export default defineEventHandler(async (event) => {
         or(
           ilike(users.name, `%${searchTerm}%`),
           ilike(users.username, `%${searchTerm}%`),
+          ilike(users.email, `%${searchTerm}%`),
           ilike(users.lastLoginIp, `%${searchTerm}%`)
         )
       )
@@ -84,6 +85,8 @@ export default defineEventHandler(async (event) => {
         id: true,
         name: true,
         username: true,
+        email: true,
+        emailVerified: true,
         role: true,
         grade: true,
         class: true,

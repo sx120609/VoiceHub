@@ -3,6 +3,7 @@ import { db } from '~/drizzle/db'
 import { users, userStatusLogs } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { updateUserPassword } from '~~/server/services/userService'
+import { requireQQEmail } from '~~/server/utils/qq-email'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -17,15 +18,17 @@ export default defineEventHandler(async (event) => {
 
     const userId = getRouterParam(event, 'id')
     const body = await readBody(event)
-    const { name, username, password, role, grade, class: userClass, status } = body
+    const { name, username, password, role, grade, class: userClass, status, email } = body
 
     // 验证必填字段
-    if (!name || !username) {
+    if (!name || !username || !email) {
       throw createError({
         statusCode: 400,
-        statusMessage: '姓名和用户名为必填项'
+        statusMessage: '姓名、用户名和QQ邮箱为必填项'
       })
     }
+
+    const qqEmail = requireQQEmail(email)
 
     // 检查用户是否存在
     const existingUser = await db
@@ -85,6 +88,16 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    if (qqEmail !== (targetUser.email || '').toLowerCase()) {
+      const duplicateEmail = await db.select().from(users).where(eq(users.email, qqEmail)).limit(1)
+      if (duplicateEmail.length > 0) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: '该QQ邮箱已被其他用户使用'
+        })
+      }
+    }
+
     // 角色权限控制
     let validRole = 'USER'
     if (role && ['USER', 'ADMIN', 'SONG_ADMIN', 'SUPER_ADMIN'].includes(role)) {
@@ -124,6 +137,8 @@ export default defineEventHandler(async (event) => {
     const updateData = {
       name,
       username,
+      email: qqEmail,
+      emailVerified: true,
       role: validRole,
       grade,
       class: userClass
@@ -150,6 +165,8 @@ export default defineEventHandler(async (event) => {
         id: users.id,
         name: users.name,
         username: users.username,
+        email: users.email,
+        emailVerified: users.emailVerified,
         role: users.role,
         grade: users.grade,
         class: users.class,

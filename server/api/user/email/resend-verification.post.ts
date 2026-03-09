@@ -1,7 +1,7 @@
 import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
-import { getClientIP } from '~~/server/utils/ip-utils'
+import { isValidQQEmail } from '~~/server/utils/qq-email'
 
 export default defineEventHandler(async (event) => {
   // 检查请求方法
@@ -31,29 +31,23 @@ export default defineEventHandler(async (event) => {
     if (!currentUser?.email) {
       throw createError({
         statusCode: 400,
-        message: '请先绑定邮箱'
+        message: '请先绑定QQ邮箱'
       })
     }
 
-    if (currentUser.emailVerified) {
+    const currentEmail = currentUser.email.toLowerCase()
+    if (!isValidQQEmail(currentEmail)) {
       throw createError({
         statusCode: 400,
-        message: '邮箱已验证，无需重新发送'
+        message: '当前邮箱不是QQ邮箱，请先更换为QQ邮箱'
       })
     }
 
-    // 发送邮箱验证码
-    try {
-      const { sendEmailVerificationCode } = await import('~~/server/api/user/email/send-code.post')
-      const clientIP = getClientIP(event)
-
-      await sendEmailVerificationCode(currentUser.id, currentUser.email, currentUser.name, clientIP)
-
-      return { success: true, message: '验证码已重新发送' }
-    } catch (emailError) {
-      console.error('发送邮箱验证码失败:', emailError)
-      throw createError({ statusCode: 500, message: '发送验证码失败，请稍后重试' })
+    if (!currentUser.emailVerified) {
+      await db.update(users).set({ emailVerified: true }).where(eq(users.id, user.id))
     }
+
+    return { success: true, message: 'QQ邮箱已自动验证，无需验证码' }
   } catch (error: any) {
     console.error('重新发送验证邮件失败:', error)
 

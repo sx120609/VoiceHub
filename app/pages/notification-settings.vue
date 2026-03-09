@@ -200,13 +200,15 @@
 
                 <!-- 未绑定状态 -->
                 <div v-if="!userEmail" class="space-y-3">
-                  <p class="text-xs text-zinc-500">绑定邮箱后，您可以接收到实时的邮件通知提醒。</p>
+                  <p class="text-xs text-zinc-500">
+                    绑定QQ邮箱后，您可以接收到实时的邮件通知提醒。
+                  </p>
                   <div class="flex flex-col sm:flex-row gap-2">
                     <input
                       v-model="newEmail"
                       :disabled="bindingEmail"
                       type="email"
-                      placeholder="请输入邮箱地址"
+                      placeholder="请输入QQ邮箱（例如：123456789@qq.com）"
                       class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-500/30 w-full sm:w-auto"
                     >
                     <button
@@ -214,7 +216,7 @@
                       class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-xl transition-all disabled:opacity-50 whitespace-nowrap"
                       @click="bindEmail"
                     >
-                      {{ bindingEmail ? '请稍候...' : '立即绑定' }}
+                      {{ bindingEmail ? '请稍候...' : '绑定QQ邮箱' }}
                     </button>
                   </div>
                 </div>
@@ -226,7 +228,7 @@
                   >
                     <AlertCircle :size="14" class="text-blue-500 shrink-0 mt-0.5" />
                     <p class="text-[11px] text-zinc-500 leading-relaxed">
-                      验证码已发送至您的邮箱，请在 5 分钟内完成验证。若未收到邮件，请检查垃圾箱。
+                      当前邮箱处于旧版待验证状态。请直接更换为QQ邮箱完成即时绑定。
                     </p>
                   </div>
 
@@ -271,19 +273,12 @@
                 </div>
 
                 <!-- 已验证状态 -->
-                <div v-else class="flex gap-2 pt-2">
+                <div v-else class="pt-2">
                   <button
-                    class="flex-1 py-2.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 text-xs font-bold rounded-xl transition-all"
+                    class="w-full py-2.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 text-xs font-bold rounded-xl transition-all"
                     @click="changeEmail"
                   >
-                    更换邮箱
-                  </button>
-                  <button
-                    :disabled="unbindingEmail"
-                    class="flex-1 py-2.5 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-500 text-xs font-black rounded-xl transition-all"
-                    @click="unbindEmail"
-                  >
-                    {{ unbindingEmail ? '正在解绑...' : '解绑邮箱' }}
+                    更换QQ邮箱
                   </button>
                 </div>
               </div>
@@ -558,8 +553,9 @@ const loadSettings = async () => {
         meowUserId: response.data.meowUserId || ''
       }
 
-      userEmail.value = response.data.userEmail || ''
-      emailVerified.value = response.data.emailVerified || false
+      const loadedEmail = (response.data.userEmail || '').toString().trim().toLowerCase()
+      userEmail.value = loadedEmail
+      emailVerified.value = loadedEmail.endsWith('@qq.com') ? true : response.data.emailVerified || false
     }
   } catch (err) {
     console.error('加载设置失败:', err)
@@ -681,13 +677,13 @@ const performUnbind = async () => {
 // 邮箱绑定相关方法
 const bindEmail = async () => {
   if (!newEmail.value) {
-    showNotification('请输入邮箱地址', 'error')
+    showNotification('请输入QQ邮箱地址', 'error')
     return
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(newEmail.value)) {
-    showNotification('请输入有效的邮箱地址', 'error')
+  const qqEmailRegex = /^[1-9]\d{4,10}@qq\.com$/i
+  if (!qqEmailRegex.test(newEmail.value.trim().toLowerCase())) {
+    showNotification('仅支持绑定QQ邮箱（@qq.com）', 'error')
     return
   }
 
@@ -695,14 +691,14 @@ const bindEmail = async () => {
   try {
     const response = await $fetch('/api/user/email/bind', {
       method: 'POST',
-      body: { email: newEmail.value }
+      body: { email: newEmail.value.trim().toLowerCase() }
     })
 
     if (response.success) {
-      userEmail.value = newEmail.value
-      emailVerified.value = false
+      userEmail.value = newEmail.value.trim().toLowerCase()
+      emailVerified.value = true
       newEmail.value = ''
-      showNotification('验证码已发送，请查收邮箱', 'success')
+      showNotification(response.message || 'QQ邮箱绑定成功', 'success')
     } else {
       showNotification(response.message || '绑定失败', 'error')
     }
@@ -754,7 +750,7 @@ const verifyEmailCode = async () => {
 const changeEmail = () => {
   confirmDialog.value = {
     title: '更换邮箱',
-    message: '更换邮箱将清除当前绑定的邮箱信息，需要重新验证新邮箱。确定要继续吗？',
+    message: '更换邮箱将清除当前绑定信息，请重新绑定QQ邮箱。确定要继续吗？',
     type: 'warning',
     loading: false,
     onConfirm: performChangeEmail,
@@ -782,7 +778,8 @@ const resendVerificationEmail = async () => {
     if (response.success) {
       emailCode.value = ''
       emailCodeError.value = false
-      showNotification('验证码已重新发送', 'success')
+      emailVerified.value = true
+      showNotification(response.message || 'QQ邮箱已自动验证', 'success')
     } else {
       showNotification(response.message || '发送失败', 'error')
     }

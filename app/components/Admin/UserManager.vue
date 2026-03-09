@@ -474,6 +474,24 @@
               </div>
 
               <div class="space-y-2">
+                <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1"
+                  >QQ邮箱</label
+                >
+                <div class="relative group">
+                  <Mail
+                    class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-700 group-focus-within:text-blue-500 transition-colors"
+                    :size="16"
+                  />
+                  <input
+                    v-model="userForm.email"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-11 pr-4 py-3 text-xs focus:outline-none focus:border-blue-500/30 transition-all text-zinc-200"
+                    placeholder="例如: 123456789@qq.com"
+                    type="email"
+                  >
+                </div>
+              </div>
+
+              <div class="space-y-2">
                 <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                   {{ editingUser ? '新密码 (留空则不修改)' : '初始密码' }}
                 </label>
@@ -732,7 +750,7 @@
                 </div>
                 <p class="text-xs text-zinc-500 leading-relaxed">
                   请上传Excel格式文件 (.xlsx)，系统会自动解析数据。
-                  注意：第一行可以是标题行（会自动跳过），角色字段必须匹配系统定义的角色。
+                  注意：第一行可以是标题行（会自动跳过），角色字段必须匹配系统定义的角色，且必须提供QQ邮箱。
                 </p>
 
                 <div class="overflow-hidden rounded-2xl border border-zinc-800/80">
@@ -745,6 +763,7 @@
                         <th class="px-3 py-2 border-b border-zinc-800">角色</th>
                         <th class="px-3 py-2 border-b border-zinc-800">年级</th>
                         <th class="px-3 py-2 border-b border-zinc-800">班级</th>
+                        <th class="px-3 py-2 border-b border-zinc-800">QQ邮箱</th>
                       </tr>
                     </thead>
                     <tbody class="text-zinc-500">
@@ -755,6 +774,7 @@
                         <td class="px-3 py-2">USER</td>
                         <td class="px-3 py-2">高一</td>
                         <td class="px-3 py-2">1班</td>
+                        <td class="px-3 py-2">123456789@qq.com</td>
                       </tr>
                     </tbody>
                   </table>
@@ -830,6 +850,7 @@
                         <th class="px-4 py-3 font-medium">账号</th>
                         <th class="px-4 py-3 font-medium">角色</th>
                         <th class="px-4 py-3 font-medium">年级/班级</th>
+                        <th class="px-4 py-3 font-medium">QQ邮箱</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-900">
@@ -849,6 +870,7 @@
                         <td class="px-4 py-3 text-zinc-500">
                           {{ row.grade || '-' }} / {{ row.class || '-' }}
                         </td>
+                        <td class="px-4 py-3 text-zinc-500">{{ row.email || '-' }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -981,6 +1003,14 @@
                     </div>
                     <div class="text-sm font-bold text-zinc-300">
                       {{ selectedUserDetail.username }}
+                    </div>
+                  </div>
+                  <div class="p-4 bg-zinc-950/50 border border-zinc-800/50 rounded-2xl space-y-1">
+                    <div class="text-[10px] font-black text-zinc-600 uppercase tracking-tighter">
+                      QQ邮箱
+                    </div>
+                    <div class="text-sm font-bold text-zinc-300">
+                      {{ selectedUserDetail.email || '未设置' }}
                     </div>
                   </div>
                   <div class="p-4 bg-zinc-950/50 border border-zinc-800/50 rounded-2xl space-y-1">
@@ -1439,6 +1469,7 @@ const statusLogsPagination = ref({
 const userForm = ref({
   name: '',
   username: '',
+  email: '',
   password: '',
   role: 'USER',
   status: 'active',
@@ -1562,6 +1593,7 @@ const editUser = (user) => {
   userForm.value = {
     name: user.name,
     username: user.username,
+    email: user.email || '',
     password: '',
     role: user.role,
     status: user.status || 'active',
@@ -1676,6 +1708,7 @@ const closeModal = () => {
   userForm.value = {
     name: '',
     username: '',
+    email: '',
     password: '',
     role: 'USER',
     status: 'active',
@@ -1693,14 +1726,21 @@ const closeResetPassword = () => {
   }
 }
 
+const qqEmailRegex = /^[1-9]\d{4,10}@qq\.com$/i
+
 const saveUser = async () => {
   // 保护：禁止保存针对自身的更改
   if (editingUser.value && isSelf(editingUser.value)) {
     formError.value = '禁止在用户管理中修改自己的账户'
     return
   }
-  if (!userForm.value.name || !userForm.value.username) {
-    formError.value = '请填写必要信息'
+  if (!userForm.value.name || !userForm.value.username || !userForm.value.email) {
+    formError.value = '请填写姓名、用户名和QQ邮箱'
+    return
+  }
+
+  if (!qqEmailRegex.test(userForm.value.email.trim().toLowerCase())) {
+    formError.value = 'QQ邮箱格式无效，仅支持 @qq.com'
     return
   }
 
@@ -1716,6 +1756,7 @@ const saveUser = async () => {
     const userData = {
       name: userForm.value.name,
       username: userForm.value.username,
+      email: userForm.value.email.trim().toLowerCase(),
       role: userForm.value.role,
       status: userForm.value.status,
       grade: userForm.value.grade,
@@ -1975,12 +2016,14 @@ const handleFileUpload = async (event) => {
             '角色',
             '年级',
             '班级',
+            '邮箱',
             'name',
             'username',
             'password',
             'role',
             'grade',
-            'class'
+            'class',
+            'email'
           ]
           const isHeaderRow = firstRow.some(
             (cell) =>
@@ -2026,7 +2069,8 @@ const handleFileUpload = async (event) => {
             password: row[2]?.toString() || '',
             role: role,
             grade: row[4]?.toString() || '',
-            class: row[5]?.toString() || ''
+            class: row[5]?.toString() || '',
+            email: row[6]?.toString() || ''
           })
         }
 

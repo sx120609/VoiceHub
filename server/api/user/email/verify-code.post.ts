@@ -2,6 +2,7 @@ import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { emailVerificationCodes } from './send-code.post'
+import { requireQQEmail } from '~~/server/utils/qq-email'
 
 export default defineEventHandler(async (event) => {
   if (getMethod(event) !== 'POST') {
@@ -14,23 +15,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const email = (body?.email || '').toString().trim().toLowerCase()
-  const code = (body?.code || '').toString().trim()
+  const email = requireQQEmail(body?.email)
 
-  if (!email || !code) {
-    throw createError({ statusCode: 400, message: '邮箱与验证码不能为空' })
+  const currentUser = await db.select().from(users).where(eq(users.id, user.id)).limit(1)
+  if (!currentUser[0]) {
+    throw createError({ statusCode: 404, message: '用户不存在' })
   }
-
-  const record = emailVerificationCodes.get(email)
-  if (!record || record.userId !== user.id) {
-    throw createError({ statusCode: 400, message: '请先发送验证码' })
-  }
-  if (Date.now() > record.expiresAt) {
-    emailVerificationCodes.delete(email)
-    throw createError({ statusCode: 400, message: '验证码已过期，请重新发送' })
-  }
-  if (record.code !== code) {
-    throw createError({ statusCode: 400, message: '验证码错误' })
+  if ((currentUser[0].email || '').toLowerCase() !== email) {
+    throw createError({ statusCode: 400, message: '邮箱不匹配，请先绑定当前QQ邮箱' })
   }
 
   // 验证通过：设置邮箱为已验证
@@ -38,5 +30,5 @@ export default defineEventHandler(async (event) => {
 
   emailVerificationCodes.delete(email)
 
-  return { success: true, message: '邮箱验证成功' }
+  return { success: true, message: 'QQ邮箱已验证' }
 })

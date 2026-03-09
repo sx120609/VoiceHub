@@ -1,45 +1,21 @@
 import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
-import { SmtpService } from '~~/server/services/smtpService'
-import { getClientIP } from '~~/server/utils/ip-utils'
+import { requireQQEmail } from '~~/server/utils/qq-email'
 
-// 简易验证码存储（如需分布式/重启持久，建议迁移到Redis）
-const emailVerificationCodes = new Map<
-  string,
-  { code: string; userId: number; expiresAt: number }
->()
-
-function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
+// 保留该导出以兼容历史接口调用，当前已切换为免验证码模式
+const emailVerificationCodes = new Map<string, { code: string; userId: number; expiresAt: number }>()
 
 export async function sendEmailVerificationCode(
-  userId: number,
-  email: string,
-  name?: string,
-  ipAddress?: string
+  _userId: number,
+  _email: string,
+  _name?: string,
+  _ipAddress?: string
 ) {
-  const code = generateCode()
-  const expiresAt = Date.now() + 5 * 60 * 1000
-  emailVerificationCodes.set(email, { code, userId, expiresAt })
-
-  const smtp = SmtpService.getInstance()
-  await smtp.initializeSmtpConfig()
-  const sent = await smtp.renderAndSend(
-    email,
-    'verification.code',
-    {
-      name: name || '用户',
-      email,
-      code,
-      expiresInMinutes: 5
-    },
-    ipAddress
-  )
-  if (!sent) {
-    throw createError({ statusCode: 500, message: '验证码发送失败，请稍后重试' })
-  }
+  throw createError({
+    statusCode: 400,
+    message: '当前系统已启用免验证码QQ邮箱绑定，无需发送验证码'
+  })
 }
 
 export default defineEventHandler(async (event) => {
@@ -53,12 +29,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const emailRaw = (body?.email || '').toString().trim().toLowerCase()
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-  if (!emailRaw || !emailRegex.test(emailRaw)) {
-    throw createError({ statusCode: 400, message: '请输入有效的邮箱地址' })
-  }
+  const emailRaw = requireQQEmail(body?.email)
 
   // 确认邮箱未被其他用户占用
   const existing = await db.select().from(users).where(eq(users.email, emailRaw)).limit(1)
@@ -66,16 +37,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '该邮箱已被其他用户绑定' })
   }
 
-  // 写入/更新邮箱，标记未验证
-  await db.update(users).set({ email: emailRaw, emailVerified: false }).where(eq(users.id, user.id))
+  // 写入/更新邮箱，直接标记为已验证（免确认邮件）
+  await db.update(users).set({ email: emailRaw, emailVerified: true }).where(eq(users.id, user.id))
+  emailVerificationCodes.delete(emailRaw)
 
-  // 获取客户端IP地址
-  const clientIP = getClientIP(event)
-
-  // 发送邮件验证码
-  await sendEmailVerificationCode(user.id, emailRaw, user.name, clientIP)
-
-  return { success: true, message: '验证码已发送，请查收邮箱' }
+  return { success: true, message: 'QQ邮箱绑定成功' }
 })
 
 export { emailVerificationCodes }
