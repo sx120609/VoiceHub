@@ -76,9 +76,6 @@
               <option value="@qq.com">@qq.com</option>
             </select>
           </div>
-          <p v-if="loginMode === 'password'" class="form-tip">
-            管理员账号可在前缀处直接输入用户名（例如 admin）
-          </p>
         </div>
 
         <div v-if="loginMode === 'password'" class="form-group">
