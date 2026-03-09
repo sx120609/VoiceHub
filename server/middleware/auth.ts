@@ -3,6 +3,27 @@ import { db, users } from '~/drizzle/db'
 import { eq } from 'drizzle-orm'
 import { isUserBlocked, getUserBlockRemainingTime } from '../services/securityService'
 
+const normalizeBaseURL = (baseURL: string) => {
+  const withLeadingSlash = baseURL.startsWith('/') ? baseURL : `/${baseURL}`
+  const normalized = withLeadingSlash.replace(/\/{2,}/g, '/')
+  return normalized.endsWith('/') ? normalized : `${normalized}/`
+}
+
+const stripBaseFromPath = (path: string, baseURL: string) => {
+  const normalizedBase = normalizeBaseURL(baseURL)
+  const basePrefix = normalizedBase === '/' ? '' : normalizedBase.slice(0, -1)
+
+  if (!basePrefix) {
+    return path
+  }
+
+  if (path === basePrefix) {
+    return '/'
+  }
+
+  return path.startsWith(`${basePrefix}/`) ? path.slice(basePrefix.length) : path
+}
+
 export default defineEventHandler(async (event) => {
   // 清除用户上下文
   if (event.context.user) {
@@ -11,9 +32,11 @@ export default defineEventHandler(async (event) => {
 
   const url = getRequestURL(event)
   const pathname = url.pathname
+  const runtimeConfig = useRuntimeConfig(event)
+  const routePath = stripBaseFromPath(pathname, runtimeConfig.app.baseURL || '/')
 
   // 跳过非API路由
-  if (!pathname.startsWith('/api/')) {
+  if (!routePath.startsWith('/api/')) {
     return
   }
 
@@ -39,15 +62,15 @@ export default defineEventHandler(async (event) => {
   ]
 
   // 公共路径跳过认证检查
-  if (publicApiPaths.some((path) => pathname.startsWith(path))) {
+  if (publicApiPaths.some((path) => routePath.startsWith(path))) {
     return
   }
 
   // 动态判断 OAuth 路径
   // 允许 /api/auth/[provider] 和 /api/auth/[provider]/callback
   // 但排除已知的受保护/特定 Auth 端点
-  if (pathname.startsWith('/api/auth/')) {
-    const segments = pathname.split('/')
+  if (routePath.startsWith('/api/auth/')) {
+    const segments = routePath.split('/')
     // segments: ['', 'api', 'auth', 'provider', 'callback'?]
     const provider = segments[3]
 
@@ -195,7 +218,7 @@ export default defineEventHandler(async (event) => {
 
     // 检查管理员专用路由
     if (
-      pathname.startsWith('/api/admin') &&
+      routePath.startsWith('/api/admin') &&
       !['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(user.role)
     ) {
       return sendError(

@@ -13,6 +13,27 @@ import { getBeijingTime } from '~/utils/timeUtils'
 import { getIPBlockRemainingTime, isIPBlocked } from '~~/server/services/securityService'
 import { getClientIP } from '~~/server/utils/ip-utils'
 
+const normalizeBaseURL = (baseURL: string) => {
+  const withLeadingSlash = baseURL.startsWith('/') ? baseURL : `/${baseURL}`
+  const normalized = withLeadingSlash.replace(/\/{2,}/g, '/')
+  return normalized.endsWith('/') ? normalized : `${normalized}/`
+}
+
+const stripBaseFromPath = (path: string, baseURL: string) => {
+  const normalizedBase = normalizeBaseURL(baseURL)
+  const basePrefix = normalizedBase === '/' ? '' : normalizedBase.slice(0, -1)
+
+  if (!basePrefix) {
+    return path
+  }
+
+  if (path === basePrefix) {
+    return '/'
+  }
+
+  return path.startsWith(`${basePrefix}/`) ? path.slice(basePrefix.length) : path
+}
+
 /**
  * 记录API访问日志
  */
@@ -54,13 +75,15 @@ async function logApiAccess(
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
   const pathname = url.pathname
+  const runtimeConfig = useRuntimeConfig(event)
+  const routePath = stripBaseFromPath(pathname, runtimeConfig.app.baseURL || '/')
 
   // 只处理开放API路由 (/api/open/*)
-  if (!pathname.startsWith('/api/open/')) {
+  if (!routePath.startsWith('/api/open/')) {
     return
   }
 
-  console.log(`[API Auth Middleware] 开始处理开放API请求: ${pathname}`)
+  console.log(`[API Auth Middleware] 开始处理开放API请求: ${routePath}`)
 
   const startTime = Date.now()
   const method = getMethod(event)
@@ -74,7 +97,7 @@ export default defineEventHandler(async (event) => {
     const remainingTime = getIPBlockRemainingTime(ipAddress)
     await ApiLogService.logAccess({
       apiKeyId: null,
-      endpoint: pathname,
+      endpoint: routePath,
       method,
       ipAddress,
       userAgent,
@@ -103,7 +126,7 @@ export default defineEventHandler(async (event) => {
     console.log(`[API Auth Middleware] API Key缺失`)
     await ApiLogService.logAccess({
       apiKeyId: null,
-      endpoint: pathname,
+      endpoint: routePath,
       method,
       ipAddress,
       userAgent,
@@ -163,7 +186,7 @@ export default defineEventHandler(async (event) => {
       console.log(`[API Auth Middleware] API Key未找到或未激活`)
       await ApiLogService.logAccess({
         apiKeyId: null,
-        endpoint: pathname,
+        endpoint: routePath,
         method,
         ipAddress,
         userAgent,
@@ -183,7 +206,7 @@ export default defineEventHandler(async (event) => {
     if (!apiKeyRecord.isActive) {
       await ApiLogService.logAccess({
         apiKeyId: apiKeyRecord.id,
-        endpoint: pathname,
+        endpoint: routePath,
         method,
         ipAddress,
         userAgent,
@@ -200,7 +223,7 @@ export default defineEventHandler(async (event) => {
       console.log(`[API Auth Middleware] API Key已过期`)
       await ApiLogService.logAccess({
         apiKeyId: apiKeyRecord.id,
-        endpoint: pathname,
+        endpoint: routePath,
         method,
         ipAddress,
         userAgent,
@@ -213,7 +236,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // 检查权限
-    const requiredPermission = getRequiredPermission(pathname, method)
+    const requiredPermission = getRequiredPermission(routePath, method)
     console.log(`[API Auth Middleware] 所需权限: ${requiredPermission}`)
 
     if (requiredPermission) {
@@ -236,7 +259,7 @@ export default defineEventHandler(async (event) => {
         console.log(`[API Auth Middleware] 缺少必需权限: ${requiredPermission}`)
         await ApiLogService.logAccess({
           apiKeyId: apiKeyRecord.id,
-          endpoint: pathname,
+          endpoint: routePath,
           method,
           ipAddress,
           userAgent,
@@ -269,7 +292,7 @@ export default defineEventHandler(async (event) => {
       await logApiAccess(
         apiKeyRecord.id,
         method,
-        pathname,
+        routePath,
         HTTP_STATUS.OK,
         Date.now() - startTime,
         ipAddress,
@@ -295,7 +318,7 @@ export default defineEventHandler(async (event) => {
       await logApiAccess(
         apiKeyRecord.id,
         method,
-        pathname,
+        routePath,
         statusCode,
         Date.now() - startTime,
         ipAddress,
