@@ -1,10 +1,16 @@
 import CryptoJS from 'crypto-js'
 import { randomBytes } from 'node:crypto'
+import { createError } from 'h3'
 
-const SECRET_KEY = process.env.OAUTH_STATE_SECRET
-
-if (!SECRET_KEY) {
-  throw new Error('OAUTH_STATE_SECRET environment variable is required')
+const getStateSecret = (): string => {
+  const secretKey = process.env.OAUTH_STATE_SECRET
+  if (!secretKey) {
+    throw createError({
+      statusCode: 500,
+      message: 'OAUTH_STATE_SECRET environment variable is required'
+    })
+  }
+  return secretKey
 }
 
 export interface OAuthState {
@@ -19,6 +25,7 @@ export const generateState = (
   targetOrigin: string,
   provider?: string
 ): { state: string; csrf: string } => {
+  const secretKey = getStateSecret()
   const csrf = randomBytes(32).toString('hex')
   const payload: OAuthState = {
     target: targetOrigin,
@@ -27,7 +34,7 @@ export const generateState = (
     provider
   }
   const json = JSON.stringify(payload)
-  const state = CryptoJS.AES.encrypt(json, SECRET_KEY).toString()
+  const state = CryptoJS.AES.encrypt(json, secretKey).toString()
   return { state, csrf }
 }
 
@@ -37,8 +44,9 @@ export const parseState = (
   expectedOrigin?: string,
   expectedCsrf?: string
 ): OAuthState | null => {
+  const secretKey = getStateSecret()
   try {
-    const bytes = CryptoJS.AES.decrypt(stateStr, SECRET_KEY)
+    const bytes = CryptoJS.AES.decrypt(stateStr, secretKey)
     const json = bytes.toString(CryptoJS.enc.Utf8)
     if (!json) return null
 
