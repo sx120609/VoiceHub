@@ -3,7 +3,7 @@
     <div class="form-header">
       <h2>{{ isBindMode ? '绑定账号' : '欢迎回来' }}</h2>
       <p v-if="isBindMode">即将绑定 {{ providerName }} 账号: {{ providerUsername }}</p>
-      <p v-else>使用 QQ 邮箱验证码登录 VoiceHub</p>
+      <p v-else>使用 QQ 邮箱登录 VoiceHub</p>
     </div>
 
     <form :class="['auth-form', { 'has-error': !!error }]" @submit.prevent="handleLogin">
@@ -43,6 +43,23 @@
       </template>
 
       <template v-else>
+        <div class="login-mode-switch" role="tablist" aria-label="登录方式">
+          <button
+            :class="['mode-btn', { active: loginMode === 'password' }]"
+            type="button"
+            @click="switchLoginMode('password')"
+          >
+            密码登录
+          </button>
+          <button
+            :class="['mode-btn', { active: loginMode === 'code' }]"
+            type="button"
+            @click="switchLoginMode('code')"
+          >
+            邮箱验证码登录
+          </button>
+        </div>
+
         <div class="form-group">
           <label for="emailPrefix">邮箱</label>
           <div class="input-wrapper email-split">
@@ -61,7 +78,25 @@
           </div>
         </div>
 
-        <div class="form-group">
+        <div v-if="loginMode === 'password'" class="form-group">
+          <label for="passwordLogin">密码</label>
+          <div class="input-wrapper">
+            <input
+              id="passwordLogin"
+              v-model="password"
+              :class="{ 'input-error': error }"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="请输入密码"
+              required
+              @input="clearMessages"
+            >
+            <button class="password-toggle" type="button" @click="showPassword = !showPassword">
+              {{ showPassword ? '隐藏' : '显示' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-else class="form-group">
           <label for="verificationCode">邮箱验证码</label>
           <div class="input-wrapper code-row">
             <input
@@ -123,7 +158,7 @@
           </circle>
         </svg>
         <span v-if="loading">{{ isBindMode ? '绑定中...' : '登录中...' }}</span>
-        <span v-else>{{ isBindMode ? '绑定并登录' : '验证码登录' }}</span>
+        <span v-else>{{ submitText }}</span>
       </button>
     </form>
 
@@ -135,6 +170,16 @@
         没有账号？<NuxtLink to="/register">立即注册</NuxtLink>
       </p>
     </div>
+
+    <AuthTwoFactorVerify
+      :show="show2FA"
+      :user-id="userId2FA"
+      :available-methods="methods2FA"
+      :masked-email="maskedEmail2FA"
+      :temp-token="tempToken2FA"
+      @success="handle2FASuccess"
+      @cancel="show2FA = false"
+    />
   </div>
 </template>
 
@@ -157,12 +202,19 @@ const showPassword = ref(false)
 
 const emailPrefix = ref('')
 const verificationCode = ref('')
+const loginMode = ref<'password' | 'code'>('password')
 
 const error = ref('')
 const info = ref('')
 const loading = ref(false)
 const sendingCode = ref(false)
 const resendCooldown = ref(0)
+
+const show2FA = ref(false)
+const userId2FA = ref(0)
+const methods2FA = ref<string[]>([])
+const tempToken2FA = ref('')
+const maskedEmail2FA = ref('')
 
 let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
@@ -175,6 +227,11 @@ const normalizeQQPrefixInput = (value: string): string => value.trim().toLowerCa
 const clearMessages = () => {
   error.value = ''
   info.value = ''
+}
+
+const switchLoginMode = (mode: 'password' | 'code') => {
+  loginMode.value = mode
+  clearMessages()
 }
 
 const resolveAfterLoginPath = () => {
@@ -219,8 +276,19 @@ const sendCodeButtonText = computed(() => {
   return '发送验证码'
 })
 
+const submitText = computed(() => {
+  if (isBindMode.value) {
+    return '绑定并登录'
+  }
+  return loginMode.value === 'password' ? '密码登录' : '验证码登录'
+})
+
 const extractErrorMessage = (err: any, fallback: string) => {
   return err?.data?.message || err?.message || fallback
+}
+
+const handle2FASuccess = async () => {
+  await navigateTo(resolveAfterLoginPath())
 }
 
 const handleSendCode = async () => {
@@ -284,6 +352,27 @@ const handleLogin = async () => {
       return
     }
 
+    if (loginMode.value === 'password') {
+      if (!password.value) {
+        error.value = '请输入密码'
+        return
+      }
+
+      const response: any = await auth.login(qqNumber, password.value)
+
+      if (response.requires2FA) {
+        userId2FA.value = response.userId
+        methods2FA.value = response.methods
+        tempToken2FA.value = response.tempToken
+        maskedEmail2FA.value = response.maskedEmail || ''
+        show2FA.value = true
+        return
+      }
+
+      await navigateTo(resolveAfterLoginPath())
+      return
+    }
+
     if (!/^\d{6}$/.test(verificationCode.value.trim())) {
       error.value = '请输入6位数字验证码'
       return
@@ -301,6 +390,9 @@ const handleLogin = async () => {
     await navigateTo(resolveAfterLoginPath())
   } catch (err: any) {
     error.value = extractErrorMessage(err, isBindMode.value ? '绑定失败，请检查账号密码' : '登录失败，请重试')
+    if (loginMode.value === 'password' && (error.value.includes('密码') || error.value.includes('错误'))) {
+      password.value = ''
+    }
   } finally {
     loading.value = false
   }
@@ -378,6 +470,29 @@ const handleLogin = async () => {
   100% {
     transform: translateX(0);
   }
+}
+
+.login-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mode-btn {
+  height: 38px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-lg);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: var(--font-medium);
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  border-color: var(--btn-primary-border);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
 }
 
 .form-group {
@@ -579,6 +694,10 @@ const handleLogin = async () => {
 
   .form-header p {
     font-size: 13px;
+  }
+
+  .login-mode-switch {
+    grid-template-columns: 1fr;
   }
 
   .code-row {
