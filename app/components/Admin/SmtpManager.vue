@@ -92,6 +92,9 @@
                   class="w-full"
                   @update:model-value="(val) => (config.smtpSecure = val === 'SSL/TLS')"
                 />
+                <p class="text-[9px] text-zinc-500 px-1 italic mt-1">
+                  端口 587 自动使用 STARTTLS，端口 465 使用 SSL/TLS。
+                </p>
               </div>
             </div>
             <div class="space-y-1.5">
@@ -243,6 +246,15 @@ const reloading = ref(false)
 const testResult = ref(null)
 const originalConfig = ref({})
 
+const extractErrorMessage = (error) => {
+  return (
+    error?.data?.detail ||
+    error?.data?.message ||
+    error?.message ||
+    '请求失败，请检查 SMTP 参数或网络策略'
+  )
+}
+
 // 加载配置
 const loadConfig = async () => {
   try {
@@ -340,16 +352,19 @@ const testConnection = async () => {
     const response = await $fetch('/api/admin/smtp/test-connection', {
       method: 'POST',
       body: config.value,
-      timeout: 20000
+      timeout: 45000
     })
 
     testResult.value = response
   } catch (error) {
     console.error('测试连接失败:', error)
+    const detail = extractErrorMessage(error)
     testResult.value = {
       success: false,
-      message: error.data?.message || '测试连接失败'
+      message: error?.data?.message || '测试连接失败',
+      detail
     }
+    showNotification(testResult.value.message, 'error')
   } finally {
     testing.value = false
   }
@@ -382,7 +397,7 @@ const sendTestEmail = async () => {
         ...config.value,
         testEmail: testEmail.value
       },
-      timeout: 20000
+      timeout: 45000
     })
 
     testResult.value = response
@@ -394,10 +409,13 @@ const sendTestEmail = async () => {
     }
   } catch (error) {
     console.error('发送测试邮件失败:', error)
+    const detail = extractErrorMessage(error)
     testResult.value = {
       success: false,
-      message: error.data?.message || '发送测试邮件失败'
+      message: error?.data?.message || '发送测试邮件失败',
+      detail
     }
+    showNotification(testResult.value.message, 'error')
   } finally {
     testing.value = false
   }

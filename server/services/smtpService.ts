@@ -5,6 +5,63 @@ import { and, eq, isNotNull } from 'drizzle-orm'
 import { getSiteTitle } from '~~/server/utils/siteUtils'
 import { formatIPForEmail } from '~~/server/utils/ip-utils'
 
+const SMTP_CONNECTION_TIMEOUT = 15000
+const SMTP_GREETING_TIMEOUT = 10000
+const SMTP_SOCKET_TIMEOUT = 30000
+const SMTP_DNS_TIMEOUT = 10000
+
+export const buildSmtpTransporterConfig = (smtpConfig: {
+  host: string
+  port?: number
+  secure?: boolean
+  auth?: any
+}) => {
+  const host = smtpConfig.host
+  const port = Number(smtpConfig.port) || 587
+
+  const transporterConfig: any = {
+    host,
+    port,
+    secure: Boolean(smtpConfig.secure),
+    auth: smtpConfig.auth,
+    connectionTimeout: SMTP_CONNECTION_TIMEOUT,
+    greetingTimeout: SMTP_GREETING_TIMEOUT,
+    socketTimeout: SMTP_SOCKET_TIMEOUT,
+    dnsTimeout: SMTP_DNS_TIMEOUT
+  }
+
+  // 按标准端口自动规范加密策略，避免 587 被错误配置为隐式 TLS 导致超时
+  if (port === 587) {
+    transporterConfig.secure = false
+    transporterConfig.requireTLS = true
+    transporterConfig.tls = {
+      minVersion: 'TLSv1.2',
+      servername: host,
+      rejectUnauthorized: false
+    }
+  } else if (port === 465) {
+    transporterConfig.secure = true
+    transporterConfig.tls = {
+      minVersion: 'TLSv1.2',
+      servername: host,
+      rejectUnauthorized: false
+    }
+  } else if (port === 25) {
+    transporterConfig.secure = false
+    transporterConfig.tls = {
+      servername: host,
+      rejectUnauthorized: false
+    }
+  } else if (!transporterConfig.secure) {
+    transporterConfig.tls = {
+      servername: host,
+      rejectUnauthorized: false
+    }
+  }
+
+  return transporterConfig
+}
+
 /**
  * SMTP邮件服务
  */
@@ -177,13 +234,10 @@ export class SmtpService {
         return false
       }
 
-      const port = settings.smtpPort || 587
-      const secure = settings.smtpSecure || false
-
       this.smtpConfig = {
         host: settings.smtpHost,
-        port: port,
-        secure: secure,
+        port: settings.smtpPort || 587,
+        secure: settings.smtpSecure || false,
         auth:
           settings.smtpUsername && settings.smtpPassword
             ? {
@@ -195,35 +249,7 @@ export class SmtpService {
         fromName: settings.smtpFromName || '校园广播站'
       }
 
-      // 创建transporter配置
-      const transporterConfig: any = {
-        host: this.smtpConfig.host,
-        port: this.smtpConfig.port,
-        secure: this.smtpConfig.secure,
-        auth: this.smtpConfig.auth
-      }
-
-      // 根据端口和安全设置调整配置
-      if (port === 587 && !secure) {
-        // STARTTLS - 端口587通常使用STARTTLS
-        transporterConfig.requireTLS = true
-        transporterConfig.tls = {
-          // 不验证服务器证书（用于测试环境）
-          rejectUnauthorized: false
-        }
-      } else if (port === 465) {
-        // SSL/TLS - 端口465必须使用SSL
-        transporterConfig.secure = true
-      } else if (port === 25) {
-        // 通常不加密
-        transporterConfig.secure = false
-        transporterConfig.tls = {
-          rejectUnauthorized: false
-        }
-      }
-
-      // 创建transporter
-      this.transporter = nodemailer.createTransport(transporterConfig)
+      this.transporter = nodemailer.createTransport(buildSmtpTransporterConfig(this.smtpConfig))
 
       // 验证SMTP连接
       await this.transporter.verify()

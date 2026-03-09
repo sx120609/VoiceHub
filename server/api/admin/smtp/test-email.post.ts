@@ -1,4 +1,4 @@
-import { SmtpService } from '~~/server/services/smtpService'
+import { SmtpService, buildSmtpTransporterConfig } from '~~/server/services/smtpService'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { db } from '~/drizzle/db'
 import { systemSettings } from '~/drizzle/schema'
@@ -101,27 +101,7 @@ export default defineEventHandler(async (event) => {
 
       // 创建测试transporter
       const nodemailer = await import('nodemailer')
-      const transporterConfig: any = {
-        host: smtpService.smtpConfig.host,
-        port: smtpService.smtpConfig.port,
-        secure: smtpService.smtpConfig.secure,
-        auth: smtpService.smtpConfig.auth
-      }
-
-      if (smtpService.smtpConfig.port === 587 && !smtpService.smtpConfig.secure) {
-        transporterConfig.requireTLS = true
-        transporterConfig.tls = {
-          rejectUnauthorized: false
-        }
-      } else if (smtpService.smtpConfig.port === 465) {
-        transporterConfig.secure = true
-      } else if (smtpService.smtpConfig.port === 25) {
-        transporterConfig.secure = false
-        transporterConfig.tls = {
-          rejectUnauthorized: false
-        }
-      }
-
+      const transporterConfig = buildSmtpTransporterConfig(smtpService.smtpConfig)
       smtpService.transporter = nodemailer.default.createTransport(transporterConfig)
 
       // 获取客户端IP地址
