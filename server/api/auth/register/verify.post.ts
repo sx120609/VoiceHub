@@ -4,6 +4,7 @@ import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { verifyPendingRegistrationCode } from '~~/server/utils/registration-verification'
+import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -86,16 +87,19 @@ export default defineEventHandler(async (event) => {
     path: '/'
   })
 
+  const qqProfile = await resolveQQDisplayProfile(user.username, qqEmail)
+
   return {
     success: true,
     message: '账号激活成功，已自动登录',
     user: {
       id: user.id,
       username: user.username,
-      name: user.name,
+      name: qqProfile?.name || user.name,
       grade: user.grade,
       class: user.class,
       role: user.role,
+      avatar: qqProfile?.avatar || null,
       needsPasswordChange: false
     }
   }

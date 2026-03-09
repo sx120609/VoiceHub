@@ -5,6 +5,7 @@ import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { SmtpService } from '~~/server/services/smtpService'
+import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import {
   extractQQNumberFromEmail,
   isRegistrationEmailVerificationEnabled,
@@ -145,12 +146,16 @@ export default defineEventHandler(async (event) => {
       path: '/'
     })
 
+    const qqProfile = await resolveQQDisplayProfile(newUser.username, qqEmail)
+
     return {
       success: true,
       requiresEmailVerification: false,
       message: '注册成功',
       user: {
         ...newUser,
+        name: qqProfile?.name || newUser.name,
+        avatar: qqProfile?.avatar || null,
         needsPasswordChange: false
       }
     }

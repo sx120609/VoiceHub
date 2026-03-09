@@ -19,7 +19,7 @@
           <ClientOnly>
             <div v-if="isClientAuthenticated" class="user-info">
               <div class="user-details-desktop">
-                <span class="user-name">{{ user?.name || '用户' }}</span>
+                <span class="user-name">{{ displayUserName }}</span>
                 <span v-if="isAdmin" class="user-badge admin">{{ roleName }}</span>
                 <span v-else class="user-badge">{{ userClassInfo }}</span>
               </div>
@@ -32,7 +32,7 @@
                   @error="avatarError = true"
                 >
                 <div v-else class="user-avatar-placeholder">
-                  {{ user?.name?.[0] || 'U' }}
+                  {{ displayUserName[0] || 'U' }}
                 </div>
               </div>
 
@@ -669,6 +669,9 @@ const auth = useAuth()
 const isClientAuthenticated = computed(() => auth?.isAuthenticated?.value || false)
 const isAdmin = computed(() => auth?.isAdmin?.value || false)
 const user = computed(() => auth?.user?.value || null)
+const displayUserName = computed(() => {
+  return user.value?.name || user.value?.username || '用户'
+})
 
 const roleName = computed(() => {
   const role = user.value?.role
