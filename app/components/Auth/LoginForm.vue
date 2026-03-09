@@ -76,6 +76,9 @@
               <option value="@qq.com">@qq.com</option>
             </select>
           </div>
+          <p v-if="loginMode === 'password'" class="form-tip">
+            管理员账号可在前缀处直接输入用户名（例如 admin）
+          </p>
         </div>
 
         <div v-if="loginMode === 'password'" class="form-group">
@@ -223,6 +226,7 @@ const qqNumberRegex = /^[1-9]\d{4,10}$/
 const auth = useAuth()
 
 const normalizeQQPrefixInput = (value: string): string => value.trim().toLowerCase()
+const normalizeAccountInput = (value: string): string => value.trim()
 
 const clearMessages = () => {
   error.value = ''
@@ -346,19 +350,19 @@ const handleLogin = async () => {
       return
     }
 
-    const qqNumber = normalizeQQPrefixInput(emailPrefix.value)
-    if (!qqNumberRegex.test(qqNumber)) {
-      error.value = '请输入正确的QQ邮箱前缀'
-      return
-    }
-
     if (loginMode.value === 'password') {
+      const account = normalizeAccountInput(emailPrefix.value)
+      if (!account) {
+        error.value = '请输入账号或邮箱前缀'
+        return
+      }
+
       if (!password.value) {
         error.value = '请输入密码'
         return
       }
 
-      const response: any = await auth.login(qqNumber, password.value)
+      const response: any = await auth.login(account, password.value)
 
       if (response.requires2FA) {
         userId2FA.value = response.userId
@@ -370,6 +374,12 @@ const handleLogin = async () => {
       }
 
       await navigateTo(resolveAfterLoginPath())
+      return
+    }
+
+    const qqNumber = normalizeQQPrefixInput(emailPrefix.value)
+    if (!qqNumberRegex.test(qqNumber)) {
+      error.value = '验证码登录仅支持QQ邮箱前缀'
       return
     }
 
