@@ -50,7 +50,9 @@
               <h2 class="text-2xl font-black text-zinc-100 tracking-tight">
                 {{ auth.user.value?.name || auth.user.value?.username }}
               </h2>
-              <p class="text-sm font-medium text-zinc-500">@{{ auth.user.value?.username }}</p>
+              <p v-if="auth.user.value?.email" class="text-sm font-medium text-zinc-500">
+                {{ auth.user.value?.email }}
+              </p>
             </div>
 
             <div class="flex flex-wrap justify-center gap-2 mt-6">
