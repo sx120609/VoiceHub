@@ -171,15 +171,6 @@
       </p>
     </div>
 
-    <AuthTwoFactorVerify
-      :show="show2FA"
-      :user-id="userId2FA"
-      :available-methods="methods2FA"
-      :masked-email="maskedEmail2FA"
-      :temp-token="tempToken2FA"
-      @success="handle2FASuccess"
-      @cancel="show2FA = false"
-    />
   </div>
 </template>
 
@@ -209,12 +200,6 @@ const info = ref('')
 const loading = ref(false)
 const sendingCode = ref(false)
 const resendCooldown = ref(0)
-
-const show2FA = ref(false)
-const userId2FA = ref(0)
-const methods2FA = ref<string[]>([])
-const tempToken2FA = ref('')
-const maskedEmail2FA = ref('')
 
 let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
@@ -288,10 +273,6 @@ const extractErrorMessage = (err: any, fallback: string) => {
   return err?.data?.message || err?.message || fallback
 }
 
-const handle2FASuccess = async () => {
-  await navigateTo(resolveAfterLoginPath())
-}
-
 const handleSendCode = async () => {
   if (isBindMode.value || sendingCode.value || loading.value || resendCooldown.value > 0) {
     return
@@ -359,16 +340,7 @@ const handleLogin = async () => {
         return
       }
 
-      const response: any = await auth.login(account, password.value)
-
-      if (response.requires2FA) {
-        userId2FA.value = response.userId
-        methods2FA.value = response.methods
-        tempToken2FA.value = response.tempToken
-        maskedEmail2FA.value = response.maskedEmail || ''
-        show2FA.value = true
-        return
-      }
+      await auth.login(account, password.value)
 
       await navigateTo(resolveAfterLoginPath())
       return

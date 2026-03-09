@@ -4,6 +4,7 @@ import { getClientIP } from '~~/server/utils/ip-utils'
 import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { verifyPendingEmailLoginCode } from '~~/server/utils/email-login-verification'
+import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -98,6 +99,7 @@ export default defineEventHandler(async (event) => {
       maxAge: 60 * 60 * 24 * 7,
       path: '/'
     })
+    const qqProfile = await resolveQQDisplayProfile(user.username, qqEmail)
 
     return {
       success: true,
@@ -105,10 +107,11 @@ export default defineEventHandler(async (event) => {
       user: {
         id: user.id,
         username: user.username,
-        name: user.name,
+        name: qqProfile?.name || user.name,
         grade: user.grade,
         class: user.class,
         role: user.role,
+        avatar: qqProfile?.avatar || null,
         needsPasswordChange: false
       }
     }

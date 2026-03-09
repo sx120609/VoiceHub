@@ -1,3 +1,5 @@
+import iconv from 'iconv-lite'
+
 type QQDisplayProfile = {
   name?: string
   avatar?: string
@@ -77,17 +79,37 @@ const sanitizeQQNickname = (value: unknown): string | null => {
   return trimmed
 }
 
+const decodePortraitResponse = (buffer: Buffer): string => {
+  try {
+    const gbText = iconv.decode(buffer, 'gb18030')
+    if (/portraitCallBack\(/i.test(gbText)) {
+      return gbText
+    }
+  } catch {
+    // ignore and fallback to utf-8
+  }
+  return buffer.toString('utf8')
+}
+
 const fetchQQNickname = async (qqNumber: string): Promise<string | null> => {
   const url = `https://users.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?uins=${qqNumber}`
 
   try {
-    const responseText = await $fetch<string>(url, {
-      responseType: 'text',
-      timeout: QQ_PROFILE_TIMEOUT_MS,
+    const response = await fetch(url, {
+      method: 'GET',
+      signal: AbortSignal.timeout(QQ_PROFILE_TIMEOUT_MS),
       headers: {
-        'user-agent': 'Mozilla/5.0 VoiceHub/1.0'
+        'user-agent': 'Mozilla/5.0 VoiceHub/1.0',
+        accept: 'text/plain,*/*'
       }
     })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer())
+    const responseText = decodePortraitResponse(buffer)
 
     const callbackMatch = responseText.match(/portraitCallBack\(([\s\S]+)\)\s*;?\s*$/i)
     if (!callbackMatch) {

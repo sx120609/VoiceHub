@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-import { db, eq, users, userIdentities, and } from '~/drizzle/db'
+import { db, eq, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import {
   getAccountLockRemainingTime,
@@ -15,6 +15,7 @@ import {
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { isRegistrationEmailVerificationEnabled } from '~~/server/utils/registration-verification'
+import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
@@ -131,42 +132,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 检查是否开启2FA
-    const totpIdentity = await db.query.userIdentities.findFirst({
-      where: and(eq(userIdentities.userId, user.id), eq(userIdentities.provider, 'totp'))
-    })
-
-    if (totpIdentity) {
-      // 生成预认证临时令牌
-      const tempToken = JWTEnhanced.sign({
-        userId: user.id,
-        type: 'pre-auth',
-        scope: '2fa_pending'
-      }, { expiresIn: '5m' }) // 动态构建验证方式列表
-      const methods = ['totp']
-      let maskedEmail = ''
-      
-      if (user.email && user.emailVerified) {
-        methods.push('email')
-        // 生成脱敏邮箱提示
-        const [local, domain] = user.email.split('@')
-        if (local && domain) {
-          maskedEmail = local.length <= 2 
-            ? `***@${domain}` 
-            : `${local.slice(0, 2)}****@${domain}`
-        }
-      }
-
-      return {
-        success: true,
-        requires2FA: true,
-        userId: user.id,
-        methods,
-        maskedEmail,
-        tempToken
-      }
-    }
-
     recordLoginSuccess(body.username, clientIp)
 
     const ipSwitchExceeded = recordAccountIpLogin(body.username, clientIp)
@@ -209,16 +174,18 @@ export default defineEventHandler(async (event) => {
 
     const processingTime = Date.now() - startTime
     console.log(`Login for ${user.username} processed in ${processingTime}ms`)
+    const qqProfile = await resolveQQDisplayProfile(user.username, user.email)
 
     return {
       success: true,
       user: {
         id: user.id,
         username: user.username,
-        name: user.name,
+        name: qqProfile?.name || user.name,
         grade: user.grade,
         class: user.class,
         role: user.role,
+        avatar: qqProfile?.avatar || null,
         needsPasswordChange: !user.passwordChangedAt
       }
     }
