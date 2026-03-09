@@ -15,7 +15,6 @@ import {
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { isRegistrationEmailVerificationEnabled } from '~~/server/utils/registration-verification'
-import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
@@ -211,18 +210,15 @@ export default defineEventHandler(async (event) => {
     const processingTime = Date.now() - startTime
     console.log(`Login for ${user.username} processed in ${processingTime}ms`)
 
-    const qqProfile = await resolveQQDisplayProfile(user.username, user.email)
-
     return {
       success: true,
       user: {
         id: user.id,
         username: user.username,
-        name: qqProfile?.name || user.name,
+        name: user.name,
         grade: user.grade,
         class: user.class,
         role: user.role,
-        avatar: qqProfile?.avatar || null,
         needsPasswordChange: !user.passwordChangedAt
       }
     }
