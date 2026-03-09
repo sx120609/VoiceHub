@@ -19,7 +19,10 @@ export default defineNuxtPlugin((nuxtApp) => {
   const isApiRequest = (request: string) =>
     request.startsWith('/api') || request === apiBase || request.startsWith(`${apiBase}/`)
   const normalizeApiRequest = (request: string) => withApiBase(request, apiBase)
-  const isLoginPage = () => stripAppBaseFromPath(window.location.pathname, appBaseURL) === '/login'
+  const isAuthPage = () => {
+    const currentPath = stripAppBaseFromPath(window.location.pathname, appBaseURL)
+    return currentPath === '/login' || currentPath === '/register'
+  }
 
   // 拦截window.fetch
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -55,7 +58,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     // 检查是否为401错误
     if (response.status === 401) {
       // 如果在登录页面，解析错误响应体并抛出具体错误信息
-      if (isLoginPage()) {
+      if (isAuthPage()) {
         try {
           const errorData = await response.clone().json()
           const errorMessage = errorData.message || '登录失败，请检查账号密码'
@@ -98,7 +101,7 @@ export default defineNuxtPlugin((nuxtApp) => {
           // 检查是否为401错误
           if (error?.status === 401 || error?.statusCode === 401) {
             // 如果在登录页面，解析错误信息并抛出具体错误
-            if (isLoginPage()) {
+            if (isAuthPage()) {
               // 从error对象中提取具体错误信息，过滤掉网络请求信息
               let errorMessage =
                 error?.data?.message || error?.message || '登录失败，请检查账号密码'
@@ -129,7 +132,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   // 全局错误处理
   nuxtApp.hook('vue:error', async (error: any) => {
     if (error?.status === 401 || error?.statusCode === 401) {
-      if (!isLoginPage()) {
+      if (!isAuthPage()) {
         await errorHandler.handle401Error('您的登录信息已失效，请重新登录')
       }
     }

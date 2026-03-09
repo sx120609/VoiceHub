@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
   // 公共API路径
   const publicApiPaths = [
     '/api/auth/login',
+    '/api/auth/register',
     '/api/auth/bind', // 账号绑定
     '/api/auth/verify', // verify端点自行处理token验证
     '/api/semesters/current',
@@ -90,7 +91,8 @@ export default defineEventHandler(async (event) => {
       'login',
       'bind',
       'verify',
-      'webauthn'
+      'webauthn',
+      'register'
     ]
 
     if (provider && !nonOAuthEndpoints.includes(provider)) {

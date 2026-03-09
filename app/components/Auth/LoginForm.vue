@@ -142,6 +142,9 @@
 
     <div class="form-footer">
       <p class="help-text">不同VoiceHub平台的账号不互通</p>
+      <p v-if="!isBindMode" class="help-text register-link">
+        没有账号？<NuxtLink to="/register">立即注册</NuxtLink>
+      </p>
     </div>
 
     <AuthTwoFactorVerify
@@ -561,6 +564,20 @@ const handleWebAuthnLogin = async () => {
   color: var(--text-quaternary);
   margin: 0;
   line-height: 1.5;
+}
+
+.register-link {
+  margin-top: 6px;
+}
+
+.register-link a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
 }
 
 .help-text code {
