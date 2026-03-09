@@ -1,13 +1,13 @@
 import { db, eq, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
-import { requireQQEmail } from '~~/server/utils/qq-email'
+import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { verifyPendingRegistrationCode } from '~~/server/utils/registration-verification'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const qqEmail = requireQQEmail(body?.email)
+  const qqEmail = requireQQEmailOrNumber(body?.email ?? body?.qqNumber ?? body?.qq)
   const code = (body?.code || '').toString().trim()
 
   if (!/^\d{6}$/.test(code)) {

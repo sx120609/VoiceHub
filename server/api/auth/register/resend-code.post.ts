@@ -1,7 +1,7 @@
 import { db, eq, users } from '~/drizzle/db'
 import { SmtpService } from '~~/server/services/smtpService'
 import { getClientIP } from '~~/server/utils/ip-utils'
-import { requireQQEmail } from '~~/server/utils/qq-email'
+import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import {
   getRegistrationCodeResendRemainingSeconds,
   setPendingRegistrationCode
@@ -9,7 +9,7 @@ import {
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const qqEmail = requireQQEmail(body?.email)
+  const qqEmail = requireQQEmailOrNumber(body?.email ?? body?.qqNumber ?? body?.qq)
 
   const userResult = await db
     .select({

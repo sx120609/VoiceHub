@@ -14,15 +14,15 @@
       @submit.prevent="handleRegister"
     >
       <div class="form-group">
-        <label for="email">QQ邮箱</label>
+        <label for="qqNumber">QQ号</label>
         <div class="input-wrapper">
           <input
-            id="email"
+            id="qqNumber"
             v-model="form.email"
             :class="{ 'input-error': error }"
-            placeholder="例如：123456789@qq.com"
+            placeholder="例如：123456789（系统自动补全@qq.com）"
             required
-            type="email"
+            type="text"
             @input="error = ''"
           >
         </div>
@@ -162,7 +162,12 @@ const resendCooldown = ref(0)
 
 let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
-const qqEmailRegex = /^[1-9]\d{4,10}@qq\.com$/i
+const qqNumberRegex = /^[1-9]\d{4,10}$/
+
+const normalizeQQNumberInput = (value: string): string =>
+  value.trim().toLowerCase().replace(/@qq\.com$/i, '')
+
+const toQQEmail = (value: string): string => `${normalizeQQNumberInput(value)}@qq.com`
 
 const stopCooldownTimer = () => {
   if (cooldownTimer) {
@@ -200,8 +205,9 @@ const handleRegister = async () => {
     return
   }
 
-  if (!qqEmailRegex.test(form.value.email.trim().toLowerCase())) {
-    error.value = '仅支持QQ邮箱（@qq.com）'
+  const qqNumber = normalizeQQNumberInput(form.value.email)
+  if (!qqNumberRegex.test(qqNumber)) {
+    error.value = '请输入正确的QQ号'
     return
   }
 
@@ -223,14 +229,14 @@ const handleRegister = async () => {
     const response: any = await $fetch('/api/auth/register', {
       method: 'POST',
       body: {
-        email: form.value.email.trim().toLowerCase(),
+        qqNumber,
         password: form.value.password
       }
     })
 
     if (response?.requiresEmailVerification) {
       pendingVerification.value = true
-      pendingEmail.value = response.email || form.value.email.trim().toLowerCase()
+      pendingEmail.value = response.email || toQQEmail(form.value.email)
       verificationSent.value = !!response.verificationSent
       form.value.verificationCode = ''
       if (verificationSent.value) {

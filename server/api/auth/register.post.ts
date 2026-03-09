@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt'
 import { db, eq, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
-import { requireQQEmail } from '~~/server/utils/qq-email'
+import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { SmtpService } from '~~/server/services/smtpService'
@@ -14,7 +14,7 @@ import {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const password = (body?.password || '').toString()
-  const qqEmail = requireQQEmail(body?.email)
+  const qqEmail = requireQQEmailOrNumber(body?.email ?? body?.qqNumber ?? body?.qq)
   const username = extractQQNumberFromEmail(qqEmail)
 
   if (!password) {
