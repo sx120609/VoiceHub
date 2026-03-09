@@ -446,7 +446,7 @@ const saveConfig = async () => {
     setTimeout(() => {
       saveSuccess.value = false
     }, 3000)
-  } catch (error: any) {
+  } catch (error) {
     console.error('保存配置失败:', error)
     showNotification(error?.data?.message || error?.message || '保存配置失败，请重试', 'error')
   } finally {
