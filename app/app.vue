@@ -1,7 +1,7 @@
 <template>
   <div class="app" data-theme="dark" data-color-scheme="custom">
     <!-- 全局通知容器组件 -->
-    <LazyUINotificationContainer ref="notificationContainer" />
+    <UINotificationContainer ref="notificationContainer" />
 
     <!-- 全局音频播放器 - 使用isPlayerVisible控制显示/隐藏 -->
     <LazyUIAudioPlayer

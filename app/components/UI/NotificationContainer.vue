@@ -7,13 +7,15 @@
         :class="{
           success: notification.type === 'success',
           error: notification.type === 'error',
-          info: notification.type === 'info'
+          info: notification.type === 'info',
+          warning: notification.type === 'warning'
         }"
         class="notification-item"
       >
         <div class="notification-icon">
           <Icon v-if="notification.type === 'success'" :size="16" name="success" />
           <Icon v-else-if="notification.type === 'error'" :size="16" name="error" />
+          <Icon v-else-if="notification.type === 'warning'" :size="16" name="warning" />
           <Icon v-else :size="16" name="info" />
         </div>
         <div class="notification-content">
@@ -38,26 +40,12 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import { useToast } from '~/composables/useToast'
 
 // 使用 useToast 的共享状态
 const { toasts, removeToast } = useToast()
 const notifications = toasts
-
-// 全局挂载通知函数 (兼容旧代码)
-onMounted(() => {
-  // 兼容旧的全局调用方式
-  window.$showNotification = (message, type = 'info', autoClose = true, duration = 3000) => {
-    const { showToast } = useToast()
-    showToast(message, type, duration)
-  }
-
-  window.$clearNotifications = () => {
-    notifications.value = []
-  }
-})
 </script>
 
 <style scoped>
@@ -105,6 +93,10 @@ onMounted(() => {
   border-left: 4px solid #0b5afe;
 }
 
+.notification-item.warning {
+  border-left: 4px solid #f59e0b;
+}
+
 .notification-icon {
   display: flex;
   align-items: center;
@@ -131,6 +123,11 @@ onMounted(() => {
 .info .notification-icon {
   background: rgba(11, 90, 254, 0.2);
   color: #0b5afe;
+}
+
+.warning .notification-icon {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
 }
 
 .notification-content {
@@ -188,6 +185,10 @@ onMounted(() => {
 
 .info .notification-progress-bar {
   background-color: #0b5afe;
+}
+
+.warning .notification-progress-bar {
+  background-color: #f59e0b;
 }
 
 @keyframes progress-shrink {

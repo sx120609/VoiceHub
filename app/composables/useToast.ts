@@ -26,10 +26,12 @@ export const useToast = () => {
 
     toasts.value.push(toast)
 
-    // 自动移除toast
-    setTimeout(() => {
-      removeToast(id)
-    }, duration)
+    // duration <= 0 时不自动关闭（兼容旧调用中的 autoClose=false）
+    if (duration > 0) {
+      setTimeout(() => {
+        removeToast(id)
+      }, duration)
+    }
 
     return id
   }
@@ -45,11 +47,15 @@ export const useToast = () => {
   const error = (message: string, duration?: number) => showToast(message, 'error', duration)
   const info = (message: string, duration?: number) => showToast(message, 'info', duration)
   const warning = (message: string, duration?: number) => showToast(message, 'warning', duration)
+  const clearToasts = () => {
+    toasts.value = []
+  }
 
   return {
     toasts,
     showToast,
     removeToast,
+    clearToasts,
     success,
     error,
     info,
