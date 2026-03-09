@@ -1,4 +1,5 @@
 import { useAuth } from './useAuth'
+import { normalizeAppBase, stripAppBaseFromPath } from '~/utils/baseUrl'
 
 // 防抖机制
 let isHandling401 = false
@@ -16,7 +17,11 @@ export const useErrorHandler = () => {
     isHandling401 = true
 
     try {
-      const currentPath = import.meta.client ? window.location.pathname : ''
+      const runtimeConfig = useRuntimeConfig()
+      const appBaseURL = normalizeAppBase(runtimeConfig.app.baseURL)
+      const currentPath = import.meta.client
+        ? stripAppBaseFromPath(window.location.pathname, appBaseURL)
+        : ''
 
       // 检查是否在登录页面
       const isLoginPage = currentPath === '/login'

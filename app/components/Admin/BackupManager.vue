@@ -232,6 +232,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuth } from '~/composables/useAuth'
+import { normalizeAppBase } from '~/utils/baseUrl'
+
+const config = useRuntimeConfig()
+const appBaseURL = normalizeAppBase(config.app.baseURL)
 
 // 响应式数据
 const createLoading = ref(false)
@@ -489,7 +493,7 @@ const uploadFile = async () => {
         localStorage.removeItem('user-info')
 
         // 重定向到首页
-        window.location.href = '/'
+        window.location.href = appBaseURL
       }, 5000)
     } else {
       if (window.$showNotification) {

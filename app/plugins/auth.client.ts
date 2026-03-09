@@ -1,31 +1,61 @@
+import {
+  normalizeApiBase,
+  normalizeAppBase,
+  stripAppBaseFromPath,
+  withApiBase
+} from '~/utils/baseUrl'
+
 export default defineNuxtPlugin((nuxtApp) => {
   if (!import.meta.client) {
     return
   }
 
   // 立即设置请求拦截器，确保在任何API调用之前生效
+  const runtimeConfig = useRuntimeConfig()
+  const appBaseURL = normalizeAppBase(runtimeConfig.app.baseURL)
+  const apiBase = normalizeApiBase(runtimeConfig.public.apiBase, appBaseURL)
   const originalFetch = window.fetch
   const errorHandler = useErrorHandler()
+  const isApiRequest = (request: string) =>
+    request.startsWith('/api') || request === apiBase || request.startsWith(`${apiBase}/`)
+  const normalizeApiRequest = (request: string) => withApiBase(request, apiBase)
+  const isLoginPage = () => stripAppBaseFromPath(window.location.pathname, appBaseURL) === '/login'
 
   // 拦截window.fetch
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    // 处理所有API请求 - cookie会自动发送，无需手动添加Authorization头
-    if (typeof input === 'string' && input.startsWith('/api')) {
-      init = init || {}
-      init.headers = init.headers || {}
+    let nextInput = input
 
-      // 确保cookie会被发送
-      init.credentials = 'include'
+    // 处理所有API请求 - cookie会自动发送，无需手动添加Authorization头
+    if (typeof input === 'string') {
+      const normalizedInput = normalizeApiRequest(input)
+      nextInput = normalizedInput
+
+      if (isApiRequest(normalizedInput)) {
+        init = init || {}
+        init.headers = init.headers || {}
+
+        // 确保cookie会被发送
+        init.credentials = 'include'
+      }
+    } else if (input instanceof URL && input.origin === window.location.origin) {
+      const currentPath = `${input.pathname}${input.search}${input.hash}`
+      const normalizedPath = normalizeApiRequest(currentPath)
+      if (normalizedPath !== currentPath || isApiRequest(currentPath)) {
+        if (normalizedPath !== currentPath) {
+          nextInput = new URL(normalizedPath, window.location.origin)
+        }
+        init = init || {}
+        init.headers = init.headers || {}
+        init.credentials = 'include'
+      }
     }
 
-    const response = await originalFetch(input, init)
+    const response = await originalFetch(nextInput, init)
 
     // 检查是否为401错误
     if (response.status === 401) {
-      const currentPath = window.location.pathname
-
       // 如果在登录页面，解析错误响应体并抛出具体错误信息
-      if (currentPath === '/login') {
+      if (isLoginPage()) {
         try {
           const errorData = await response.clone().json()
           const errorMessage = errorData.message || '登录失败，请检查账号密码'
@@ -52,22 +82,23 @@ export default defineNuxtPlugin((nuxtApp) => {
     const originalUseFetch = nuxtApp.$fetch
     if (originalUseFetch) {
       nuxtApp.$fetch = async function (request: any, options: any = {}) {
+        const normalizedRequest =
+          typeof request === 'string' ? normalizeApiRequest(request) : request
+
         // 为所有API请求确保cookie会被发送
-        if (typeof request === 'string' && request.startsWith('/api')) {
+        if (typeof normalizedRequest === 'string' && isApiRequest(normalizedRequest)) {
           options.headers = options.headers || {}
           // 确保cookie会被发送
           options.credentials = 'include'
         }
 
         try {
-          return await originalUseFetch(request, options)
+          return await originalUseFetch(normalizedRequest, options)
         } catch (error: any) {
           // 检查是否为401错误
           if (error?.status === 401 || error?.statusCode === 401) {
-            const currentPath = window.location.pathname
-
             // 如果在登录页面，解析错误信息并抛出具体错误
-            if (currentPath === '/login') {
+            if (isLoginPage()) {
               // 从error对象中提取具体错误信息，过滤掉网络请求信息
               let errorMessage =
                 error?.data?.message || error?.message || '登录失败，请检查账号密码'
@@ -98,8 +129,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   // 全局错误处理
   nuxtApp.hook('vue:error', async (error: any) => {
     if (error?.status === 401 || error?.statusCode === 401) {
-      const currentPath = window.location.pathname
-      if (currentPath !== '/login') {
+      if (!isLoginPage()) {
         await errorHandler.handle401Error('您的登录信息已失效，请重新登录')
       }
     }

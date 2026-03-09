@@ -439,9 +439,12 @@ import { Download, Upload, RotateCw, Trash2, AlertCircle, X } from 'lucide-vue-n
 import CustomSelect from '~/components/UI/Common/CustomSelect.vue'
 import { useToast } from '~/composables/useToast'
 import { useAuth } from '~/composables/useAuth'
+import { normalizeAppBase } from '~/utils/baseUrl'
 
 const { showToast: showNotification } = useToast()
 const auth = useAuth()
+const config = useRuntimeConfig()
+const appBaseURL = normalizeAppBase(config.app.baseURL)
 
 // 状态
 const activeModal = ref('none')
@@ -822,7 +825,7 @@ const restoreBackup = async () => {
         }
         localStorage.removeItem('auth-token')
         localStorage.removeItem('user-info')
-        window.location.href = '/'
+        window.location.href = appBaseURL
       }, 1200)
       return
     }

@@ -3,6 +3,17 @@ import topLevelAwait from 'vite-plugin-top-level-await'
 import glsl from 'vite-plugin-glsl'
 import { fileURLToPath } from 'url'
 
+const normalizeBaseURL = (baseURL: string) => {
+  const withLeadingSlash = baseURL.startsWith('/') ? baseURL : `/${baseURL}`
+  const normalized = withLeadingSlash.replace(/\/{2,}/g, '/')
+  return normalized.endsWith('/') ? normalized : `${normalized}/`
+}
+
+const appBaseURL = normalizeBaseURL(process.env.NUXT_APP_BASE_URL || '/rareapp/')
+const appBasePrefix = appBaseURL === '/' ? '' : appBaseURL.slice(0, -1)
+const defaultApiBase = `${appBasePrefix}/api`
+const apiBase = (process.env.NUXT_PUBLIC_API_BASE || defaultApiBase).replace(/\/+$/, '')
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2026-01-30',
@@ -45,7 +56,7 @@ export default defineNuxtConfig({
     redisUrl: process.env.REDIS_URL || '',
     // 公共键（会暴露到客户端）
     public: {
-      apiBase: '/api',
+      apiBase,
       oauth: {
         github: !!process.env.GITHUB_CLIENT_ID,
         casdoor: !!process.env.CASDOOR_CLIENT_ID,
@@ -61,6 +72,7 @@ export default defineNuxtConfig({
 
   // 配置环境变量
   app: {
+    baseURL: appBaseURL,
     pageTransition: { name: 'page', mode: 'out-in' },
     layoutTransition: { name: 'layout', mode: 'out-in' },
     head: {
@@ -86,7 +98,7 @@ export default defineNuxtConfig({
         { name: 'format-detection', content: 'telephone=no' }
       ],
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'icon', type: 'image/x-icon', href: `${appBaseURL}favicon.ico` },
         // 优先加载常规字体，确保页面快速显示
         {
           rel: 'preload',

@@ -259,10 +259,12 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import { Loader2, Shield, Fingerprint, ChevronDown, Pencil, Check, X, AlertTriangle } from 'lucide-vue-next'
 import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 import { useToast } from '~/composables/useToast'
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 import { getProviderDisplayName } from '~/utils/oauth'
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser'
 
 const config = useRuntimeConfig()
+const apiBase = computed(() => normalizeApiBase(config.public.apiBase, config.app.baseURL))
 const { showToast } = useToast()
 const identities = ref([])
 const loading = ref(true)
@@ -366,7 +368,7 @@ const fetchIdentities = async () => {
 const handleBind = (provider) => {
   actionLoading.value = true
   // 绑定也是通过 OAuth 流程，最终回调时会自动识别已登录状态并执行绑定
-  navigateTo(`/api/auth/${provider}`, { external: true })
+  navigateTo(withApiBase(`/api/auth/${provider}`, apiBase.value), { external: true })
 }
 
 const confirmUnbind = (provider) => {

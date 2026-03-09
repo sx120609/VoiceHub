@@ -1,8 +1,13 @@
 import { onUnmounted, ref } from 'vue'
 import { useProgress } from './useProgress'
 import { useAuth } from './useAuth'
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 
 export const useProgressEvents = () => {
+  const runtimeConfig = useRuntimeConfig()
+  const apiBase = normalizeApiBase(runtimeConfig.public.apiBase, runtimeConfig.app.baseURL)
+  const progressEventsEndpoint = withApiBase('/api/progress/events', apiBase)
+  const progressIdEndpoint = withApiBase('/api/progress/id', apiBase)
   const {
     percentage,
     message,
@@ -34,7 +39,7 @@ export const useProgressEvents = () => {
       // 创建新的事件源，通过URL参数传递认证token
       const auth = useAuth()
       const token = auth.getToken()
-      eventSource = new EventSource(`/api/progress/events?id=${id}&token=${token}`)
+      eventSource = new EventSource(`${progressEventsEndpoint}?id=${id}&token=${token}`)
 
       // 连接打开
       eventSource.onopen = () => {
@@ -109,7 +114,7 @@ export const useProgressEvents = () => {
   // 获取新的进度ID
   const getProgressId = async () => {
     try {
-      const response = await fetch('/api/progress/id', {
+      const response = await fetch(progressIdEndpoint, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

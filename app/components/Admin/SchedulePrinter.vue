@@ -373,6 +373,7 @@ import { useRuntimeConfig } from '#app'
 import { usePermissions } from '~/composables/usePermissions'
 import { useSiteConfig } from '~/composables/useSiteConfig'
 import { useAuth } from '~/composables/useAuth'
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 import { convertToHttps } from '~/utils/url'
 import { toPng, toBlob } from 'html-to-image'
 import { jsPDF } from 'jspdf'
@@ -403,6 +404,7 @@ const { siteTitle, schoolLogoPrintUrl, initSiteConfig } = useSiteConfig()
 
 // 配置
 const config = useRuntimeConfig()
+const apiBase = computed(() => normalizeApiBase(config.public.apiBase, config.app.baseURL))
 
 // Logo URL处理
 const logoUrl = computed(() => logoPng)
@@ -1026,7 +1028,7 @@ const exportPDFForPrint = async (action = 'print') => {
 const downloadImageAsBase64 = async (url) => {
   try {
     // 使用代理API获取图片
-    const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(url)}`
+    const proxyUrl = `${withApiBase('/api/proxy/image', apiBase.value)}?url=${encodeURIComponent(url)}`
     const response = await fetch(proxyUrl)
 
     if (!response.ok) throw new Error('图片代理下载失败')

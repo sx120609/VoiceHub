@@ -1,4 +1,5 @@
 import { onBeforeUnmount, onMounted, ref, readonly } from 'vue'
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 
 interface MusicState {
   songId?: number
@@ -21,6 +22,10 @@ interface SongInfo {
 }
 
 export function useMusicWebSocket() {
+  const runtimeConfig = useRuntimeConfig()
+  const apiBase = normalizeApiBase(runtimeConfig.public.apiBase, runtimeConfig.app.baseURL)
+  const websocketEndpoint = withApiBase('/api/music/websocket', apiBase)
+  const musicStateEndpoint = withApiBase('/api/music/state', apiBase)
   const isConnected = ref(false)
   const connectionId = ref<string | null>(null)
   const lastHeartbeat = ref<number>(0)
@@ -42,7 +47,7 @@ export function useMusicWebSocket() {
     }
 
     try {
-      const url = new URL('/api/music/websocket', window.location.origin)
+      const url = new URL(websocketEndpoint, window.location.origin)
       if (token) {
         url.searchParams.set('token', token)
       }
@@ -147,7 +152,7 @@ export function useMusicWebSocket() {
   // 发送音乐状态更新
   const sendStateUpdate = async (state: Partial<MusicState>) => {
     try {
-      await $fetch('/api/music/state', {
+      await $fetch(musicStateEndpoint, {
         method: 'POST',
         body: {
           type: 'state_update',
@@ -162,7 +167,7 @@ export function useMusicWebSocket() {
   // 发送歌曲切换通知
   const sendSongChange = async (songInfo: Partial<SongInfo>) => {
     try {
-      await $fetch('/api/music/state', {
+      await $fetch(musicStateEndpoint, {
         method: 'POST',
         body: {
           type: 'song_change',
@@ -177,7 +182,7 @@ export function useMusicWebSocket() {
   // 发送播放位置更新
   const sendPositionUpdate = async (position: number, duration: number, songId?: number) => {
     try {
-      await $fetch('/api/music/state', {
+      await $fetch(musicStateEndpoint, {
         method: 'POST',
         body: {
           type: 'position_update',

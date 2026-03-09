@@ -647,9 +647,11 @@ import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 import { useNotifications } from '~/composables/useNotifications'
 import { useSiteConfig } from '~/composables/useSiteConfig'
 import CustomSelect from '~/components/UI/Common/CustomSelect.vue'
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 
 // 获取运行时配置
 const config = useRuntimeConfig()
+const apiBase = computed(() => normalizeApiBase(config.public.apiBase, config.app.baseURL))
 const router = useRouter()
 
 // 站点配置
@@ -1235,7 +1237,7 @@ const proxiedSchoolLogoUrl = computed(() => {
 
   // 如果是HTTP链接，通过代理访问
   if (logoUrl.startsWith('http://')) {
-    return `/api/proxy/image?url=${encodeURIComponent(logoUrl)}`
+    return `${withApiBase('/api/proxy/image', apiBase.value)}?url=${encodeURIComponent(logoUrl)}`
   }
 
   // HTTPS链接或相对路径直接返回

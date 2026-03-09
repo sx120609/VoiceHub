@@ -32,7 +32,10 @@
 </template>
 
 <script setup lang="ts">
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
+
 const config = useRuntimeConfig()
+const apiBase = computed(() => normalizeApiBase(config.public.apiBase, config.app.baseURL))
 
 const hasEnabledProviders = computed(() => {
   return config.public.oauth && Object.values(config.public.oauth).some((enabled) => enabled)
@@ -40,6 +43,6 @@ const hasEnabledProviders = computed(() => {
 
 const loginWith = (provider: string) => {
   // 外部导航到 API 端点
-  navigateTo(`/api/auth/${provider}`, { external: true })
+  navigateTo(withApiBase(`/api/auth/${provider}`, apiBase.value), { external: true })
 }
 </script>
