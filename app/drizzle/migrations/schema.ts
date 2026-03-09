@@ -144,6 +144,7 @@ export const systemSettings = pgTable("SystemSettings", {
 	smtpPassword: text(),
 	smtpFromEmail: text(),
 	smtpFromName: text().default('校园广播站'),
+	enableRegistrationEmailVerification: boolean().default(false).notNull(),
 	enableRequestTimeLimitation: boolean().default(false).notNull(),
 	forceBlockAllRequests: boolean().default(false).notNull(),
 	enableReplayRequests: boolean().default(false).notNull(),

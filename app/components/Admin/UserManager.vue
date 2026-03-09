@@ -186,7 +186,14 @@
                 </td>
                 <td class="px-6 py-5">
                   <div
-                    v-if="user.status === 'active'"
+                    v-if="!user.emailVerified"
+                    class="flex items-center gap-1.5 text-amber-500 font-black uppercase text-[10px] tracking-widest"
+                  >
+                    <div class="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    待激活
+                  </div>
+                  <div
+                    v-else-if="user.status === 'active'"
                     class="flex items-center gap-1.5 text-emerald-500 font-black uppercase text-[10px] tracking-widest"
                   >
                     <div
@@ -282,7 +289,14 @@
               </div>
               <div class="text-right">
                 <div
-                  v-if="user.status === 'active'"
+                  v-if="!user.emailVerified"
+                  class="flex items-center gap-1.5 text-amber-500 font-black uppercase text-[10px] tracking-widest"
+                >
+                  <div class="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  待激活
+                </div>
+                <div
+                  v-else-if="user.status === 'active'"
                   class="flex items-center gap-1.5 text-emerald-500 font-black uppercase text-[10px] tracking-widest"
                 >
                   <div
@@ -534,6 +548,20 @@
                     placeholder="请选择状态"
                   />
                 </div>
+              </div>
+
+              <div class="p-3 bg-zinc-950/50 border border-zinc-800 rounded-xl">
+                <label class="flex items-center justify-between cursor-pointer gap-4">
+                  <div>
+                    <p class="text-xs font-bold text-zinc-200">账号已激活（邮箱已验证）</p>
+                    <p class="text-[10px] text-zinc-500 mt-1">关闭后该账号无法登录，直到邮箱验证或管理员手动激活</p>
+                  </div>
+                  <input
+                    v-model="userForm.emailVerified"
+                    type="checkbox"
+                    class="w-5 h-5 rounded border-zinc-800 bg-zinc-900 accent-blue-600 cursor-pointer shrink-0"
+                  >
+                </label>
               </div>
 
               <div class="grid grid-cols-2 gap-4">
@@ -1471,6 +1499,7 @@ const userForm = ref({
   username: '',
   email: '',
   password: '',
+  emailVerified: true,
   role: 'USER',
   status: 'active',
   grade: '',
@@ -1595,6 +1624,7 @@ const editUser = (user) => {
     username: user.username,
     email: user.email || '',
     password: '',
+    emailVerified: user.emailVerified ?? true,
     role: user.role,
     status: user.status || 'active',
     grade: user.grade || '',
@@ -1710,6 +1740,7 @@ const closeModal = () => {
     username: '',
     email: '',
     password: '',
+    emailVerified: true,
     role: 'USER',
     status: 'active',
     grade: '',
@@ -1757,6 +1788,7 @@ const saveUser = async () => {
       name: userForm.value.name,
       username: userForm.value.username,
       email: userForm.value.email.trim().toLowerCase(),
+      emailVerified: userForm.value.emailVerified,
       role: userForm.value.role,
       status: userForm.value.status,
       grade: userForm.value.grade,

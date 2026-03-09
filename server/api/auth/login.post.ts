@@ -14,6 +14,7 @@ import {
 } from '../../services/securityService'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
+import { isRegistrationEmailVerificationEnabled } from '~~/server/utils/registration-verification'
 
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
@@ -119,6 +120,14 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 403,
         message: '该账号已被封禁'
+      })
+    }
+
+    const requireEmailVerification = await isRegistrationEmailVerificationEnabled()
+    if (requireEmailVerification && !user.emailVerified) {
+      throw createError({
+        statusCode: 403,
+        message: '账号尚未激活，请先完成邮箱验证或联系管理员手动激活'
       })
     }
 

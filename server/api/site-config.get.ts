@@ -23,7 +23,8 @@ const publicFields = [
   'enableReplayRequests',
   'enableRequestTimeLimitation',
   'forceBlockAllRequests',
-  'smtpEnabled'
+  'smtpEnabled',
+  'enableRegistrationEmailVerification'
 ]
 
 const filterPublicSettings = (data: any) => {
@@ -71,7 +72,8 @@ export default defineEventHandler(async (event) => {
           dailySubmissionLimit: null,
           weeklySubmissionLimit: null,
           showBlacklistKeywords: false,
-          hideStudentInfo: true
+          hideStudentInfo: true,
+          enableRegistrationEmailVerification: false
         })
         .returning()
 

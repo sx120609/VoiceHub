@@ -4,25 +4,23 @@ import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import { requireQQEmail } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
+import { SmtpService } from '~~/server/services/smtpService'
+import {
+  extractQQNumberFromEmail,
+  isRegistrationEmailVerificationEnabled,
+  setPendingRegistrationCode
+} from '~~/server/utils/registration-verification'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const name = (body?.name || '').toString().trim()
-  const username = (body?.username || '').toString().trim()
   const password = (body?.password || '').toString()
   const qqEmail = requireQQEmail(body?.email)
+  const username = extractQQNumberFromEmail(qqEmail)
 
-  if (!name || !username || !password) {
+  if (!password) {
     throw createError({
       statusCode: 400,
-      message: '姓名、用户名、QQ邮箱和密码不能为空'
-    })
-  }
-
-  if (username.length < 3 || username.length > 32) {
-    throw createError({
-      statusCode: 400,
-      message: '用户名长度需在 3 到 32 个字符之间'
+      message: 'QQ邮箱和密码不能为空'
     })
   }
 
@@ -34,22 +32,38 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const existingUserByUsername = await db.select().from(users).where(eq(users.username, username)).limit(1)
-    if (existingUserByUsername[0]) {
-      throw createError({
-        statusCode: 400,
-        message: '用户名已存在'
+    const existingUserByEmail = await db
+      .select({
+        id: users.id,
+        emailVerified: users.emailVerified
       })
-    }
+      .from(users)
+      .where(eq(users.email, qqEmail))
+      .limit(1)
 
-    const existingUserByEmail = await db.select().from(users).where(eq(users.email, qqEmail)).limit(1)
     if (existingUserByEmail[0]) {
       throw createError({
         statusCode: 400,
-        message: '该QQ邮箱已被绑定'
+        message: existingUserByEmail[0].emailVerified
+          ? '该QQ邮箱已被绑定'
+          : '该QQ邮箱已注册但尚未激活，请先完成邮箱验证'
       })
     }
 
+    const existingUserByUsername = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1)
+
+    if (existingUserByUsername[0]) {
+      throw createError({
+        statusCode: 400,
+        message: '该QQ号已被占用，请联系管理员处理'
+      })
+    }
+
+    const requireEmailVerification = await isRegistrationEmailVerificationEnabled()
     const hashedPassword = await bcrypt.hash(password, 10)
     const now = getBeijingTime()
     const clientIp = getClientIP(event)
@@ -57,17 +71,21 @@ export default defineEventHandler(async (event) => {
     const newUserResult = await db
       .insert(users)
       .values({
-        name,
+        name: username,
         username,
         password: hashedPassword,
         role: 'USER',
         status: 'active',
         email: qqEmail,
-        emailVerified: true,
+        emailVerified: !requireEmailVerification,
         passwordChangedAt: now,
         forcePasswordChange: false,
-        lastLogin: now,
-        lastLoginIp: clientIp
+        ...(!requireEmailVerification
+          ? {
+              lastLogin: now,
+              lastLoginIp: clientIp
+            }
+          : {})
       })
       .returning({
         id: users.id,
@@ -79,6 +97,40 @@ export default defineEventHandler(async (event) => {
       })
 
     const newUser = newUserResult[0]
+
+    if (requireEmailVerification) {
+      const pendingCode = setPendingRegistrationCode(qqEmail, newUser.id)
+      let verificationSent = false
+
+      try {
+        const smtp = SmtpService.getInstance()
+        await smtp.initializeSmtpConfig()
+        verificationSent = await smtp.renderAndSend(
+          qqEmail,
+          'verification.code',
+          {
+            name: newUser.name || newUser.username,
+            email: qqEmail,
+            code: pendingCode.code,
+            expiresInMinutes: 10,
+            action: '账号激活'
+          },
+          clientIp
+        )
+      } catch (mailError) {
+        console.error('发送注册验证码失败:', mailError)
+      }
+
+      return {
+        success: true,
+        requiresEmailVerification: true,
+        verificationSent,
+        email: qqEmail,
+        message: verificationSent
+          ? '注册成功，请输入邮箱验证码完成激活'
+          : '注册成功，但验证码发送失败，请重发验证码或联系管理员手动激活'
+      }
+    }
 
     const token = JWTEnhanced.generateToken(newUser.id, newUser.role)
     const isSecure =
@@ -95,6 +147,8 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
+      requiresEmailVerification: false,
+      message: '注册成功',
       user: {
         ...newUser,
         needsPasswordChange: false

@@ -51,7 +51,8 @@ export default defineEventHandler(async (event) => {
           dailySubmissionLimit: null,
           weeklySubmissionLimit: null,
           monthlySubmissionLimit: null,
-          showBlacklistKeywords: false
+          showBlacklistKeywords: false,
+          enableRegistrationEmailVerification: false
         })
         .returning()
       settings = newSettingsResult[0]

@@ -285,6 +285,25 @@
             </div>
           </div>
 
+          <div class="p-4 bg-zinc-950/50 border border-zinc-800 rounded-xl space-y-4">
+            <div class="flex items-start gap-4">
+              <div class="shrink-0 pt-0.5">
+                <input
+                  id="register-email-verification"
+                  v-model="formData.enableRegistrationEmailVerification"
+                  type="checkbox"
+                  class="w-4 h-4 rounded border-zinc-800 bg-zinc-900 accent-blue-600 cursor-pointer"
+                >
+              </div>
+              <label for="register-email-verification" class="cursor-pointer">
+                <p class="text-xs font-bold text-zinc-200">启用注册邮箱验证码激活</p>
+                <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">
+                  开启后，新注册用户需完成邮箱验证码验证后才能登录；管理员可在用户管理中手动激活账号。关闭后，注册即自动激活。
+                </p>
+              </label>
+            </div>
+          </div>
+
           <div
             class="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl flex items-start gap-3"
           >
@@ -350,7 +369,8 @@ const formData = ref({
   weeklySubmissionLimit: null,
   monthlySubmissionLimit: null,
   showBlacklistKeywords: false,
-  hideStudentInfo: true
+  hideStudentInfo: true,
+  enableRegistrationEmailVerification: false
 })
 
 const originalData = ref({})
@@ -402,7 +422,8 @@ const loadConfig = async () => {
       weeklySubmissionLimit: data.weeklySubmissionLimit ?? null,
       monthlySubmissionLimit: data.monthlySubmissionLimit ?? null,
       showBlacklistKeywords: !!data.showBlacklistKeywords,
-      hideStudentInfo: data.hideStudentInfo ?? true
+      hideStudentInfo: data.hideStudentInfo ?? true,
+      enableRegistrationEmailVerification: !!data.enableRegistrationEmailVerification
     }
 
     originalData.value = JSON.parse(JSON.stringify(formData.value))

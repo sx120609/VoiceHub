@@ -18,7 +18,8 @@ const siteConfig = ref({
   siteDescription: '',
   submissionGuidelines: '',
   icpNumber: '',
-  gonganNumber: ''
+  gonganNumber: '',
+  enableRegistrationEmailVerification: false
 })
 
 const isLoaded = ref(false)
@@ -53,7 +54,8 @@ export const useSiteConfig = () => {
         submissionGuidelines: defaultSubmissionGuidelines,
         icpNumber: '',
         gonganNumber: '',
-        enableReplayRequests: false
+        enableReplayRequests: false,
+        enableRegistrationEmailVerification: false
       }
       isLoaded.value = true
     } finally {
@@ -76,6 +78,9 @@ export const useSiteConfig = () => {
   const gonganNumber = computed(() => siteConfig.value.gonganNumber || '')
   const enableReplayRequests = computed(() => siteConfig.value.enableReplayRequests || false)
   const smtpEnabled = computed(() => !!siteConfig.value.smtpEnabled)
+  const enableRegistrationEmailVerification = computed(
+    () => !!siteConfig.value.enableRegistrationEmailVerification
+  )
 
   // 初始化配置（仅在客户端执行）
   const initSiteConfig = async () => {
@@ -104,6 +109,7 @@ export const useSiteConfig = () => {
     gonganNumber,
     enableReplayRequests,
     smtpEnabled,
+    enableRegistrationEmailVerification,
     fetchSiteConfig,
     initSiteConfig,
     refreshSiteConfig

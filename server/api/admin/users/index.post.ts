@@ -26,6 +26,12 @@ export default defineEventHandler(async (event) => {
 
   try {
     const qqEmail = requireQQEmail(body.email)
+    if (body.emailVerified !== undefined && typeof body.emailVerified !== 'boolean') {
+      throw createError({
+        statusCode: 400,
+        message: 'emailVerified 必须是布尔值'
+      })
+    }
 
     // 检查用户名是否已存在
     const existingUserResult = await db
@@ -92,7 +98,7 @@ export default defineEventHandler(async (event) => {
         grade: body.grade,
         class: body.class,
         email: qqEmail,
-        emailVerified: true
+        emailVerified: body.emailVerified ?? true
       })
       .returning({
         id: users.id,

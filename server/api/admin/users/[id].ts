@@ -37,6 +37,12 @@ export default defineEventHandler(async (event) => {
 
     try {
       const qqEmail = requireQQEmail(body.email)
+      if (body.emailVerified !== undefined && typeof body.emailVerified !== 'boolean') {
+        throw createError({
+          statusCode: 400,
+          message: 'emailVerified 必须是布尔值'
+        })
+      }
 
       const existingEmailUserResult = await db
         .select()
@@ -56,7 +62,7 @@ export default defineEventHandler(async (event) => {
         .set({
           name: body.name,
           email: qqEmail,
-          emailVerified: true,
+          emailVerified: body.emailVerified ?? true,
           role: body.role,
           grade: body.grade,
           class: body.class

@@ -232,6 +232,16 @@ export default defineEventHandler(async (event) => {
       updateData.smtpFromName = body.smtpFromName
     }
 
+    if (body.enableRegistrationEmailVerification !== undefined) {
+      if (typeof body.enableRegistrationEmailVerification !== 'boolean') {
+        throw createError({
+          statusCode: 400,
+          message: 'enableRegistrationEmailVerification 必须是布尔值'
+        })
+      }
+      updateData.enableRegistrationEmailVerification = body.enableRegistrationEmailVerification
+    }
+
     // 验证每日、每周和每月限额三选一逻辑
     const limitSettings = [
       body.dailySubmissionLimit,
@@ -290,7 +300,8 @@ export default defineEventHandler(async (event) => {
           smtpUsername: updateData.smtpUsername ?? null,
           smtpPassword: updateData.smtpPassword ?? null,
           smtpFromEmail: updateData.smtpFromEmail ?? null,
-          smtpFromName: updateData.smtpFromName ?? '校园广播站'
+          smtpFromName: updateData.smtpFromName ?? '校园广播站',
+          enableRegistrationEmailVerification: updateData.enableRegistrationEmailVerification ?? false
         })
         .returning()
       settings = newSettingsResult[0]

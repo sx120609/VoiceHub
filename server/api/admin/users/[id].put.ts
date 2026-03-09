@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
 
     const userId = getRouterParam(event, 'id')
     const body = await readBody(event)
-    const { name, username, password, role, grade, class: userClass, status, email } = body
+    const { name, username, password, role, grade, class: userClass, status, email, emailVerified } = body
 
     // 验证必填字段
     if (!name || !username || !email) {
@@ -29,6 +29,13 @@ export default defineEventHandler(async (event) => {
     }
 
     const qqEmail = requireQQEmail(email)
+
+    if (emailVerified !== undefined && typeof emailVerified !== 'boolean') {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'emailVerified 必须是布尔值'
+      })
+    }
 
     // 检查用户是否存在
     const existingUser = await db
@@ -138,7 +145,7 @@ export default defineEventHandler(async (event) => {
       name,
       username,
       email: qqEmail,
-      emailVerified: true,
+      emailVerified: emailVerified ?? targetUser.emailVerified,
       role: validRole,
       grade,
       class: userClass
