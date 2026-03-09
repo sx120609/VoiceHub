@@ -10,6 +10,27 @@ const SMTP_GREETING_TIMEOUT = 10000
 const SMTP_SOCKET_TIMEOUT = 30000
 const SMTP_DNS_TIMEOUT = 10000
 
+export const formatSmtpErrorDetail = (error: any): string => {
+  const message = error?.message || '未知错误'
+  const metaParts: string[] = []
+
+  if (error?.code) metaParts.push(`code=${error.code}`)
+  if (error?.responseCode) metaParts.push(`responseCode=${error.responseCode}`)
+  if (error?.command) metaParts.push(`command=${error.command}`)
+
+  let detail = message
+  if (metaParts.length > 0) {
+    detail += ` (${metaParts.join(', ')})`
+  }
+
+  if (/timeout|ETIMEDOUT|ESOCKET|ECONNRESET|EHOSTUNREACH|ENETUNREACH/i.test(detail)) {
+    detail +=
+      '。这通常是应用容器到 SMTP 服务器的网络或 TLS 握手问题，请在容器内检查 587 端口与 STARTTLS。'
+  }
+
+  return detail
+}
+
 export const buildSmtpTransporterConfig = (smtpConfig: {
   host: string
   port?: number
@@ -456,7 +477,7 @@ export class SmtpService {
       return {
         success: false,
         message: 'SMTP连接测试失败',
-        detail: error instanceof Error ? error.message : '未知错误'
+        detail: formatSmtpErrorDetail(error)
       }
     }
   }
@@ -488,7 +509,7 @@ export class SmtpService {
       return {
         success: false,
         message: '测试邮件发送失败',
-        detail: error instanceof Error ? error.message : '未知错误'
+        detail: formatSmtpErrorDetail(error)
       }
     }
   }

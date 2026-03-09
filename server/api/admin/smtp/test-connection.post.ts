@@ -1,4 +1,8 @@
-import { SmtpService, buildSmtpTransporterConfig } from '~~/server/services/smtpService'
+import {
+  SmtpService,
+  buildSmtpTransporterConfig,
+  formatSmtpErrorDetail
+} from '~~/server/services/smtpService'
 import { db } from '~/drizzle/db'
 import { systemSettings } from '~/drizzle/schema'
 
@@ -110,7 +114,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: false,
       message: '测试连接失败',
-      detail: error instanceof Error ? error.message : String(error)
+      detail: formatSmtpErrorDetail(error)
     }
   }
 })
