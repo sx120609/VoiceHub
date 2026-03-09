@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
   // 公共API路径
   const publicApiPaths = [
     '/api/auth/login',
+    '/api/auth/email-login/',
     '/api/auth/register',
     '/api/auth/bind', // 账号绑定
     '/api/auth/verify', // verify端点自行处理token验证
@@ -91,6 +92,7 @@ export default defineEventHandler(async (event) => {
       'login',
       'bind',
       'verify',
+      'email-login',
       'webauthn',
       'register'
     ]
