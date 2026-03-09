@@ -383,13 +383,9 @@ const currentLimitValue = computed({
 const loadConfig = async () => {
   try {
     loading.value = true
-    const response = await fetch('/api/admin/system-settings', {
-      credentials: 'include'
+    const data = await $fetch('/api/admin/system-settings', {
+      timeout: 10000
     })
-
-    if (!response.ok) throw new Error('获取配置失败')
-
-    const data = await response.json()
 
     formData.value = {
       siteTitle: data.siteTitle || '',
@@ -437,14 +433,11 @@ const saveConfig = async () => {
         currentLimitType.value === 'monthly' ? formData.value.monthlySubmissionLimit : null
     }
 
-    const response = await fetch('/api/admin/system-settings', {
+    await $fetch('/api/admin/system-settings', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(configToSave)
+      body: configToSave,
+      timeout: 15000
     })
-
-    if (!response.ok) throw new Error('保存配置失败')
 
     saveSuccess.value = true
     originalData.value = JSON.parse(JSON.stringify(formData.value))
@@ -453,9 +446,9 @@ const saveConfig = async () => {
     setTimeout(() => {
       saveSuccess.value = false
     }, 3000)
-  } catch (error) {
+  } catch (error: any) {
     console.error('保存配置失败:', error)
-    showNotification('保存配置失败，请重试', 'error')
+    showNotification(error?.data?.message || error?.message || '保存配置失败，请重试', 'error')
   } finally {
     saving.value = false
   }

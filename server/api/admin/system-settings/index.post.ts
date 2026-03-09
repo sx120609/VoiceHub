@@ -2,6 +2,17 @@ import { db } from '~/drizzle/db'
 import { systemSettings } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
 
+const SMTP_FIELDS = new Set([
+  'smtpEnabled',
+  'smtpHost',
+  'smtpPort',
+  'smtpSecure',
+  'smtpUsername',
+  'smtpPassword',
+  'smtpFromEmail',
+  'smtpFromName'
+])
+
 export default defineEventHandler(async (event) => {
   // 检查用户认证和权限
   const user = event.context.user
@@ -302,12 +313,26 @@ export default defineEventHandler(async (event) => {
       console.warn('清除系统设置缓存失败:', cacheError)
     }
 
-    try {
-      const { SmtpService } = await import('~~/server/services/smtpService')
-      await SmtpService.getInstance().initializeSmtpConfig()
-      console.log('[SMTP] SMTP配置已重新加载（更新系统设置）')
-    } catch (smtpError) {
-      console.warn('[SMTP] SMTP配置重载失败:', smtpError)
+    // 仅在SMTP字段被修改时异步重载SMTP，避免保存配置请求被SMTP验证阻塞
+    const shouldReloadSmtp = Object.keys(updateData).some((field) => SMTP_FIELDS.has(field))
+    if (shouldReloadSmtp) {
+      void (async () => {
+        try {
+          const { SmtpService } = await import('~~/server/services/smtpService')
+          const reloadResult = await Promise.race([
+            SmtpService.getInstance().initializeSmtpConfig(),
+            new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 8000))
+          ])
+
+          if (reloadResult) {
+            console.log('[SMTP] SMTP配置已异步重载（更新系统设置）')
+          } else {
+            console.warn('[SMTP] SMTP配置异步重载超时或失败')
+          }
+        } catch (smtpError) {
+          console.warn('[SMTP] SMTP配置异步重载失败:', smtpError)
+        }
+      })()
     }
 
     return settings

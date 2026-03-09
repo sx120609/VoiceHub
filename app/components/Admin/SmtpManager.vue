@@ -265,7 +265,8 @@ const saveConfig = async () => {
   try {
     await $fetch('/api/admin/system-settings', {
       method: 'POST',
-      body: config.value
+      body: config.value,
+      timeout: 15000
     })
 
     originalConfig.value = { ...config.value }
