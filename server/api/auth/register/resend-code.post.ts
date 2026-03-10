@@ -6,13 +6,10 @@ import {
   createRegistrationActivationToken,
   getRegistrationActivationExpiresDays
 } from '~~/server/utils/registration-verification'
+import { buildPublicAppUrl } from '~~/server/utils/public-url'
 
 const buildActivationUrl = (event: any, token: string) => {
-  const requestUrl = getRequestURL(event)
-  const runtimeConfig = useRuntimeConfig()
-  const rawBaseURL = (runtimeConfig.app?.baseURL || '/').toString()
-  const normalizedBaseURL = rawBaseURL === '/' ? '' : rawBaseURL.replace(/\/$/, '')
-  return `${requestUrl.origin}${normalizedBaseURL}/api/auth/register/activate?token=${encodeURIComponent(token)}`
+  return buildPublicAppUrl(event, `/api/auth/register/activate?token=${encodeURIComponent(token)}`)
 }
 
 export default defineEventHandler(async (event) => {

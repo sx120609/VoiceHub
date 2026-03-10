@@ -6,13 +6,10 @@ import {
   createPasswordResetToken,
   getPasswordResetExpiresMinutes
 } from '~~/server/utils/password-reset'
+import { buildPublicAppUrl } from '~~/server/utils/public-url'
 
 const buildForgotPasswordUrl = (event: any, token: string) => {
-  const requestUrl = getRequestURL(event)
-  const runtimeConfig = useRuntimeConfig()
-  const rawBaseURL = (runtimeConfig.app?.baseURL || '/').toString()
-  const normalizedBaseURL = rawBaseURL === '/' ? '' : rawBaseURL.replace(/\/$/, '')
-  return `${requestUrl.origin}${normalizedBaseURL}/forgot-password?token=${encodeURIComponent(token)}`
+  return buildPublicAppUrl(event, `/forgot-password?token=${encodeURIComponent(token)}`)
 }
 
 export default defineEventHandler(async (event) => {

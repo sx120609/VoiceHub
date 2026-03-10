@@ -2,13 +2,10 @@ import { getQuery, sendRedirect } from 'h3'
 import { and, eq } from 'drizzle-orm'
 import { db, users } from '~/drizzle/db'
 import { verifyRegistrationActivationToken } from '~~/server/utils/registration-verification'
+import { buildPublicAppUrl } from '~~/server/utils/public-url'
 
 const buildLoginRedirectUrl = (event: any, activation: string) => {
-  const requestUrl = getRequestURL(event)
-  const runtimeConfig = useRuntimeConfig()
-  const rawBaseURL = (runtimeConfig.app?.baseURL || '/').toString()
-  const normalizedBaseURL = rawBaseURL === '/' ? '' : rawBaseURL.replace(/\/$/, '')
-  return `${requestUrl.origin}${normalizedBaseURL}/login?activation=${encodeURIComponent(activation)}`
+  return buildPublicAppUrl(event, `/login?activation=${encodeURIComponent(activation)}`)
 }
 
 export default defineEventHandler(async (event) => {

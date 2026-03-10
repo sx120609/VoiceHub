@@ -6,6 +6,7 @@ import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { SmtpService } from '~~/server/services/smtpService'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
+import { buildPublicAppUrl } from '~~/server/utils/public-url'
 import {
   createRegistrationActivationToken,
   extractQQNumberFromEmail,
@@ -14,11 +15,7 @@ import {
 } from '~~/server/utils/registration-verification'
 
 const buildActivationUrl = (event: any, token: string) => {
-  const requestUrl = getRequestURL(event)
-  const runtimeConfig = useRuntimeConfig()
-  const rawBaseURL = (runtimeConfig.app?.baseURL || '/').toString()
-  const normalizedBaseURL = rawBaseURL === '/' ? '' : rawBaseURL.replace(/\/$/, '')
-  return `${requestUrl.origin}${normalizedBaseURL}/api/auth/register/activate?token=${encodeURIComponent(token)}`
+  return buildPublicAppUrl(event, `/api/auth/register/activate?token=${encodeURIComponent(token)}`)
 }
 
 export default defineEventHandler(async (event) => {
