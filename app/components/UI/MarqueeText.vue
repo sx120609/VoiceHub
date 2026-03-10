@@ -204,8 +204,12 @@ watch(
 
 .text-item {
   display: inline-block;
-  padding-right: 50px; /* Space between repeated text */
+  padding-right: 0;
   vertical-align: middle;
+}
+
+.marquee-content.scrolling .text-item {
+  padding-right: 50px; /* Space between repeated text */
 }
 
 @keyframes marquee {
