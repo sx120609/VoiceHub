@@ -11,8 +11,9 @@ type QQProfileCacheItem = {
 }
 
 const QQ_NUMBER_REGEX = /^[1-9]\d{4,10}$/
-const QQ_PROFILE_TTL_MS = 6 * 60 * 60 * 1000
-const QQ_PROFILE_TIMEOUT_MS = 2500
+const QQ_PROFILE_SUCCESS_TTL_MS = 6 * 60 * 60 * 1000
+const QQ_PROFILE_EMPTY_TTL_MS = 15 * 60 * 1000
+const QQ_PROFILE_TIMEOUT_MS = 5000
 const qqProfileCache = new Map<string, QQProfileCacheItem>()
 
 const normalizeQQNumber = (value?: string | null): string | null => {
@@ -57,7 +58,7 @@ const getCachedNickname = (qqNumber: string): string | null | undefined => {
 const setCachedNickname = (qqNumber: string, nickname: string | null) => {
   qqProfileCache.set(qqNumber, {
     nickname,
-    expiresAt: Date.now() + QQ_PROFILE_TTL_MS
+    expiresAt: Date.now() + (nickname ? QQ_PROFILE_SUCCESS_TTL_MS : QQ_PROFILE_EMPTY_TTL_MS)
   })
 }
 
@@ -76,7 +77,7 @@ const sanitizeQQNickname = (value: unknown): string | null => {
     return null
   }
 
-  return trimmed
+  return trimmed.slice(0, 40)
 }
 
 const decodePortraitResponse = (buffer: Buffer): string => {
@@ -92,6 +93,7 @@ const decodePortraitResponse = (buffer: Buffer): string => {
 }
 
 const fetchQQNickname = async (qqNumber: string): Promise<string | null> => {
+  // 参考：腾讯社区文章中提到的公开接口（无需登录）
   const url = `https://users.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?uins=${qqNumber}`
 
   try {
@@ -111,7 +113,9 @@ const fetchQQNickname = async (qqNumber: string): Promise<string | null> => {
     const buffer = Buffer.from(await response.arrayBuffer())
     const responseText = decodePortraitResponse(buffer)
 
-    const callbackMatch = responseText.match(/portraitCallBack\(([\s\S]+)\)\s*;?\s*$/i)
+    const callbackMatch = responseText.match(
+      /(?:portraitCallBack|_Callback)\s*\(([\s\S]+)\)\s*;?\s*$/i
+    )
     if (!callbackMatch) {
       return null
     }
@@ -121,12 +125,29 @@ const fetchQQNickname = async (qqNumber: string): Promise<string | null> => {
       return null
     }
 
-    const item = payload[qqNumber]
+    const item =
+      payload[qqNumber] ||
+      payload[`o${qqNumber}`] ||
+      Object.values(payload).find((value) => Array.isArray(value))
+
     if (!Array.isArray(item)) {
       return null
     }
 
-    return sanitizeQQNickname(item[6])
+    const primaryNickname = sanitizeQQNickname(item[6])
+    if (primaryNickname) {
+      return primaryNickname
+    }
+
+    // 某些返回结构里昵称位置不稳定，尝试在数组中兜底提取
+    for (const candidate of item) {
+      const nickname = sanitizeQQNickname(candidate)
+      if (nickname && !/^https?:\/\//i.test(nickname)) {
+        return nickname
+      }
+    }
+
+    return null
   } catch (error) {
     console.warn(`[QQProfile] Failed to fetch nickname for ${qqNumber}:`, error)
     return null
@@ -134,7 +155,7 @@ const fetchQQNickname = async (qqNumber: string): Promise<string | null> => {
 }
 
 export const getQQAvatarUrl = (qqNumber: string): string =>
-  `https://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=100`
+  `https://q.qlogo.cn/headimg_dl?dst_uin=${qqNumber}&spec=640&img_type=jpg`
 
 export const resolveQQDisplayProfile = async (
   username?: string | null,
