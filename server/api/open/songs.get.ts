@@ -7,9 +7,12 @@ import { CACHE_CONSTANTS } from '~~/server/config/constants'
 import { cache } from '~~/server/utils/cache-helpers'
 import crypto from 'crypto'
 import { formatDateTime } from '~/utils/timeUtils'
+import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
 
 export default defineEventHandler(async (event) => {
   try {
+    await autoArchivePastSchedules({ source: 'api/open/songs' })
+
     const query = getQuery(event)
     const apiKey = event.context.apiKey
 

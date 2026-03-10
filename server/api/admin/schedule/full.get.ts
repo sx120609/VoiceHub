@@ -9,6 +9,7 @@ import {
   songReplayRequests
 } from '~/drizzle/schema'
 import { and, asc, count, eq, gte, lt, inArray, desc } from 'drizzle-orm'
+import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
 
 export default defineEventHandler(async (event) => {
   // 检查用户身份验证和权限
@@ -32,6 +33,8 @@ export default defineEventHandler(async (event) => {
   const { date, playTimeId, includeDrafts = 'true' } = query
 
   try {
+    await autoArchivePastSchedules({ source: 'api/admin/schedule/full' })
+
     // 构建查询条件
     const conditions = []
 

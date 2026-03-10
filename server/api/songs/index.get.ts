@@ -16,6 +16,7 @@ import { cacheService } from '~~/server/services/cacheService'
 import { formatDateTime } from '~/utils/timeUtils'
 import { maskSongsInfo, MaskableSong, MaskableUser } from '~~/server/utils/studentMask'
 import crypto from 'crypto'
+import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
 
 interface SongResponse {
   id: number
@@ -55,6 +56,8 @@ interface SongResponse {
 
 export default defineEventHandler(async (event) => {
   try {
+    await autoArchivePastSchedules({ source: 'api/songs/index' })
+
     const query = getQuery(event)
 
     const search = (query.search as string) || ''

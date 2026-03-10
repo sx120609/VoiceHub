@@ -145,7 +145,7 @@
                 </label>
 
                 <label
-                  v-if="schoolLogoPrintUrl"
+                  v-if="proxiedSchoolLogoPrintUrl"
                   class="flex items-center gap-3 cursor-pointer group select-none"
                 >
                   <div
@@ -265,8 +265,8 @@
                     <div class="logo-divider" />
                     <!-- 学校logo -->
                     <img
-                      v-if="settings.showSchoolLogo && schoolLogoPrintUrl"
-                      :src="schoolLogoPrintUrl"
+                      v-if="settings.showSchoolLogo && proxiedSchoolLogoPrintUrl"
+                      :src="proxiedSchoolLogoPrintUrl"
                       alt="学校Logo"
                       class="school-logo-print"
                     >
@@ -406,8 +406,18 @@ const { siteTitle, schoolLogoPrintUrl, initSiteConfig } = useSiteConfig()
 const config = useRuntimeConfig()
 const apiBase = computed(() => normalizeApiBase(config.public.apiBase, config.app.baseURL))
 
-// Logo URL处理
-const logoUrl = computed(() => logoPng)
+const resolveLogoSrc = (url, fallback = '') => {
+  const value = (url || '').trim()
+  if (!value) return fallback
+  if (value.startsWith('http://')) {
+    return withApiBase(`/api/proxy/image?url=${encodeURIComponent(value)}`, apiBase.value)
+  }
+  return value
+}
+
+// Logo URL处理：优先使用后台配置的打印小尺寸Logo
+const proxiedSchoolLogoPrintUrl = computed(() => resolveLogoSrc(schoolLogoPrintUrl.value, ''))
+const logoUrl = computed(() => proxiedSchoolLogoPrintUrl.value || logoPng)
 
 // 响应式数据
 const schedules = ref([])

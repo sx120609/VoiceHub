@@ -16,11 +16,14 @@ import { cacheService } from '~~/server/services/cacheService'
 import { executeRedisCommand, isRedisReady } from '../../utils/redis'
 import { formatDateTime } from '~/utils/timeUtils'
 import { maskPublicScheduleData, PublicScheduleItem } from '../../utils/studentMask'
+import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
 
 import { verifyUserAuth } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   try {
+    await autoArchivePastSchedules({ source: 'api/songs/public' })
+
     // 获取查询参数
     const query = getQuery(event)
     const semester = query.semester as string

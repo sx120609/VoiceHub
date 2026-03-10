@@ -7,9 +7,12 @@ import { openApiCache } from '~~/server/utils/open-api-cache'
 import { CACHE_CONSTANTS } from '~~/server/config/constants'
 import { cacheService } from '~~/server/services/cacheService'
 import { executeRedisCommand, isRedisReady } from '~~/server/utils/redis'
+import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
 
 export default defineEventHandler(async (event) => {
   try {
+    await autoArchivePastSchedules({ source: 'api/open/schedules' })
+
     const query = getQuery(event)
     const apiKey = event.context.apiKey
 
