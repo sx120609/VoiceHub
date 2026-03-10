@@ -73,8 +73,9 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
+import { useBodyScrollLock } from '~/composables/useBodyScrollLock'
 
 const props = defineProps({
   show: {
@@ -127,10 +128,23 @@ const props = defineProps({
 const emit = defineEmits(['confirm', 'cancel', 'close', 'update:show'])
 
 const inputValue = ref('')
+const { lock, unlock } = useBodyScrollLock()
 
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    inputValue.value = ''
+watch(
+  () => props.show,
+  (newVal, oldVal) => {
+    if (newVal) {
+      lock()
+      inputValue.value = ''
+    } else if (oldVal) {
+      unlock()
+    }
+  }
+)
+
+onUnmounted(() => {
+  if (props.show) {
+    unlock()
   }
 })
 

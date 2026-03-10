@@ -165,8 +165,9 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import Icon from '~/components/UI/Icon.vue'
+import { useBodyScrollLock } from '~/composables/useBodyScrollLock'
 
 const props = defineProps({
   show: {
@@ -217,10 +218,17 @@ const draftComment = ref('')
 const replyTarget = ref(null)
 const commentInputRef = ref(null)
 const pendingDeleteCommentId = ref(null)
+const { lock, unlock } = useBodyScrollLock()
 
 watch(
   () => props.show,
-  (show) => {
+  (show, previousShow) => {
+    if (show) {
+      lock()
+    } else if (previousShow) {
+      unlock()
+    }
+
     if (!show) {
       draftComment.value = ''
       replyTarget.value = null
@@ -228,6 +236,12 @@ watch(
     }
   }
 )
+
+onUnmounted(() => {
+  if (props.show) {
+    unlock()
+  }
+})
 
 const submitDisabled = computed(() => {
   return !props.isAuthenticated || props.submitting || !draftComment.value.trim()
