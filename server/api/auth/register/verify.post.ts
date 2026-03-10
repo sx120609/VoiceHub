@@ -73,12 +73,12 @@ export default defineEventHandler(async (event) => {
       .where(eq(users.id, user.id))
   }
 
-  const token = JWTEnhanced.generateToken(user.id, user.role)
+  const authToken = JWTEnhanced.generateToken(user.id, user.role)
   const isSecure =
     getRequestURL(event).protocol === 'https:' ||
     getRequestHeader(event, 'x-forwarded-proto') === 'https'
 
-  setCookie(event, 'auth-token', token, {
+  setCookie(event, 'auth-token', authToken, {
     httpOnly: true,
     secure: isSecure,
     sameSite: 'lax',
