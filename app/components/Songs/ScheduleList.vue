@@ -3596,6 +3596,93 @@ const vRipple = {
   border-left: 3px solid #2f7d4f;
 }
 
+/* Final light-theme contrast overrides (keep at end to win over legacy dark rules) */
+.schedule-list .current-date,
+.schedule-list .playtime-header h4,
+.schedule-list .song-title {
+  color: #1f2a1f !important;
+  text-shadow: none !important;
+}
+
+.schedule-list .playtime-time,
+.schedule-list .requester,
+.schedule-list .replay-requester,
+.schedule-list .loading,
+.schedule-list .empty,
+.schedule-list .empty-dates {
+  color: #5f715f !important;
+}
+
+.schedule-list .date-item {
+  background: #f8fbf6 !important;
+  border: 1px solid #d2deca !important;
+  color: #1f2a1f !important;
+}
+
+.schedule-list .date-item:hover {
+  background: #eef4e8 !important;
+  box-shadow: 0 3px 10px rgba(47, 125, 79, 0.14) !important;
+}
+
+.schedule-list .date-item.active {
+  background: #edf3e7 !important;
+  border-color: #cfdcc7 !important;
+  border-left-color: #2f7d4f !important;
+  color: #1f2a1f !important;
+}
+
+.schedule-list .song-card {
+  background: #f7fbf4 !important;
+  border: 1px solid #d2deca !important;
+  box-shadow: 0 4px 12px rgba(47, 125, 79, 0.1) !important;
+}
+
+.schedule-list .song-card-main {
+  background: #f3f8ef !important;
+  box-shadow: none !important;
+}
+
+.schedule-list .vote-count .label {
+  color: #6f816f !important;
+}
+
+.schedule-list .add-playlist-btn {
+  background: #2f7d4f !important;
+  border: 1px solid #2f7d4f !important;
+  color: #ffffff !important;
+}
+
+.schedule-list .add-playlist-btn:hover {
+  background: #266942 !important;
+  border-color: #266942 !important;
+}
+
+@media (max-width: 768px) {
+  .schedule-list .mobile-action-btn {
+    background: #2f7d4f !important;
+    box-shadow: 0 4px 14px rgba(47, 125, 79, 0.24) !important;
+  }
+
+  .schedule-list .current-date-display .date-text {
+    color: #1f2a1f !important;
+  }
+
+  .schedule-list .song-card {
+    background: #f7fbf4 !important;
+    border: 1px solid #d2deca !important;
+    box-shadow: 0 4px 12px rgba(47, 125, 79, 0.08) !important;
+  }
+
+  .schedule-list .song-title {
+    color: #1f2a1f !important;
+  }
+
+  .schedule-list .requester,
+  .schedule-list .vote-count .label {
+    color: #5f715f !important;
+  }
+}
+
 /* 过渡动画 */
 .date-picker-fade-enter-active,
 .date-picker-fade-leave-active {

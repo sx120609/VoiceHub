@@ -1737,26 +1737,30 @@ const vRipple = {
 .tab-button {
   position: relative;
   overflow: hidden;
-  background: transparent;
+  background: #f5f9f1;
   border: none;
   padding: 0.75rem 1.5rem;
   font-family: 'MiSans-Demibold', sans-serif;
   font-weight: 600;
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #4a5d4a;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid #d2deca;
   border-bottom: 3px solid transparent;
+  border-radius: 12px;
   margin: 0 0.5rem;
 }
 
 .tab-button:hover {
-  color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-3px);
+  color: #1f2a1f;
+  background: #edf3e7;
+  transform: translateY(-1px);
 }
 
 .tab-button.active {
-  color: #ffffff;
+  color: #1f2a1f;
+  background: #edf3e7;
   border-bottom-color: #2f7d4f;
   transform: none;
   box-shadow: none;
@@ -1806,19 +1810,19 @@ const vRipple = {
   width: 36px;
   height: 36px;
   background: #edf3e7;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: rgba(255, 255, 255, 0.8);
+  color: #476047;
   font-size: 14px;
   padding: 0;
 }
 
 .semester-toggle-btn:hover {
-  background: #2a2e38;
+  background: #e3ecda;
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(47, 125, 79, 0.16);
   color: #2f7d4f;
 }
 
@@ -1837,11 +1841,11 @@ const vRipple = {
 
 .semester-option {
   padding: 0.75rem 1rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #4a5d4a;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid #e1ecd9;
 }
 
 .semester-option:last-child {
@@ -1850,7 +1854,7 @@ const vRipple = {
 
 .semester-option:hover {
   background: rgba(11, 90, 254, 0.1);
-  color: #ffffff;
+  color: #1f2a1f;
 }
 
 .semester-option.active {
@@ -1866,13 +1870,13 @@ const vRipple = {
 
 .search-input {
   background: #f7fbf4;
-  border: 1px solid #242f38;
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   padding: 0.5rem 1rem;
   padding-right: 2.5rem;
   font-family: 'MiSans-Demibold', sans-serif;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #1f2a1f;
   width: 100%;
   transition: all 0.2s ease;
 }
@@ -1887,7 +1891,7 @@ const vRipple = {
   right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.6);
+  color: #6f816f;
 }
 
 .refresh-button {
@@ -1897,17 +1901,18 @@ const vRipple = {
   width: 36px;
   height: 36px;
   background: #edf3e7;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: rgba(255, 255, 255, 0.8);
+  color: #2f7d4f;
+  box-shadow: 0 2px 8px rgba(47, 125, 79, 0.12);
 }
 
 .refresh-button:hover {
-  background: #2a2e38;
+  background: #e3ecda;
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(47, 125, 79, 0.2);
 }
 
 .refresh-button:active {
@@ -2000,7 +2005,8 @@ const vRipple = {
 .song-card-main {
   padding: 1rem 0 1rem 1rem; /* 移除右侧内边距，保留左侧、上下内边距 */
   background: #edf3e7;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid #cfdcc7;
+  box-shadow: 0px 4px 10px rgba(47, 125, 79, 0.12);
   position: relative;
   height: 100px; /* 减小卡片高度 */
   border-radius: 10px;
@@ -2293,7 +2299,7 @@ const vRipple = {
   font-family: 'MiSans-Demibold', sans-serif;
   font-weight: 600;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #6f816f;
   text-align: left;
   max-width: 70%;
 }
@@ -2976,6 +2982,106 @@ button:disabled {
 @media (max-width: 768px) {
   .pagination-mobile {
     display: flex;
+  }
+}
+
+/* Final light-theme contrast overrides (keep at end to win over legacy dark rules) */
+.song-list .tab-button.active {
+  background: #edf3e7 !important;
+  border-color: #cfdcc7 !important;
+  border-bottom-color: #2f7d4f !important;
+}
+
+.song-list .search-input {
+  background: #f8fbf6 !important;
+  border: 1px solid #cfdcc7 !important;
+  color: #1f2a1f !important;
+}
+
+.song-list .search-icon {
+  color: #5f715f !important;
+}
+
+.song-list .refresh-button {
+  background: #2f7d4f !important;
+  border: 1px solid #2f7d4f !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 14px rgba(47, 125, 79, 0.25) !important;
+}
+
+.song-list .refresh-button:hover {
+  background: #266942 !important;
+  border-color: #266942 !important;
+  transform: translateY(-1px);
+}
+
+.song-list .song-card-main {
+  background: #f3f8ef !important;
+  border: 1px solid #cfdbc7 !important;
+  box-shadow: 0 4px 12px rgba(47, 125, 79, 0.1) !important;
+}
+
+.song-list .song-title {
+  color: #1f2a1f !important;
+  text-shadow: none !important;
+}
+
+.song-list .requester {
+  color: #5f715f !important;
+}
+
+.song-list .vote-count .label {
+  color: #6f816f !important;
+}
+
+.song-list .submission-footer {
+  background: #f8fbf6 !important;
+  border: 1px solid #d2deca !important;
+  border-top: none !important;
+}
+
+.song-list .submission-time {
+  color: #607260 !important;
+}
+
+.song-list .loading,
+.song-list .empty {
+  color: #5f715f !important;
+}
+
+@media (max-width: 768px) {
+  .song-list .tab-button {
+    background: #f5f9f1 !important;
+    color: #4a5d4a !important;
+    border: 1px solid #d2deca !important;
+  }
+
+  .song-list .tab-button.active {
+    color: #1f2a1f !important;
+    background: #edf3e7 !important;
+    border-color: #cfdcc7 !important;
+  }
+
+  .song-list .refresh-button {
+    background: #2f7d4f !important;
+    border: 1px solid #2f7d4f !important;
+    color: #ffffff !important;
+  }
+
+  .song-list .song-card {
+    background: #f7fbf4 !important;
+    border: 1px solid #d2deca !important;
+    box-shadow: 0 4px 12px rgba(47, 125, 79, 0.08) !important;
+  }
+
+  .song-list .song-title {
+    color: #1f2a1f !important;
+  }
+
+  .song-list .requester,
+  .song-list .submission-time,
+  .song-list .vote-count .label {
+    color: #5f715f !important;
   }
 }
 
