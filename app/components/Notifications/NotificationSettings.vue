@@ -67,6 +67,21 @@
         </div>
       </div>
 
+      <div :class="itemClass">
+        <div class="flex-1">
+          <h3 class="text-sm font-bold text-zinc-200">歌曲评论通知</h3>
+          <p class="text-[11px] text-zinc-500 mt-0.5">当歌曲收到评论或回复时通知您</p>
+        </div>
+        <div class="shrink-0">
+          <input
+            v-model="localSettings.songCommentNotify"
+            type="checkbox"
+            class="w-5 h-5 rounded border-zinc-800 bg-zinc-900 accent-blue-600 cursor-pointer"
+            @change="saveSettings"
+          >
+        </div>
+      </div>
+
       <div
         v-if="localSettings.songVotedNotify"
         class="p-4 bg-zinc-950/50 border border-zinc-800 rounded-2xl space-y-3"
@@ -154,6 +169,7 @@ const localSettings = ref({
   songSelectedNotify: true,
   songPlayedNotify: true,
   songVotedNotify: true,
+  songCommentNotify: true,
   songVotedThreshold: 1,
   systemNotify: true,
   refreshInterval: 60
@@ -168,6 +184,7 @@ watch(
         songSelectedNotify: newSettings.songSelectedNotify,
         songPlayedNotify: newSettings.songPlayedNotify,
         songVotedNotify: newSettings.songVotedNotify,
+        songCommentNotify: newSettings.songCommentNotify ?? true,
         songVotedThreshold: newSettings.songVotedThreshold || 1,
         systemNotify: newSettings.systemNotify,
         refreshInterval: newSettings.refreshInterval || 60

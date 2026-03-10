@@ -41,14 +41,32 @@
                 </div>
                 <p class="comment-content">{{ comment.content }}</p>
                 <div class="comment-actions-row">
-                  <button
-                    v-if="canDelete(comment)"
-                    :disabled="deleting"
-                    class="delete-btn"
-                    @click="handleDelete(comment)"
-                  >
-                    {{ deleting ? '删除中...' : '删除' }}
-                  </button>
+                  <template v-if="canDelete(comment)">
+                    <template v-if="pendingDeleteCommentId === comment.id">
+                      <button
+                        :disabled="deleting"
+                        class="delete-confirm-btn"
+                        @click="confirmDelete(comment)"
+                      >
+                        {{ deleting ? '删除中...' : '确认删除' }}
+                      </button>
+                      <button
+                        :disabled="deleting"
+                        class="delete-cancel-btn"
+                        @click="cancelDelete"
+                      >
+                        取消
+                      </button>
+                    </template>
+                    <button
+                      v-else
+                      :disabled="deleting"
+                      class="delete-btn"
+                      @click="requestDelete(comment)"
+                    >
+                      删除
+                    </button>
+                  </template>
                   <button
                     v-if="isAuthenticated"
                     class="reply-btn"
@@ -74,14 +92,32 @@
                       {{ reply.content }}
                     </p>
                     <div class="comment-actions-row">
-                      <button
-                        v-if="canDelete(reply)"
-                        :disabled="deleting"
-                        class="delete-btn"
-                        @click="handleDelete(reply)"
-                      >
-                        {{ deleting ? '删除中...' : '删除' }}
-                      </button>
+                      <template v-if="canDelete(reply)">
+                        <template v-if="pendingDeleteCommentId === reply.id">
+                          <button
+                            :disabled="deleting"
+                            class="delete-confirm-btn"
+                            @click="confirmDelete(reply)"
+                          >
+                            {{ deleting ? '删除中...' : '确认删除' }}
+                          </button>
+                          <button
+                            :disabled="deleting"
+                            class="delete-cancel-btn"
+                            @click="cancelDelete"
+                          >
+                            取消
+                          </button>
+                        </template>
+                        <button
+                          v-else
+                          :disabled="deleting"
+                          class="delete-btn"
+                          @click="requestDelete(reply)"
+                        >
+                          删除
+                        </button>
+                      </template>
                       <button
                         v-if="isAuthenticated"
                         class="reply-btn"
@@ -180,6 +216,7 @@ const emit = defineEmits(['close', 'submit', 'delete', 'refresh'])
 const draftComment = ref('')
 const replyTarget = ref(null)
 const commentInputRef = ref(null)
+const pendingDeleteCommentId = ref(null)
 
 watch(
   () => props.show,
@@ -187,6 +224,7 @@ watch(
     if (!show) {
       draftComment.value = ''
       replyTarget.value = null
+      pendingDeleteCommentId.value = null
     }
   }
 )
@@ -212,6 +250,16 @@ const handleOverlayClose = () => {
 
 const clearReplyTarget = () => {
   replyTarget.value = null
+}
+
+const requestDelete = (comment) => {
+  if (!comment || props.deleting) return
+  pendingDeleteCommentId.value = comment.id
+}
+
+const cancelDelete = () => {
+  if (props.deleting) return
+  pendingDeleteCommentId.value = null
 }
 
 const canDelete = (comment) => {
@@ -247,8 +295,9 @@ const handleSubmit = () => {
   replyTarget.value = null
 }
 
-const handleDelete = (comment) => {
+const confirmDelete = (comment) => {
   if (!comment || props.deleting) return
+  pendingDeleteCommentId.value = null
   emit('delete', comment)
 }
 
@@ -439,6 +488,36 @@ const formatTime = (time) => {
 }
 
 .delete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.delete-confirm-btn {
+  height: 28px;
+  border: 1px solid #d14f4f;
+  background: #d14f4f;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-cancel-btn {
+  height: 28px;
+  border: 1px solid #cedbce;
+  background: #f8fbf6;
+  color: #617861;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-confirm-btn:disabled,
+.delete-cancel-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }

@@ -291,8 +291,11 @@ export async function createSongCommentNotification(
         .where(eq(notificationSettings.userId, songOwnerId))
         .limit(1)
       const ownerSettings = ownerSettingsResult[0]
+      const ownerAllowsNotification =
+        !ownerSettings ||
+        (ownerSettings.enabled && (ownerSettings.songCommentEnabled ?? true))
 
-      if (!ownerSettings || ownerSettings.enabled) {
+      if (ownerAllowsNotification) {
         const ownerMessage = isReply
           ? `您的歌曲《${songTitle}》收到了来自 ${commenterName} 的新回复：${commentExcerpt}`
           : `您的歌曲《${songTitle}》收到了来自 ${commenterName} 的新评论：${commentExcerpt}`
@@ -346,8 +349,11 @@ export async function createSongCommentNotification(
         .where(eq(notificationSettings.userId, parentCommentOwnerId))
         .limit(1)
       const replyTargetSettings = replyTargetSettingsResult[0]
+      const replyTargetAllowsNotification =
+        !replyTargetSettings ||
+        (replyTargetSettings.enabled && (replyTargetSettings.songCommentEnabled ?? true))
 
-      if (!replyTargetSettings || replyTargetSettings.enabled) {
+      if (replyTargetAllowsNotification) {
         const replyMessage = `${commenterName} 回复了您在《${songTitle}》下的评论：${commentExcerpt}`
 
         const replyNotificationResult = await db

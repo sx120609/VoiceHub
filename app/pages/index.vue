@@ -794,6 +794,7 @@ const notificationSettings = ref({
   songSelectedNotify: true,
   songPlayedNotify: true,
   songVotedNotify: true,
+  songCommentNotify: true,
   songVotedThreshold: 1,
   systemNotify: true,
   refreshInterval: 60
@@ -813,6 +814,7 @@ const fetchNotificationSettings = async () => {
         songSelectedNotify: notificationsService.settings.value.songSelectedNotify,
         songPlayedNotify: notificationsService.settings.value.songPlayedNotify,
         songVotedNotify: notificationsService.settings.value.songVotedNotify,
+        songCommentNotify: notificationsService.settings.value.songCommentNotify ?? true,
         songVotedThreshold: notificationsService.settings.value.songVotedThreshold || 1,
         systemNotify: notificationsService.settings.value.systemNotify,
         refreshInterval: notificationsService.settings.value.refreshInterval || 60

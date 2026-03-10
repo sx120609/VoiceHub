@@ -113,6 +113,13 @@
       "when": 1773152100000,
       "tag": "20260310221500_add_song_comment_replies",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1773156000000,
+      "tag": "20260310232000_add_comment_notification_setting",
+      "breakpoints": true
     }
   ]
 }

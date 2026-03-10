@@ -49,6 +49,10 @@ export default defineEventHandler(async (event) => {
               : dbSettings.songPlayedEnabled,
           songVotedEnabled:
             body.songVotedNotify !== undefined ? body.songVotedNotify : dbSettings.songVotedEnabled,
+          songCommentEnabled:
+            body.songCommentNotify !== undefined
+              ? body.songCommentNotify
+              : (dbSettings.songCommentEnabled ?? true),
           songVotedThreshold:
             body.songVotedThreshold !== undefined
               ? Math.max(1, Math.min(10, body.songVotedThreshold))
@@ -73,6 +77,7 @@ export default defineEventHandler(async (event) => {
             body.songSelectedNotify !== undefined ? body.songSelectedNotify : true,
           songPlayedEnabled: body.songPlayedNotify !== undefined ? body.songPlayedNotify : true,
           songVotedEnabled: body.songVotedNotify !== undefined ? body.songVotedNotify : true,
+          songCommentEnabled: body.songCommentNotify !== undefined ? body.songCommentNotify : true,
           songVotedThreshold:
             body.songVotedThreshold !== undefined
               ? Math.max(1, Math.min(10, body.songVotedThreshold))
@@ -93,6 +98,7 @@ export default defineEventHandler(async (event) => {
       songSelectedNotify: dbSettings.songRequestEnabled,
       songPlayedNotify: dbSettings.songPlayedEnabled,
       songVotedNotify: dbSettings.songVotedEnabled,
+      songCommentNotify: dbSettings.songCommentEnabled ?? true,
       systemNotify: dbSettings.enabled,
       refreshInterval: dbSettings.refreshInterval,
       songVotedThreshold: dbSettings.songVotedThreshold

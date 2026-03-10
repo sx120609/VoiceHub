@@ -96,6 +96,21 @@
               </div>
             </div>
 
+            <!-- 歌曲评论消息 -->
+            <div :class="itemClass">
+              <div class="flex-1">
+                <h3 class="text-sm font-bold text-zinc-200">歌曲评论消息</h3>
+                <p class="text-[11px] text-zinc-500 mt-1">当歌曲收到评论或回复时通知您</p>
+              </div>
+              <div class="shrink-0">
+                <input
+                  v-model="localSettings.songCommentNotify"
+                  type="checkbox"
+                  class="w-5 h-5 rounded border-zinc-800 bg-zinc-900 accent-blue-600 cursor-pointer"
+                >
+              </div>
+            </div>
+
             <!-- 系统通知 -->
             <div :class="itemClass">
               <div class="flex-1">
@@ -463,6 +478,7 @@ const localSettings = ref({
   songSelectedNotify: true,
   songPlayedNotify: true,
   songVotedNotify: true,
+  songCommentNotify: true,
   songVotedThreshold: 5,
   systemNotify: true,
   refreshInterval: 60,
@@ -547,6 +563,7 @@ const loadSettings = async () => {
         songSelectedNotify: response.data.songSelectedNotify ?? false,
         songPlayedNotify: response.data.songPlayedNotify ?? false,
         songVotedNotify: response.data.songVotedNotify ?? false,
+        songCommentNotify: response.data.songCommentNotify ?? true,
         songVotedThreshold: response.data.songVotedThreshold ?? 5,
         systemNotify: response.data.systemNotify ?? true,
         refreshInterval: response.data.refreshInterval ?? 60,
@@ -838,6 +855,7 @@ const saveSettings = async () => {
           songSelectedNotify: response.data.songSelectedNotify ?? localSettings.value.songSelectedNotify,
           songPlayedNotify: response.data.songPlayedNotify ?? localSettings.value.songPlayedNotify,
           songVotedNotify: response.data.songVotedNotify ?? localSettings.value.songVotedNotify,
+          songCommentNotify: response.data.songCommentNotify ?? localSettings.value.songCommentNotify,
           songVotedThreshold:
             response.data.songVotedThreshold ?? localSettings.value.songVotedThreshold,
           systemNotify: response.data.systemNotify ?? localSettings.value.systemNotify,

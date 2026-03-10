@@ -47,6 +47,7 @@ export default defineEventHandler(async (event) => {
           songRequestEnabled: true,
           songVotedEnabled: true,
           songPlayedEnabled: true,
+          songCommentEnabled: true,
           refreshInterval: 60,
           songVotedThreshold: 1
         })
@@ -62,6 +63,7 @@ export default defineEventHandler(async (event) => {
       songSelectedNotify: dbSettings.songRequestEnabled,
       songPlayedNotify: dbSettings.songPlayedEnabled,
       songVotedNotify: dbSettings.songVotedEnabled,
+      songCommentNotify: dbSettings.songCommentEnabled ?? true,
       systemNotify: dbSettings.enabled,
       refreshInterval: dbSettings.refreshInterval,
       songVotedThreshold: dbSettings.songVotedThreshold,

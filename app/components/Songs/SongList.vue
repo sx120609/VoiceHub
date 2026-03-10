@@ -391,7 +391,7 @@
           :is-admin-user="isAdminUser"
           @close="closeSongCommentsDialog"
           @submit="submitSongComment"
-          @delete="requestDeleteSongComment"
+          @delete="deleteSongComment"
           @refresh="refreshSongComments"
         />
       </div>
@@ -1214,7 +1214,7 @@ const submitSongComment = async (payload) => {
   }
 }
 
-const requestDeleteSongComment = (comment) => {
+const deleteSongComment = async (comment) => {
   if (!isAuthenticated.value) {
     showToast('请先登录后再操作', 'error')
     return
@@ -1230,20 +1230,6 @@ const requestDeleteSongComment = (comment) => {
     showToast('仅能删除自己的评论', 'error')
     return
   }
-
-  confirmDialog.value = {
-    show: true,
-    title: '删除评论',
-    message: '确认删除这条评论吗？删除后不可恢复。',
-    type: 'danger',
-    action: 'deleteComment',
-    data: comment
-  }
-}
-
-const performDeleteSongComment = async (comment) => {
-  const commentId = Number(comment?.id)
-  if (!Number.isInteger(commentId) || commentId <= 0) return
 
   const currentSongId = songCommentsDialog.value.song?.id
   if (!currentSongId) return
@@ -1293,11 +1279,7 @@ const confirmAction = async () => {
 
   actionInProgress.value = true
   try {
-    if (action === 'deleteComment') {
-      await performDeleteSongComment(data)
-    } else {
-      emit(action, data)
-    }
+    emit(action, data)
   } catch (err) {
     // 操作执行失败
   } finally {

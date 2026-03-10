@@ -99,6 +99,7 @@ export interface NotificationSettings {
   songSelectedNotify: boolean
   songPlayedNotify: boolean
   songVotedNotify: boolean
+  songCommentNotify: boolean
   systemNotify: boolean
   refreshInterval: number
   songVotedThreshold: number
@@ -115,6 +116,7 @@ export interface DBNotificationSettings {
   songRequestEnabled: boolean
   songVotedEnabled: boolean
   songPlayedEnabled: boolean
+  songCommentEnabled: boolean
   refreshInterval: number
   songVotedThreshold: number
 }

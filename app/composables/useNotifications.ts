@@ -284,8 +284,11 @@ export const useNotifications = () => {
     try {
       const authConfig = getAuthConfig()
 
-      await $fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
+      await $fetch('/api/notifications/delete', {
+        method: 'POST',
+        body: {
+          notificationId
+        },
         ...authConfig
       })
 
@@ -337,7 +340,7 @@ export const useNotifications = () => {
       const authConfig = getAuthConfig()
 
       await $fetch('/api/notifications/clear-all', {
-        method: 'DELETE',
+        method: 'POST',
         ...authConfig
       })
 

@@ -107,6 +107,7 @@ export const notificationSettings = pgTable('NotificationSettings', {
   songRequestEnabled: boolean('songRequestEnabled').default(true).notNull(),
   songVotedEnabled: boolean('songVotedEnabled').default(true).notNull(),
   songPlayedEnabled: boolean('songPlayedEnabled').default(true).notNull(),
+  songCommentEnabled: boolean('songCommentEnabled').default(true).notNull(),
   refreshInterval: integer('refreshInterval').default(60).notNull(),
   songVotedThreshold: integer('songVotedThreshold').default(1).notNull(),
 });
