@@ -302,6 +302,18 @@
                     <img alt="点赞" class="like-icon" :src="thumbsUp" >
                   </button>
                 </div>
+
+                <!-- 评论按钮 -->
+                <div class="comment-button-wrapper">
+                  <button
+                    :title="'查看歌曲评论'"
+                    class="comment-button"
+                    @click.stop="openSongComments(song)"
+                  >
+                    <Icon name="message-circle" :size="16" />
+                    <span class="comment-badge">{{ song.commentCount || 0 }}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -365,6 +377,19 @@
           @confirm="confirmAction"
           @cancel="cancelConfirm"
         />
+
+        <SongCommentsModal
+          :show="songCommentsDialog.show"
+          :song="songCommentsDialog.song"
+          :comments="songCommentsDialog.comments"
+          :loading="songCommentsDialog.loading"
+          :error="songCommentsDialog.error"
+          :submitting="songCommentsDialog.submitting"
+          :is-authenticated="isAuthenticated"
+          @close="closeSongCommentsDialog"
+          @submit="submitSongComment"
+          @refresh="refreshSongComments"
+        />
       </div>
     </Transition>
   </div>
@@ -383,6 +408,7 @@ import Icon from '~/components/UI/Icon.vue'
 import Pagination from '~/components/UI/Common/Pagination.vue'
 import MarqueeText from '~/components/UI/MarqueeText.vue'
 import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
+import SongCommentsModal from '~/components/Songs/SongCommentsModal.vue'
 import { convertToHttps } from '~/utils/url'
 import { isBilibiliSong } from '~/utils/bilibiliSource'
 import thumbsUp from '~~/public/images/thumbs-up.svg'
@@ -543,12 +569,17 @@ onMounted(async () => {
   } finally {
     isDataLoading.value = false
   }
+
+  await fetchSongCommentCounts(displayedSongs.value.map((song) => song.id))
+  startCommentCountPolling()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   // 移除学期过滤变化事件监听器
   window.removeEventListener('semester-filter-change', handleSemesterFilterChange)
+  stopCommentCountPolling()
+  stopCommentsDialogPolling()
 })
 
 // 监听歌曲数据变化，更新学期信息
@@ -607,6 +638,19 @@ const confirmDialog = ref({
   action: '',
   data: null
 })
+
+// 歌曲评论弹窗状态
+const songCommentsDialog = ref({
+  show: false,
+  song: null,
+  comments: [],
+  loading: false,
+  submitting: false,
+  error: ''
+})
+
+let commentCountPollTimer = null
+let commentsDialogPollTimer = null
 
 // 格式化日期为 X年X月X日
 const formatDate = (dateString) => {
@@ -951,6 +995,194 @@ const shouldShowCancelButton = (song) => {
 const shouldShowRequestButton = (song) => {
   return !shouldShowCancelButton(song)
 }
+
+const showToast = (message, type = 'info') => {
+  if (window.$showNotification) {
+    window.$showNotification(message, type)
+  }
+}
+
+const normalizeCommentCount = (value) => {
+  const parsed = Number(value)
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return 0
+  }
+  return parsed
+}
+
+const applyCommentCounts = (countsMap = {}) => {
+  if (!Array.isArray(props.songs)) return
+
+  props.songs.forEach((song) => {
+    const countValue = countsMap[song.id] ?? countsMap[String(song.id)]
+    if (countValue !== undefined) {
+      song.commentCount = normalizeCommentCount(countValue)
+    } else if (song.commentCount === undefined || song.commentCount === null) {
+      song.commentCount = 0
+    }
+  })
+}
+
+const fetchSongCommentCounts = async (songIds = []) => {
+  const uniqueSongIds = Array.from(
+    new Set(
+      songIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )
+  )
+
+  if (uniqueSongIds.length === 0) {
+    applyCommentCounts({})
+    return
+  }
+
+  try {
+    const response = await $fetch('/api/songs/comments/counts', {
+      query: {
+        songIds: uniqueSongIds.join(',')
+      }
+    })
+
+    const counts = response?.data?.counts || {}
+    applyCommentCounts(counts)
+  } catch (error) {
+    console.warn('[SongList] 获取评论数失败:', error)
+  }
+}
+
+const startCommentCountPolling = () => {
+  if (commentCountPollTimer) return
+
+  commentCountPollTimer = setInterval(() => {
+    fetchSongCommentCounts(displayedSongs.value.map((song) => song.id))
+  }, 15000)
+}
+
+const stopCommentCountPolling = () => {
+  if (!commentCountPollTimer) return
+  clearInterval(commentCountPollTimer)
+  commentCountPollTimer = null
+}
+
+const loadSongComments = async (songId, silent = false) => {
+  if (!songId || Number.isNaN(Number(songId))) return
+
+  if (!silent) {
+    songCommentsDialog.value.loading = true
+  }
+  songCommentsDialog.value.error = ''
+
+  try {
+    const response = await $fetch('/api/songs/comments/list', {
+      query: { songId }
+    })
+
+    const comments = Array.isArray(response?.data?.comments) ? response.data.comments : []
+    const total = normalizeCommentCount(response?.data?.total ?? comments.length)
+
+    songCommentsDialog.value.comments = comments
+
+    if (songCommentsDialog.value.song && songCommentsDialog.value.song.id === songId) {
+      songCommentsDialog.value.song.commentCount = total
+    }
+  } catch (error) {
+    songCommentsDialog.value.error = '获取评论失败，请稍后重试'
+  } finally {
+    songCommentsDialog.value.loading = false
+  }
+}
+
+const startCommentsDialogPolling = (songId) => {
+  if (commentsDialogPollTimer) {
+    clearInterval(commentsDialogPollTimer)
+    commentsDialogPollTimer = null
+  }
+
+  commentsDialogPollTimer = setInterval(() => {
+    if (songCommentsDialog.value.show && songCommentsDialog.value.song?.id === songId) {
+      loadSongComments(songId, true)
+      fetchSongCommentCounts([songId])
+    }
+  }, 8000)
+}
+
+const stopCommentsDialogPolling = () => {
+  if (!commentsDialogPollTimer) return
+  clearInterval(commentsDialogPollTimer)
+  commentsDialogPollTimer = null
+}
+
+const openSongComments = async (song) => {
+  songCommentsDialog.value.show = true
+  songCommentsDialog.value.song = song
+  songCommentsDialog.value.comments = []
+  songCommentsDialog.value.error = ''
+  songCommentsDialog.value.loading = true
+  await loadSongComments(song.id)
+  startCommentsDialogPolling(song.id)
+}
+
+const closeSongCommentsDialog = () => {
+  songCommentsDialog.value.show = false
+  songCommentsDialog.value.song = null
+  songCommentsDialog.value.comments = []
+  songCommentsDialog.value.error = ''
+  songCommentsDialog.value.loading = false
+  songCommentsDialog.value.submitting = false
+  stopCommentsDialogPolling()
+}
+
+const refreshSongComments = async () => {
+  const currentSongId = songCommentsDialog.value.song?.id
+  if (!currentSongId) return
+  await loadSongComments(currentSongId)
+  fetchSongCommentCounts([currentSongId])
+}
+
+const submitSongComment = async (content) => {
+  if (!isAuthenticated.value) {
+    showToast('请先登录后再评论', 'error')
+    return
+  }
+
+  const currentSongId = songCommentsDialog.value.song?.id
+  if (!currentSongId) return
+
+  songCommentsDialog.value.submitting = true
+  try {
+    const response = await $fetch('/api/songs/comments', {
+      method: 'POST',
+      body: {
+        songId: currentSongId,
+        content
+      }
+    })
+
+    const latestCount = normalizeCommentCount(response?.data?.commentCount)
+    if (songCommentsDialog.value.song) {
+      songCommentsDialog.value.song.commentCount = latestCount
+    }
+
+    showToast('评论发布成功', 'success')
+    await loadSongComments(currentSongId, true)
+    await fetchSongCommentCounts([currentSongId])
+  } catch (error) {
+    const message = error?.data?.message || error?.message || '评论发布失败，请稍后重试'
+    showToast(message, 'error')
+  } finally {
+    songCommentsDialog.value.submitting = false
+  }
+}
+
+watch(
+  () => displayedSongs.value.map((song) => song.id).join(','),
+  (idKey) => {
+    if (!idKey) return
+    fetchSongCommentCounts(displayedSongs.value.map((song) => song.id))
+  },
+  { immediate: true }
+)
 
 // 处理刷新按钮点击
 const handleRefresh = () => {
@@ -2157,7 +2389,7 @@ const vRipple = {
   margin-right: 10px; /* 添加右侧外边距，使整体向左移动 */
   flex-shrink: 0;
   width: auto; /* 使用自动宽度 */
-  min-width: 100px; /* 增加最小宽度，确保热度和点赞按钮有更多空间 */
+  min-width: 156px; /* 兼容热度、点赞和评论按钮 */
   padding-right: 0; /* 移除右侧内边距 */
 }
 
@@ -2195,6 +2427,10 @@ const vRipple = {
 .like-button-wrapper {
   /* 向右移动点赞按钮，但考虑到整体已向左移动，减小负边距 */
   margin-right: -10px;
+}
+
+.comment-button-wrapper {
+  margin-right: -6px;
 }
 
 .like-button {
@@ -2235,6 +2471,45 @@ const vRipple = {
 
 .like-button:hover .like-icon {
   transform: scale(1.2);
+}
+
+.comment-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 45px;
+  border-radius: 8px;
+  background: #edf6ed;
+  border: 1px solid #b9d1b9;
+  color: #2f7d4f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comment-button:hover {
+  background: #e4f1e4;
+  border-color: #95b595;
+}
+
+.comment-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2f7d4f;
+  color: #ffffff;
+  border: 2px solid #f7fbf4;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .scheduled-tag {
@@ -2722,6 +2997,12 @@ button:disabled {
     color: var(--primary);
   }
 
+  .comment-button {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
   .like-icon {
     width: 22px;
     height: 22px;
@@ -2868,9 +3149,23 @@ button:disabled {
     height: 32px;
   }
 
+  .comment-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
   .like-icon {
     width: 16px;
     height: 16px;
+  }
+
+  .comment-badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+    top: -7px;
+    right: -7px;
   }
 
   .submission-footer {
@@ -3014,6 +3309,28 @@ button:disabled {
   color: #5f715f !important;
 }
 
+.song-list .mobile-search-input {
+  background: #f8fbf6 !important;
+  border: 1px solid #cfdcc7 !important;
+  color: #1f2a1f !important;
+  font-family: 'MiSans-Demibold', sans-serif !important;
+  font-size: 14px !important;
+}
+
+.song-list .mobile-search-input::placeholder {
+  color: #7a8b7a !important;
+}
+
+.song-list .mobile-search-input:focus {
+  background: #ffffff !important;
+  border-color: #2f7d4f !important;
+  box-shadow: 0 0 0 2px rgba(47, 125, 79, 0.12) !important;
+}
+
+.song-list .search-icon-box {
+  color: #6f816f !important;
+}
+
 .song-list .refresh-button {
   background: #2f7d4f !important;
   border: 1px solid #2f7d4f !important;
@@ -3044,6 +3361,23 @@ button:disabled {
 .song-list .like-button:hover {
   background: #e4f1e4 !important;
   border-color: #95b595 !important;
+}
+
+.song-list .comment-button {
+  position: relative !important;
+  background: #edf6ed !important;
+  border: 1px solid #b9d1b9 !important;
+  color: #2f7d4f !important;
+  box-shadow: 0 4px 10px rgba(47, 125, 79, 0.08) !important;
+}
+
+.song-list .comment-button:hover {
+  background: #e4f1e4 !important;
+  border-color: #95b595 !important;
+}
+
+.song-list .comment-badge {
+  border: 2px solid #f7fbf4 !important;
 }
 
 .song-list .like-button.liked {
@@ -3178,7 +3512,27 @@ button:disabled {
     color: #ffffff !important;
   }
 
+  .song-list .mobile-search-container {
+    gap: 12px !important;
+  }
+
+  .song-list .mobile-search-input {
+    padding: 11px 14px 11px 42px !important;
+    border-radius: 12px !important;
+    line-height: 1.3;
+  }
+
+  .song-list .search-icon-box {
+    left: 14px !important;
+  }
+
   .song-list .like-button {
+    background: #edf6ed !important;
+    border: 1px solid #b9d1b9 !important;
+    color: #2f7d4f !important;
+  }
+
+  .song-list .comment-button {
     background: #edf6ed !important;
     border: 1px solid #b9d1b9 !important;
     color: #2f7d4f !important;

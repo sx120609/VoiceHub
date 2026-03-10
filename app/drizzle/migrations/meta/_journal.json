@@ -99,6 +99,13 @@
       "when": 1773055479744,
       "tag": "20260309112439_auto-migration",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1773143400000,
+      "tag": "20260310195000_add_song_comments",
+      "breakpoints": true
     }
   ]
 }

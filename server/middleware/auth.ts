@@ -46,6 +46,17 @@ export default defineEventHandler(async (event) => {
     return
   }
 
+  const requestMethod = getMethod(event).toUpperCase()
+
+  // 评论列表和评论数允许公开读取（发表评论仍需登录）
+  if (
+    requestMethod === 'GET' &&
+    (routePath.startsWith('/api/songs/comments/list') ||
+      routePath.startsWith('/api/songs/comments/counts'))
+  ) {
+    return
+  }
+
   // 公共API路径
   const publicApiPaths = [
     '/api/auth/login',

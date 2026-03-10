@@ -3,6 +3,7 @@ import { db } from '~/drizzle/db'
 import {
   playTimes,
   schedules,
+  songComments,
   songCollaborators,
   songReplayRequests,
   songs,
@@ -39,6 +40,7 @@ interface SongResponse {
   requesterClass: string | null
   replayRequested: boolean
   replayRequestCount: number
+  commentCount: number
   isReplay: boolean
   replayRequesters: any[]
   voted?: boolean
@@ -350,6 +352,34 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // 获取每首歌评论数
+    let commentCounts = new Map()
+    if (songIds.length > 0) {
+      try {
+        const commentCountsQuery = await db
+          .select({
+            songId: songComments.songId,
+            count: count(songComments.id)
+          })
+          .from(songComments)
+          .where(inArray(songComments.songId, songIds))
+          .groupBy(songComments.songId)
+
+        commentCounts = new Map(commentCountsQuery.map((item) => [item.songId, item.count]))
+      } catch (error: any) {
+        const missingCommentsTable =
+          error?.code === '42P01' ||
+          error?.cause?.code === '42P01' ||
+          String(error?.message || '').includes('song_comments')
+
+        if (missingCommentsTable) {
+          console.warn('[Songs API] song_comments 表不存在，评论数将按 0 处理')
+        } else {
+          throw error
+        }
+      }
+    }
+
     // 获取期望播放时段信息
     const playTimesQuery = await db.select().from(playTimes)
 
@@ -498,6 +528,7 @@ export default defineEventHandler(async (event) => {
         requesterClass: song.requester?.class || null, // 添加投稿人班级
         replayRequested: userReplayRequestedSongs.has(song.id), // 添加是否已被申请重播的标志
         replayRequestCount: replayRequestCounts.get(song.id) || 0,
+        commentCount: commentCounts.get(song.id) || 0,
         isReplay: (replayRequestCounts.get(song.id) || 0) > 0,
         replayRequesters: formattedReplayRequesters
       }

@@ -36,6 +36,17 @@ export interface Song {
   scheduled?: boolean // 是否已排期
   scheduleDate?: string // 排期日期
   schedulePlayed?: boolean // 排期中的播放状态
+  commentCount?: number
+}
+
+export interface SongComment {
+  id: number
+  songId?: number
+  userId: number | null
+  userDisplayName: string
+  content: string
+  createdAt: string
+  updatedAt?: string
 }
 
 export interface Schedule {

@@ -269,6 +269,16 @@ export const songReplayRequests = pgTable('song_replay_requests', {
   unq: unique().on(t.songId, t.userId),
 }));
 
+// 歌曲评论表
+export const songComments = pgTable('song_comments', {
+  id: serial('id').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  songId: integer('song_id').notNull(),
+  userId: integer('user_id').notNull(),
+  content: text('content').notNull(),
+})
+
 // 第三方身份关联表
 export const userIdentities = pgTable('UserIdentity', {
   id: serial('id').primaryKey(),
@@ -295,6 +305,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   statusLogs: many(userStatusLogs),
     collaborations: many(songCollaborators),
   replayRequests: many(songReplayRequests),
+  comments: many(songComments),
   statusChangedByUser: one(users, {
     fields: [users.statusChangedBy],
     references: [users.id],
@@ -322,6 +333,7 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
   notifications: many(notifications),
     collaborators: many(songCollaborators),
     replayRequests: many(songReplayRequests),
+  comments: many(songComments),
 }));
 
 export const votesRelations = relations(votes, ({ one }) => ({
@@ -438,6 +450,17 @@ export const songReplayRequestsRelations = relations(songReplayRequests, ({one})
     }),
 }));
 
+export const songCommentsRelations = relations(songComments, ({ one }) => ({
+  song: one(songs, {
+    fields: [songComments.songId],
+    references: [songs.id],
+  }),
+  user: one(users, {
+    fields: [songComments.userId],
+    references: [users.id],
+  }),
+}))
+
 // 邮件模板表（仅存储自定义覆盖，内置模板在代码中定义）
 export const emailTemplates = pgTable('EmailTemplate', {
   id: serial('id').primaryKey(),
@@ -485,6 +508,8 @@ export type CollaborationLog = typeof collaborationLogs.$inferSelect;
 export type NewCollaborationLog = typeof collaborationLogs.$inferInsert;
 export type SongReplayRequest = typeof songReplayRequests.$inferSelect;
 export type NewSongReplayRequest = typeof songReplayRequests.$inferInsert;
+export type SongComment = typeof songComments.$inferSelect;
+export type NewSongComment = typeof songComments.$inferInsert;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type NewEmailTemplate = typeof emailTemplates.$inferInsert;export type RequestTime = typeof requestTimes.$inferSelect;
 export type NewRequestTime = typeof requestTimes.$inferInsert;
