@@ -142,7 +142,11 @@ export default defineEventHandler(async (event) => {
     if (shouldEnforceUserActivation && !user.emailVerified) {
       throw createError({
         statusCode: 403,
-        message: '账号尚未激活，请先点击邮箱中的激活链接完成激活，或联系管理员手动激活'
+        message: '账号尚未激活，请先点击邮箱中的激活链接完成激活，或联系管理员手动激活',
+        data: {
+          code: 'ACCOUNT_NOT_ACTIVATED',
+          email: user.email
+        }
       })
     }
 

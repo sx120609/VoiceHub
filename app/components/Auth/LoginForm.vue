@@ -130,6 +130,18 @@
         <span class="error-message">{{ error }}</span>
       </div>
 
+      <div v-if="showActivationResend && !isBindMode" class="activation-resend">
+        <p class="form-tip">未收到激活邮件或链接已过期，可重新发送激活邮件</p>
+        <button
+          :disabled="resendingActivation || loading"
+          class="resend-activation-btn"
+          type="button"
+          @click="handleResendActivation"
+        >
+          {{ resendingActivation ? '发送中...' : '重发激活邮件' }}
+        </button>
+      </div>
+
       <button :disabled="loading" class="submit-btn" type="submit">
         <svg v-if="loading" class="loading-spinner" viewBox="0 0 24 24">
           <circle
@@ -204,10 +216,14 @@ const info = ref('')
 const loading = ref(false)
 const sendingCode = ref(false)
 const resendCooldown = ref(0)
+const showActivationResend = ref(false)
+const resendingActivation = ref(false)
+const pendingActivationEmail = ref('')
 
 let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
 const qqNumberRegex = /^[1-9]\d{4,10}$/
+const qqEmailRegex = /^[1-9]\d{4,10}@qq\.com$/
 
 const auth = useAuth()
 
@@ -241,6 +257,10 @@ onMounted(async () => {
     } else {
       error.value = payload.message
       info.value = ''
+    }
+
+    if (activation === 'expired' || activation === 'invalid') {
+      showActivationResend.value = true
     }
   }
 
@@ -307,6 +327,66 @@ const extractErrorMessage = (err: any, fallback: string) => {
   return err?.data?.message || err?.message || fallback
 }
 
+const extractQQPrefixFromEmail = (email: string): string => {
+  const normalized = email.trim().toLowerCase()
+  if (!qqEmailRegex.test(normalized)) {
+    return ''
+  }
+  return normalized.slice(0, -'@qq.com'.length)
+}
+
+const parseActivationError = (err: any): { isActivationError: boolean; email: string } => {
+  const payload = err?.data?.data ?? err?.data ?? {}
+  const code = typeof payload?.code === 'string' ? payload.code : ''
+  const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : ''
+  const message = extractErrorMessage(err, '')
+  const isActivationError = code === 'ACCOUNT_NOT_ACTIVATED' || /未激活|激活链接/.test(message)
+  return { isActivationError, email }
+}
+
+const resolveActivationResendTarget = (): { email: string } | { qqNumber: string } | null => {
+  const prefix = normalizeQQPrefixInput(emailPrefix.value)
+  if (qqNumberRegex.test(prefix)) {
+    return { qqNumber: prefix }
+  }
+
+  const email = pendingActivationEmail.value.trim().toLowerCase()
+  if (qqEmailRegex.test(email)) {
+    return { email }
+  }
+
+  return null
+}
+
+const handleResendActivation = async () => {
+  if (resendingActivation.value || loading.value) {
+    return
+  }
+
+  const target = resolveActivationResendTarget()
+  if (!target) {
+    error.value = '请先输入QQ邮箱前缀后再重发激活邮件'
+    return
+  }
+
+  resendingActivation.value = true
+  error.value = ''
+  info.value = ''
+
+  try {
+    const response: any = await $fetch('/api/auth/register/resend-code', {
+      method: 'POST',
+      body: target
+    })
+
+    info.value = response?.message || '激活邮件已发送，请查收邮箱'
+  } catch (err: any) {
+    error.value = extractErrorMessage(err, '重发激活邮件失败，请稍后重试')
+  } finally {
+    resendingActivation.value = false
+  }
+}
+
 const handleSendCode = async () => {
   if (isBindMode.value || sendingCode.value || loading.value || resendCooldown.value > 0) {
     return
@@ -341,6 +421,7 @@ const handleSendCode = async () => {
 const handleLogin = async () => {
   loading.value = true
   clearMessages()
+  showActivationResend.value = false
 
   try {
     if (isBindMode.value) {
@@ -403,6 +484,17 @@ const handleLogin = async () => {
     await navigateTo(resolveAfterLoginPath())
   } catch (err: any) {
     error.value = extractErrorMessage(err, isBindMode.value ? '绑定失败，请检查账号密码' : '登录失败，请重试')
+    const activationError = parseActivationError(err)
+    if (!isBindMode.value && activationError.isActivationError) {
+      showActivationResend.value = true
+      if (activationError.email) {
+        pendingActivationEmail.value = activationError.email
+        const qqPrefix = extractQQPrefixFromEmail(activationError.email)
+        if (qqPrefix && !normalizeQQPrefixInput(emailPrefix.value)) {
+          emailPrefix.value = qqPrefix
+        }
+      }
+    }
     if (loginMode.value === 'password' && (error.value.includes('密码') || error.value.includes('错误'))) {
       password.value = ''
     }
@@ -597,6 +689,30 @@ const handleLogin = async () => {
   margin: 0;
   font-size: 12px;
   color: var(--text-quaternary);
+}
+
+.activation-resend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resend-activation-btn {
+  align-self: flex-start;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-lg);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  font-size: 13px;
+  font-weight: var(--font-medium);
+  cursor: pointer;
+}
+
+.resend-activation-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .password-toggle {
