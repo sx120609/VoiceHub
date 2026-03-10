@@ -28,8 +28,8 @@ const props = defineProps({
 const containerEl = ref(null)
 const contentEl = ref(null)
 const scrolling = ref(false)
-const isMobile = ref(false)
-let mql = null
+let intersectionObserver = null
+let resizeObserver = null
 
 const checkOverflow = async () => {
   if (!containerEl.value || !contentEl.value) return
@@ -38,11 +38,15 @@ const checkOverflow = async () => {
   scrolling.value = false
   await nextTick()
 
-  if (!isMobile.value || !props.activated) {
-    return // No scrolling on desktop or when not activated.
+  if (!props.activated) {
+    return
   }
 
   const containerWidth = containerEl.value.offsetWidth
+  if (!containerWidth) {
+    return
+  }
+
   const contentWidth = contentEl.value.scrollWidth
 
   if (contentWidth > containerWidth) {
@@ -57,39 +61,46 @@ const checkOverflow = async () => {
   }
 }
 
-const handleScreenChange = () => {
-  if (mql) {
-    isMobile.value = mql.matches
-  }
+const handleResize = () => {
   checkOverflow()
 }
 
 onMounted(() => {
-  mql = window.matchMedia('(max-width: 768px)')
-
-  const observer = new IntersectionObserver(
+  intersectionObserver = new IntersectionObserver(
     (entries) => {
       if (entries[0].isIntersecting) {
-        handleScreenChange() // Initial check once visible.
-        observer.disconnect()
+        checkOverflow()
       }
     },
     { threshold: 0.01 }
   )
 
   if (containerEl.value) {
-    observer.observe(containerEl.value)
+    intersectionObserver.observe(containerEl.value)
   }
 
-  mql.addEventListener('change', handleScreenChange)
-  window.addEventListener('resize', handleScreenChange)
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      checkOverflow()
+    })
+    if (containerEl.value) resizeObserver.observe(containerEl.value)
+    if (contentEl.value) resizeObserver.observe(contentEl.value)
+  }
+
+  window.addEventListener('resize', handleResize)
+  checkOverflow()
 })
 
 onUnmounted(() => {
-  if (mql) {
-    mql.removeEventListener('change', handleScreenChange)
+  if (intersectionObserver) {
+    intersectionObserver.disconnect()
+    intersectionObserver = null
   }
-  window.removeEventListener('resize', handleScreenChange)
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+  window.removeEventListener('resize', handleResize)
 })
 
 watch(
@@ -115,7 +126,8 @@ watch(
 }
 
 .marquee-content {
-  display: inline-block;
+  display: inline-flex;
+  min-width: 100%;
 }
 
 .marquee-content.scrolling {

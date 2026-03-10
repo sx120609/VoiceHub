@@ -218,7 +218,7 @@
               <div class="song-info">
                 <h3 :title="song.title + ' - ' + song.artist" class="song-title">
                   <marquee-text
-                    :activated="isSongFocused(song.id)"
+                    :activated="true"
                     :text="`${song.title} - ${song.artist}`"
                   />
                   <span

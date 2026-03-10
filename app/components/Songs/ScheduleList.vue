@@ -191,9 +191,9 @@
                           :title="schedule.song.title + ' - ' + schedule.song.artist"
                           class="song-title"
                         >
-                          <span class="title-text"
-                            >{{ schedule.song.title }} - {{ schedule.song.artist }}</span
-                          >
+                          <span class="title-marquee">
+                            <MarqueeText :activated="true" :text="`${schedule.song.title} - ${schedule.song.artist}`" />
+                          </span>
                           <!-- 重播标识 -->
                           <span
                             v-if="schedule.song.replayRequestCount > 0"
@@ -597,6 +597,7 @@ import { useAudioPlayer } from '~/composables/useAudioPlayer'
 import { useAudioQuality } from '~/composables/useAudioQuality'
 import { useMusicSources } from '~/composables/useMusicSources'
 import Icon from '~/components/UI/Icon.vue'
+import MarqueeText from '~/components/UI/MarqueeText.vue'
 import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 import CustomSelect from '~/components/UI/Common/CustomSelect.vue'
 import { convertToHttps } from '~/utils/url'
@@ -2841,6 +2842,12 @@ const vRipple = {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.title-marquee {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* 重播标识 */
