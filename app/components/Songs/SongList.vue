@@ -3010,24 +3010,51 @@ button:disabled {
 }
 
 .song-list .like-button {
-  background: #2f7d4f !important;
-  border: 1px solid #2f7d4f !important;
-  color: #ffffff !important;
-  box-shadow: 0 6px 14px rgba(47, 125, 79, 0.2) !important;
+  position: relative !important;
+  background: #edf6ed !important;
+  border: 1px solid #b9d1b9 !important;
+  color: #2f7d4f !important;
+  box-shadow: 0 4px 10px rgba(47, 125, 79, 0.08) !important;
 }
 
 .song-list .like-button .like-icon {
+  filter: brightness(0) saturate(100%) invert(36%) sepia(26%) saturate(808%) hue-rotate(94deg)
+    brightness(94%) contrast(86%) !important;
   opacity: 1 !important;
 }
 
 .song-list .like-button:hover {
-  background: #266942 !important;
-  border-color: #266942 !important;
+  background: #e4f1e4 !important;
+  border-color: #95b595 !important;
 }
 
 .song-list .like-button.liked {
   background: #215f3c !important;
   border-color: #215f3c !important;
+  box-shadow: 0 7px 16px rgba(33, 95, 60, 0.24) !important;
+}
+
+.song-list .like-button.liked .like-icon {
+  filter: brightness(0) invert(1) !important;
+}
+
+.song-list .like-button.liked::after {
+  content: '✓';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2f7d4f;
+  border: 2px solid #f7fbf4;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .song-list .like-button.liked.disabled {
@@ -3036,6 +3063,10 @@ button:disabled {
 
 .song-list .like-button.liked.disabled .like-icon {
   opacity: 1 !important;
+}
+
+.song-list .like-button.disabled:not(.liked) {
+  opacity: 0.62 !important;
 }
 
 .song-list .song-card {
@@ -3105,14 +3136,23 @@ button:disabled {
   }
 
   .song-list .like-button {
-    background: #2f7d4f !important;
-    border: 1px solid #2f7d4f !important;
-    color: #ffffff !important;
+    background: #edf6ed !important;
+    border: 1px solid #b9d1b9 !important;
+    color: #2f7d4f !important;
   }
 
   .song-list .like-button.liked {
     background: #215f3c !important;
     border-color: #215f3c !important;
+  }
+
+  .song-list .like-button .like-icon {
+    filter: brightness(0) saturate(100%) invert(36%) sepia(26%) saturate(808%) hue-rotate(94deg)
+      brightness(94%) contrast(86%) !important;
+  }
+
+  .song-list .like-button.liked .like-icon {
+    filter: brightness(0) invert(1) !important;
   }
 
   .song-list .like-button.liked.disabled,
