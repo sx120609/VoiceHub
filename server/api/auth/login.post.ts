@@ -125,11 +125,19 @@ export default defineEventHandler(async (event) => {
     }
 
     const requireEmailVerification = await isRegistrationEmailVerificationEnabled()
-    if (requireEmailVerification && !user.emailVerified) {
+    const shouldEnforceUserActivation = requireEmailVerification && user.role === 'USER'
+
+    if (shouldEnforceUserActivation && !user.emailVerified) {
       throw createError({
         statusCode: 403,
         message: '账号尚未激活，请先点击邮箱中的激活链接完成激活，或联系管理员手动激活'
       })
+    }
+
+    // 管理员类账号不强制邮箱激活，首次登录自动补齐标记，避免后续被误拦截
+    if (user.role !== 'USER' && !user.emailVerified) {
+      await db.update(users).set({ emailVerified: true }).where(eq(users.id, user.id))
+      user.emailVerified = true
     }
 
     recordLoginSuccess(body.username, clientIp)
