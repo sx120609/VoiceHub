@@ -3021,6 +3021,10 @@ defineExpose({
   gap: 1rem;
   flex: 1;
   min-width: 200px; /* 增加最小宽度，防止在窄屏下与搜索框重叠 */
+  padding: 0.5rem 0.75rem;
+  background: #f8fbf6;
+  border: 1px solid #d2deca;
+  border-radius: 10px;
 }
 
 .section-label {
@@ -3233,6 +3237,10 @@ defineExpose({
   display: flex;
   gap: 1rem;
   align-items: flex-start;
+  padding: 0.35rem;
+  background: #f3f8ef;
+  border: 1px solid #d2deca;
+  border-radius: 10px;
 }
 
 /* 网易云音乐登录选项 */
