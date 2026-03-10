@@ -3009,6 +3009,35 @@ button:disabled {
   transform: translateY(-1px);
 }
 
+.song-list .like-button {
+  background: #2f7d4f !important;
+  border: 1px solid #2f7d4f !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 14px rgba(47, 125, 79, 0.2) !important;
+}
+
+.song-list .like-button .like-icon {
+  opacity: 1 !important;
+}
+
+.song-list .like-button:hover {
+  background: #266942 !important;
+  border-color: #266942 !important;
+}
+
+.song-list .like-button.liked {
+  background: #215f3c !important;
+  border-color: #215f3c !important;
+}
+
+.song-list .like-button.liked.disabled {
+  opacity: 1 !important;
+}
+
+.song-list .like-button.liked.disabled .like-icon {
+  opacity: 1 !important;
+}
+
 .song-list .song-card {
   background: #f7fbf4 !important;
   border: 1px solid #d2deca !important;
@@ -3073,6 +3102,22 @@ button:disabled {
     background: #2f7d4f !important;
     border: 1px solid #2f7d4f !important;
     color: #ffffff !important;
+  }
+
+  .song-list .like-button {
+    background: #2f7d4f !important;
+    border: 1px solid #2f7d4f !important;
+    color: #ffffff !important;
+  }
+
+  .song-list .like-button.liked {
+    background: #215f3c !important;
+    border-color: #215f3c !important;
+  }
+
+  .song-list .like-button.liked.disabled,
+  .song-list .like-button.liked.disabled .like-icon {
+    opacity: 1 !important;
   }
 
   .song-list .song-card {
