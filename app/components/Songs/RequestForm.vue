@@ -2852,7 +2852,9 @@ defineExpose({
 }
 
 .rules-section {
-  background: rgba(0, 0, 0, 0.4);
+  background: #f8fbf6;
+  border: 1px solid #d2deca;
+  box-shadow: 0 6px 18px rgba(47, 125, 79, 0.08);
   border-radius: 13px;
   padding: 1.25rem;
   flex: 0 0 35%; /* 稍微缩小规则区域占比 */
@@ -2866,7 +2868,7 @@ defineExpose({
   font-weight: 400;
   font-size: 15px;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.6);
+  color: #2a3f2a;
   margin-bottom: 0.75rem;
 }
 
@@ -2876,7 +2878,7 @@ defineExpose({
   font-size: 15px;
   line-height: 1.7;
   letter-spacing: 0.04em;
-  color: #fff;
+  color: #2f452f;
 }
 
 .rules-content-desktop p {
@@ -2956,7 +2958,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 15px;
-  color: #ffffff;
+  color: #1f2a1f;
   white-space: nowrap;
   flex-shrink: 0; /* 防止标签被压缩 */
 }
@@ -2970,13 +2972,13 @@ defineExpose({
 
 .search-input {
   background: #f7fbf4;
-  border: 1px solid #242f38;
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #1f2a1f;
   flex: 1;
   min-width: 100px; /* 确保输入框不会缩到太小 */
 }
@@ -3025,7 +3027,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 16px;
-  color: #ffffff;
+  color: #1f2a1f;
   white-space: nowrap;
   flex-shrink: 0; /* 防止标签被压缩 */
 }
@@ -3041,18 +3043,18 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(11, 90, 254, 0.1);
-  border: 1px solid rgba(11, 90, 254, 0.2);
+  background: #e6efe0;
+  border: 1px solid #c8d7bf;
   border-radius: 6px;
   padding: 0.25rem 0.5rem;
   font-size: 14px;
-  color: #fff;
+  color: #2f4d2f;
 }
 
 .remove-collaborator {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -3060,35 +3062,35 @@ defineExpose({
 }
 
 .remove-collaborator:hover {
-  color: #fff;
+  color: #2f7d4f;
 }
 
 .add-collaborator-btn {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #eef4e8;
+  border: 1px solid #cfdcc7;
   border-radius: 6px;
   padding: 0.25rem 0.75rem;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #3b543b;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-collaborator-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #e3ecda;
+  color: #2f7d4f;
 }
 
 /* 横向投稿状态样式 */
 .submission-status-horizontal {
-  background: rgba(0, 0, 0, 0.3);
+  background: #f5f9f1;
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   margin-bottom: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #d2deca;
 }
 
 .admin-notice-horizontal {
@@ -3145,7 +3147,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 13px;
-  color: #ffffff;
+  color: #2a3f2a;
 }
 
 .status-item-horizontal .status-value {
@@ -3159,7 +3161,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 500;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  color: #5f715f;
   background: rgba(11, 90, 254, 0.1);
   border: 1px solid rgba(11, 90, 254, 0.3);
   border-radius: 4px;
@@ -3191,7 +3193,7 @@ defineExpose({
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.9);
+  color: #2a3f2a;
   margin-bottom: 0.25rem;
 }
 
@@ -3202,13 +3204,13 @@ defineExpose({
 .form-input,
 .form-select {
   background: #f7fbf4;
-  border: 1px solid #242f38;
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #1f2a1f;
   width: 100%;
 }
 
@@ -3236,10 +3238,10 @@ defineExpose({
 /* 网易云音乐登录选项 */
 .netease-options {
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
+  background: #f8fbf6;
   border-radius: 12px;
   padding: 0.4rem 0.75rem; /* 稍微缩小内边距 */
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #d2deca;
   display: flex;
   flex-direction: column;
   gap: 0.4rem; /* 缩小间距 */
@@ -3248,8 +3250,8 @@ defineExpose({
 }
 
 .netease-options:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: #f2f8ee;
+  border-color: #c8d6bf;
 }
 
 .netease-options::before {
@@ -3288,7 +3290,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 13px;
-  color: #ffffff;
+  color: #1f2a1f;
 }
 
 .login-entry {
@@ -3296,16 +3298,16 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: #f5f9f1;
   padding: 0.6rem 0.85rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid #d2deca;
   transition: all 0.3s ease;
 }
 
 .login-entry:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #eef4e8;
+  border-color: #c8d6bf;
 }
 
 .login-desc {
@@ -3316,14 +3318,14 @@ defineExpose({
 .login-title {
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: #1f2a1f;
   margin: 0;
   letter-spacing: 0.02em;
 }
 
 .login-hint {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
+  color: #5f715f;
   margin: 2px 0 0 0;
   line-height: 1.3;
 }
@@ -3361,7 +3363,7 @@ defineExpose({
   gap: 0.25rem;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: #5f715f;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
   font-size: 11px;
@@ -3370,8 +3372,8 @@ defineExpose({
 }
 
 .header-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  color: #2f7d4f;
+  background: #e8f0e2;
 }
 
 .login-actions {
@@ -3381,9 +3383,9 @@ defineExpose({
 }
 
 .import-btn {
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #eef4e8;
+  color: #3f583f;
+  border: 1px solid #cfdcc7;
   padding: 0.45rem 0.75rem;
   border-radius: 7px;
   font-size: 12px;
@@ -3398,9 +3400,9 @@ defineExpose({
 }
 
 .import-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  background: #e3ecda;
+  border-color: #c8d6bf;
+  color: #2f7d4f;
 }
 
 .user-status {
@@ -3431,7 +3433,7 @@ defineExpose({
 
 .user-name {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #2a3f2a;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -3447,9 +3449,9 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
+  background: #eef4e8;
+  border: 1px solid #d2deca;
+  color: #4f654f;
   padding: 0.35rem 0.6rem;
   border-radius: 6px;
   font-size: 11px;
@@ -3460,17 +3462,17 @@ defineExpose({
 }
 
 .action-btn-compact:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.12);
+  background: #e3ecda;
+  color: #2f7d4f;
+  border-color: #c8d6bf;
 }
 
 .search-type-switch {
   display: flex;
-  background: rgba(0, 0, 0, 0.2);
+  background: #eef4e8;
   border-radius: 6px;
   padding: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid #d2deca;
 }
 
 .radio-label {
@@ -3478,7 +3480,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: #6a7a6a;
   cursor: pointer;
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
@@ -3486,9 +3488,9 @@ defineExpose({
 }
 
 .radio-label.active {
-  color: #ffffff;
+  color: #1f2a1f;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.08);
+  background: #f8fbf6;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -3502,7 +3504,7 @@ defineExpose({
   gap: 0.2rem;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: #6a7a6a;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
   font-size: 11px;
@@ -3511,19 +3513,19 @@ defineExpose({
 }
 
 .logout-btn:hover {
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.05);
+  color: #2f7d4f;
+  background: #e8f0e2;
 }
 
 .platform-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #eef4e8;
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   padding: 0.45rem 0.85rem;
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: #476047;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
@@ -3536,8 +3538,8 @@ defineExpose({
 }
 
 .platform-btn:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
+  background: #e3ecda;
+  color: #2f7d4f;
 }
 
 /* 音源状态显示 */
@@ -3560,7 +3562,7 @@ defineExpose({
 .status-title {
   font-size: 14px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: #2a3f2a;
   font-family: 'MiSans', sans-serif;
 }
 
@@ -3671,7 +3673,8 @@ defineExpose({
 /* 搜索结果容器样式 */
 .search-results-container {
   flex: 1;
-  background: rgba(0, 0, 0, 0.4);
+  background: #f8fbf6;
+  border: 1px solid #d2deca;
   border-radius: 13px;
   display: flex;
   flex-direction: column;
@@ -3709,7 +3712,7 @@ defineExpose({
 }
 
 .loading-text {
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   font-family: 'MiSans', sans-serif;
   font-weight: 500;
   margin: 0;
@@ -3748,17 +3751,17 @@ defineExpose({
 }
 
 .results-grid::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: #e8efe2;
   border-radius: 3px;
 }
 
 .results-grid::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
+  background: #c7d8bf;
   border-radius: 3px;
 }
 
 .results-grid::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: #adc59f;
 }
 
 /* 空状态和初始状态 */
@@ -3786,13 +3789,13 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 15px;
-  color: #ffffff;
+  color: #1f2a1f;
   margin: 0;
 }
 
 .empty-hint,
 .initial-hint {
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   font-size: 13px;
   margin: 0;
 }
@@ -3820,25 +3823,25 @@ defineExpose({
 .manual-input-trigger {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #d2deca;
   text-align: center;
 }
 
 .manual-submit-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #eef4e8;
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   padding: 0.5rem 1.5rem;
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 14px;
-  color: #ffffff;
+  color: #2f4d2f;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .manual-submit-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #e3ecda;
   transform: translateY(-2px);
 }
 
@@ -3847,7 +3850,7 @@ defineExpose({
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #5f715f;
   margin-top: 0.5rem;
 }
 
@@ -3912,7 +3915,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 16px;
-  color: #ffffff;
+  color: #1f2a1f;
 }
 
 .alert-content {
@@ -3930,7 +3933,7 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid #dbe6d4;
 }
 
 .similar-song-item:last-child {
@@ -3945,7 +3948,7 @@ defineExpose({
 .song-title {
   margin: 0 0 0.25rem 0;
   font-size: 14px;
-  color: #ffffff;
+  color: #1f2a1f;
   font-weight: 500;
 }
 
@@ -3977,7 +3980,7 @@ defineExpose({
 }
 
 .alert-hint {
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   font-size: 14px;
   margin-top: 0.5rem;
 }
@@ -4023,11 +4026,11 @@ defineExpose({
 }
 
 .ignore-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #eef4e8;
+  border: 1px solid #cfdcc7;
   border-radius: 8px;
   padding: 0.5rem 1rem;
-  color: #ffffff;
+  color: #2f4d2f;
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 14px;
@@ -4234,10 +4237,10 @@ defineExpose({
 }
 
 .readonly {
-  background: rgba(0, 0, 0, 0.2) !important;
-  color: rgba(255, 255, 255, 0.5) !important;
+  background: #eef4e8 !important;
+  color: #7a8a7a !important;
   cursor: not-allowed;
-  border-color: transparent !important;
+  border-color: #d2deca !important;
 }
 
 /* 弹窗动画 */
@@ -4263,7 +4266,7 @@ defineExpose({
   gap: 1rem;
   transition: all 0.2s ease;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #dbe6d4;
 }
 
 .result-item:last-child {
@@ -4271,7 +4274,7 @@ defineExpose({
 }
 
 .result-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: #f1f7ec;
 }
 
 .result-cover {
@@ -4282,7 +4285,7 @@ defineExpose({
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  background: #18181b;
+  background: #dfead7;
 }
 
 .cover-img {
@@ -4833,8 +4836,8 @@ defineExpose({
   }
 
   .search-input {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #fff;
+    border: 1px solid #cfdcc7;
     border-radius: 12px;
     padding: 0.75rem 1rem;
     font-size: 15px;
@@ -4853,7 +4856,8 @@ defineExpose({
 
   /* 移动端平台选择按钮 */
   .platform-selection {
-    background: rgba(0, 0, 0, 0.2);
+    background: #eef4e8;
+    border: 1px solid #d2deca;
     padding: 4px;
     border-radius: 12px;
     margin-bottom: 1rem;
@@ -4868,12 +4872,12 @@ defineExpose({
     border-radius: 10px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
+    color: #476047;
     min-width: auto;
   }
 
   .platform-btn.active {
-    background: #2f7d4f;
+    background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
     color: #ffffff;
     box-shadow: 0 2px 8px rgba(11, 90, 254, 0.3);
   }
