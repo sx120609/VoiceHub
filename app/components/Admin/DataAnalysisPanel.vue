@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="text-center">
-        <h3 class="text-xl font-black text-white tracking-tight">
+        <h3 class="text-xl font-black text-[#1f2a1f] tracking-tight">
           {{ loadingSteps[currentLoadingStep] }}
         </h3>
         <p class="text-sm text-zinc-500 mt-2">正在获取最新的统计数据...</p>
@@ -29,10 +29,10 @@
         <X class="text-red-500" :size="48" />
       </div>
       <div class="text-center">
-        <h3 class="text-xl font-black text-white tracking-tight">数据加载失败</h3>
+        <h3 class="text-xl font-black text-[#1f2a1f] tracking-tight">数据加载失败</h3>
         <p class="text-sm text-zinc-500 mt-2 max-w-md">{{ error }}</p>
         <button
-          class="mt-6 px-8 py-3 bg-zinc-900 border border-zinc-800 rounded-full text-sm font-black text-white hover:bg-zinc-800 transition-all flex items-center gap-2 mx-auto"
+          class="mt-6 px-8 py-3 bg-[#2f7d4f] border border-[#2f7d4f] rounded-full text-sm font-black text-white hover:bg-[#256a43] transition-all flex items-center gap-2 mx-auto"
           @click="refreshAllData"
         >
           <RefreshCw :size="16" />
@@ -46,13 +46,13 @@
       <!-- 顶部标题和筛选栏 -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 class="text-3xl font-black text-white tracking-tight">数据中心</h2>
-          <p class="text-sm text-zinc-500 mt-1 font-medium">洞察校园声音背后的互动趋势与影响力</p>
+          <h2 class="text-3xl font-black text-[#1f2a1f] tracking-tight">数据中心</h2>
+          <p class="text-sm text-[#526452] mt-1 font-medium">洞察校园声音背后的互动趋势与影响力</p>
         </div>
         <div class="flex items-center gap-3">
           <button
             :disabled="isLoading"
-            class="p-2.5 bg-zinc-900/50 border border-zinc-800 rounded-full text-zinc-400 hover:text-white transition-all group disabled:opacity-50"
+            class="p-2.5 bg-white border border-[#cfdbc7] rounded-full text-[#526452] hover:text-[#2f7d4f] hover:border-[#9eb79a] transition-all group disabled:opacity-50"
             @click="refreshAllData"
           >
             <RefreshCw :size="18" :class="{ 'animate-spin': isLoading }" />
@@ -131,7 +131,7 @@
                 >当前活跃用户</span
               >
               <div class="flex items-baseline gap-2 mt-1">
-                <h3 class="text-5xl font-black text-white">{{ realtimeStats.activeUsers }}</h3>
+                <h3 class="text-5xl font-black text-[#1f2a1f]">{{ realtimeStats.activeUsers }}</h3>
                 <span class="text-xs font-bold text-zinc-500">人在线</span>
               </div>
             </div>
@@ -170,7 +170,7 @@
         >
           <div class="flex items-center justify-between mb-10">
             <div>
-              <h3 class="text-xl font-bold flex items-center gap-3 text-white">
+              <h3 class="text-xl font-bold flex items-center gap-3 text-[#1f2a1f]">
                 <BarChart2 class="text-blue-500" :size="20" />
                 点歌趋势分析
               </h3>
@@ -213,7 +213,7 @@
               {{ panelStates.trends.error }}
             </p>
             <button
-              class="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-black uppercase tracking-widest rounded-full transition-all"
+              class="px-6 py-2 bg-[#2f7d4f] hover:bg-[#256a43] text-white text-[10px] font-black uppercase tracking-widest rounded-full transition-all"
               @click="loadTrends"
             >
               立即重试
@@ -262,7 +262,7 @@
           class="lg:col-span-4 bg-zinc-900/40 border border-zinc-800 rounded-[3rem] p-8 flex flex-col min-h-[500px]"
         >
           <div class="flex items-center justify-between mb-8">
-            <h3 class="text-xl font-bold flex items-center gap-3 text-white">
+            <h3 class="text-xl font-bold flex items-center gap-3 text-[#1f2a1f]">
               <Trophy class="text-amber-500" :size="20" />
               热门歌曲排行
             </h3>
@@ -303,7 +303,7 @@
               {{ panelStates.topSongs.error }}
             </p>
             <button
-              class="px-4 py-2 bg-zinc-800 text-[10px] font-black uppercase rounded-full hover:bg-zinc-700 text-white transition-colors"
+              class="px-4 py-2 bg-[#2f7d4f] text-[10px] font-black uppercase rounded-full hover:bg-[#256a43] text-white transition-colors"
               @click="loadTopSongs"
             >
               重试
@@ -333,7 +333,7 @@
               </div>
               <div class="flex-1 min-w-0">
                 <h4
-                  class="text-sm font-bold text-zinc-200 truncate group-hover:text-white transition-colors"
+                  class="text-sm font-bold text-zinc-200 truncate group-hover:text-[#1f2a1f] transition-colors"
                 >
                   {{ song.title }}
                 </h4>
@@ -363,7 +363,7 @@
           class="bg-zinc-900/40 border border-zinc-800 rounded-[3rem] p-8 flex flex-col min-h-[500px]"
         >
           <div class="flex items-center justify-between mb-8">
-            <h3 class="text-xl font-bold flex items-center gap-3 text-white">
+            <h3 class="text-xl font-bold flex items-center gap-3 text-[#1f2a1f]">
               <UserCheck class="text-purple-500" :size="20" />
               活跃用户排行榜
             </h3>
@@ -387,7 +387,7 @@
               {{ panelStates.activeUsers.error }}
             </p>
             <button
-              class="px-4 py-2 bg-zinc-800 text-[10px] font-black uppercase rounded-full hover:bg-zinc-700 text-white transition-colors"
+              class="px-4 py-2 bg-[#2f7d4f] text-[10px] font-black uppercase rounded-full hover:bg-[#256a43] text-white transition-colors"
               @click="loadActiveUsers"
             >
               重试
@@ -444,7 +444,7 @@
           class="bg-zinc-900/40 border border-zinc-800 rounded-[3rem] p-8 flex flex-col min-h-[500px]"
         >
           <div class="flex items-center justify-between mb-8">
-            <h3 class="text-xl font-bold flex items-center gap-3 text-white">
+            <h3 class="text-xl font-bold flex items-center gap-3 text-[#1f2a1f]">
               <Globe class="text-emerald-500" :size="20" />
               学期对比分析
             </h3>
@@ -471,7 +471,7 @@
               {{ panelStates.semesterComparison.error }}
             </p>
             <button
-              class="px-4 py-2 bg-zinc-800 text-[10px] font-black uppercase rounded-full hover:bg-zinc-700 text-white transition-colors"
+              class="px-4 py-2 bg-[#2f7d4f] text-[10px] font-black uppercase rounded-full hover:bg-[#256a43] text-white transition-colors"
               @click="loadSemesterComparison"
             >
               重试
@@ -537,13 +537,13 @@
         @mouseleave="handleTooltipMouseLeave"
       >
         <div
-          class="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden min-w-[320px] backdrop-blur-xl bg-opacity-90 animate-in fade-in zoom-in duration-200"
+          class="bg-[#ffffff] border border-[#cfdbc7] rounded-3xl shadow-lg overflow-hidden min-w-[320px] backdrop-blur-xl animate-in fade-in zoom-in duration-200"
         >
           <div
-            class="p-6 border-b border-zinc-800/50 bg-gradient-to-br from-blue-500/10 to-transparent"
+            class="p-6 border-b border-[#d8e4d3] bg-gradient-to-br from-blue-500/8 to-transparent"
           >
             <div class="flex items-center justify-between mb-4">
-              <h4 class="text-sm font-black text-white uppercase tracking-widest">活跃用户详情</h4>
+              <h4 class="text-sm font-black text-[#1f2a1f] uppercase tracking-widest">活跃用户详情</h4>
               <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 rounded-full">
                 <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
                 <span class="text-[10px] font-black text-blue-400"
@@ -559,20 +559,20 @@
               <div
                 v-for="user in realtimeStats.activeUsersList.slice(0, 5)"
                 :key="user.id"
-                class="flex items-center gap-3 p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-2xl group hover:border-blue-500/30 transition-all"
+                class="flex items-center gap-3 p-3 bg-[#f4f8f2] border border-[#d8e4d3] rounded-2xl group hover:border-blue-500/40 transition-all"
               >
                 <div
-                  class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center font-black text-zinc-500 group-hover:text-blue-400 transition-colors"
+                  class="w-10 h-10 rounded-xl bg-[#e6efe1] flex items-center justify-center font-black text-[#526452] group-hover:text-blue-500 transition-colors"
                 >
                   {{ user.name.charAt(0) }}
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-xs font-bold text-zinc-200 truncate">{{ user.name }}</div>
+                  <div class="text-xs font-bold text-[#1f2a1f] truncate">{{ user.name }}</div>
                   <div class="text-[10px] text-zinc-500 font-medium truncate">
                     @{{ user.username }}
                   </div>
                 </div>
-                <div class="text-[10px] font-black text-zinc-600 bg-zinc-900 px-2 py-1 rounded-lg">
+                <div class="text-[10px] font-black text-[#526452] bg-[#e6efe1] px-2 py-1 rounded-lg">
                   {{ user.lastActive }}
                 </div>
               </div>
@@ -587,7 +587,7 @@
               <p class="text-xs font-black uppercase tracking-widest">暂无在线用户</p>
             </div>
           </div>
-          <div class="px-6 py-4 bg-zinc-950/50 flex items-center justify-between">
+          <div class="px-6 py-4 bg-[#f4f8f2] flex items-center justify-between">
             <span class="text-[10px] font-black text-zinc-600 uppercase tracking-widest"
               >实时数据同步中</span
             >
