@@ -17,20 +17,20 @@
         <!-- 移动端侧边栏遮罩 -->
         <div
           v-if="sidebarOpen"
-          class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          class="fixed inset-0 bg-[rgba(31,42,31,0.26)] backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
           @click="closeSidebar"
         />
 
         <!-- 主内容区域 -->
         <main
-          class="flex-1 flex flex-col h-screen overflow-hidden lg:ml-64 relative bg-[#09090b] text-zinc-100"
+          class="flex-1 flex flex-col h-screen overflow-hidden lg:ml-64 relative bg-[#f6f8f2] text-[#1f2a1f]"
         >
           <header
-            class="h-16 shrink-0 flex items-center justify-between px-4 md:px-8 border-b border-zinc-800 bg-zinc-950/60 backdrop-blur-xl z-30"
+            class="h-16 shrink-0 flex items-center justify-between px-4 md:px-8 border-b border-[#d5dfcd] bg-[#fbfdf8]/90 backdrop-blur-xl z-30"
           >
             <div class="flex items-center gap-3">
               <button
-                class="lg:hidden p-2 text-zinc-400 hover:bg-zinc-800 rounded-lg transition-colors"
+                class="lg:hidden p-2 text-[#526452] hover:bg-[#e8efe1] rounded-lg transition-colors"
                 @click="toggleSidebar"
               >
                 <Menu :size="20" />
@@ -49,7 +49,7 @@
             <button
               v-if="showBackToTop"
               aria-label="返回顶部"
-              class="fixed bottom-8 right-8 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all z-50"
+              class="fixed bottom-8 right-8 p-3 bg-[#2f7d4f] text-white rounded-full shadow-lg hover:bg-[#246a41] transition-all z-50"
               @click="scrollToTop"
             >
               <ChevronUp :size="24" />
@@ -425,8 +425,8 @@ onUnmounted(() => {
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background: #0a0a0a;
-  color: #ffffff;
+  background: #f6f8f2;
+  color: #1f2a1f;
   position: relative;
 }
 
@@ -435,13 +435,53 @@ onUnmounted(() => {
   width: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: #edf3e7;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #c3d0ba;
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #b2c2a8;
+}
+
+/* 后台统一浅色校园风（覆盖子组件中的深色 Tailwind 类） */
+.admin-layout :deep([class*='bg-zinc-950']) {
+  background-color: #f3f8ef !important;
+}
+
+.admin-layout :deep([class*='bg-zinc-900']) {
+  background-color: #ffffff !important;
+}
+
+.admin-layout :deep([class*='bg-zinc-800']) {
+  background-color: #eaf1e4 !important;
+}
+
+.admin-layout :deep([class*='border-zinc-900']),
+.admin-layout :deep([class*='border-zinc-800']),
+.admin-layout :deep([class*='border-zinc-700']) {
+  border-color: #cfdbc7 !important;
+}
+
+.admin-layout :deep(.text-zinc-100),
+.admin-layout :deep(.text-zinc-200) {
+  color: #1f2a1f !important;
+}
+
+.admin-layout :deep(.text-zinc-300),
+.admin-layout :deep(.text-zinc-400) {
+  color: #475947 !important;
+}
+
+.admin-layout :deep(.text-zinc-500),
+.admin-layout :deep(.text-zinc-600) {
+  color: #6b7b6b !important;
+}
+
+.admin-layout :deep(.shadow-black\/20),
+.admin-layout :deep(.shadow-black\/40),
+.admin-layout :deep(.shadow-2xl) {
+  box-shadow: 0 18px 30px rgba(43, 61, 43, 0.12) !important;
 }
 </style>

@@ -2,7 +2,7 @@
 <template>
   <aside
     :class="[
-      'fixed inset-y-0 left-0 z-50 w-64 bg-[#09090b] border-r border-zinc-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0',
+      'fixed inset-y-0 left-0 z-50 w-64 bg-[#f8fbf5] border-r border-[#d5dfcd] transform transition-transform duration-300 ease-in-out lg:translate-x-0',
       isOpen ? 'translate-x-0' : '-translate-x-full'
     ]"
   >
@@ -16,9 +16,9 @@
           </div>
           <!-- 品牌文字 -->
           <div class="flex flex-col justify-center">
-            <h1 class="font-bold text-lg text-zinc-100 leading-none tracking-tight">VoiceHub</h1>
+            <h1 class="font-bold text-lg text-[#1f2a1f] leading-none tracking-tight">VoiceHub</h1>
             <p
-              class="text-[10px] text-zinc-500 mt-1.5 uppercase tracking-widest font-bold leading-none"
+              class="text-[10px] text-[#6c7c6c] mt-1.5 uppercase tracking-widest font-bold leading-none"
             >
               管理控制台
             </p>
@@ -31,7 +31,7 @@
         <div v-for="(group, idx) in menuGroups" :key="idx" class="space-y-1">
           <template v-if="shouldShowGroup(group)">
             <!-- 分组标题 -->
-            <h3 class="px-3 text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-2">
+            <h3 class="px-3 text-[10px] font-bold text-[#788878] uppercase tracking-[0.2em] mb-2">
               {{ group.section }}
             </h3>
             <!-- 菜单项列表 -->
@@ -41,8 +41,8 @@
                 :class="[
                   'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-bold transition-all group border',
                   activeTab === item.id
-                    ? 'bg-blue-600/10 text-blue-400 border-blue-500/20'
-                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40 border-transparent'
+                    ? 'bg-[#2f7d4f]/12 text-[#2f7d4f] border-[#2f7d4f]/25'
+                    : 'text-[#556555] hover:text-[#1f2a1f] hover:bg-[#edf3e7] border-transparent'
                 ]"
                 @click="onNavigate(item.id)"
               >
@@ -52,15 +52,15 @@
                   :size="18"
                   :class="
                     activeTab === item.id
-                      ? 'text-blue-400'
-                      : 'text-zinc-500 group-hover:text-zinc-300'
+                      ? 'text-[#2f7d4f]'
+                      : 'text-[#657565] group-hover:text-[#2c3d2c]'
                   "
                 />
                 <span class="truncate">{{ item.label }}</span>
                 <!-- 选中状态指示器 -->
                 <div
                   v-if="activeTab === item.id"
-                  class="ml-auto w-1 h-1 bg-blue-400 rounded-full shadow-[0_0_8px_rgba(96,165,250,0.6)]"
+                  class="ml-auto w-1 h-1 bg-[#2f7d4f] rounded-full shadow-[0_0_8px_rgba(47,125,79,0.4)]"
                 />
               </button>
             </template>
@@ -69,37 +69,37 @@
       </nav>
 
       <!-- 用户信息及退出登录 -->
-      <div class="mt-4 pt-4 border-t border-zinc-800">
+      <div class="mt-4 pt-4 border-t border-[#d6e0ce]">
         <div
-          class="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
+          class="flex items-center gap-3 p-3 rounded-lg bg-[#f2f6ee] border border-[#d3decb] hover:bg-[#e9f0e2] transition-colors"
         >
           <!-- 用户头像/首字母 -->
           <img
             v-if="currentUser?.avatar && !avatarError"
             :src="currentUser.avatar"
-            class="w-10 h-10 rounded-lg object-cover border border-zinc-700 shrink-0"
+            class="w-10 h-10 rounded-lg object-cover border border-[#c6d4be] shrink-0"
             @error="avatarError = true"
           >
           <div
             v-else
-            class="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400 font-bold border border-zinc-700 shrink-0"
+            class="w-10 h-10 rounded-lg bg-[#e4ebdd] flex items-center justify-center text-[#4b5d4b] font-bold border border-[#c6d4be] shrink-0"
           >
             {{ (currentUser?.name || '管').charAt(0) }}
           </div>
           <!-- 用户详细信息 -->
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-black truncate text-zinc-100">
+            <p class="text-xs font-black truncate text-[#1f2a1f]">
               {{ currentUser?.name || '管理员' }}
             </p>
             <p
-              class="text-[10px] text-zinc-500 truncate uppercase tracking-wider font-medium mt-0.5"
+              class="text-[10px] text-[#6f7f6f] truncate uppercase tracking-wider font-medium mt-0.5"
             >
               {{ currentUser?.role?.replace('_', ' ') || 'ADMIN' }}
             </p>
           </div>
           <!-- 退出按钮 -->
           <button
-            class="p-2 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+            class="p-2 text-[#7a887a] hover:text-[#d1495b] hover:bg-[#d1495b]/10 rounded-lg transition-all"
             title="退出登录"
             @click="$emit('logout')"
           >
@@ -244,13 +244,13 @@ const getRoleDisplayName = (role) => {
   width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: #edf3e7;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #c3d0ba;
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #b2c2a8;
 }
 </style>

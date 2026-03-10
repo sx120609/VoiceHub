@@ -3588,4 +3588,221 @@ if (
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 67, 248, 0.3);
 }
+
+/* 校园浅色主题覆盖（与登录页统一） */
+.home {
+  background: #f6f8f2;
+  color: #1f2a1f;
+}
+
+.ellipse-effect {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(47, 125, 79, 0.2) 0%,
+    rgba(194, 138, 38, 0.1) 34%,
+    rgba(47, 125, 79, 0) 70%
+  );
+}
+
+.logo-divider {
+  background: linear-gradient(
+    to bottom,
+    rgba(47, 125, 79, 0.2),
+    rgba(47, 125, 79, 0.55),
+    rgba(47, 125, 79, 0.2)
+  );
+}
+
+.user-name {
+  color: #2b3d2b;
+}
+
+.user-badge {
+  background: #e6eee0;
+  color: #5a6b5a;
+}
+
+.user-badge.admin {
+  background: rgba(47, 125, 79, 0.12);
+  color: #2f7d4f;
+}
+
+.user-avatar-wrapper {
+  background: #e8efe1;
+  border: 1px solid #c8d6bf;
+}
+
+.user-actions-dropdown {
+  background: #ffffff;
+  border: 1px solid #d2deca;
+  box-shadow: 0 16px 28px rgba(43, 61, 43, 0.12);
+}
+
+.action-item {
+  color: #3f503f;
+}
+
+.action-item:hover {
+  background: #eef4e8;
+  color: #243424;
+}
+
+.action-item.logout:hover {
+  background: rgba(209, 73, 91, 0.12);
+  color: #c33e50;
+}
+
+.main-title {
+  background: linear-gradient(120deg, #1f2a1f 0%, #2f7d4f 100%);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.sub-title {
+  color: #6b7b6b;
+}
+
+.tabs-row {
+  background: #ffffff;
+  border: 1px solid #d3decb;
+  box-shadow: 0 12px 24px rgba(43, 61, 43, 0.1);
+}
+
+.section-tab {
+  color: #5a6b5a;
+}
+
+.section-tab .tab-icon {
+  color: #6e7e6e;
+}
+
+.section-tab:hover {
+  background: #f0f5eb;
+}
+
+.section-tab.active {
+  background: rgba(47, 125, 79, 0.12);
+  color: #1f2a1f;
+}
+
+.section-tab.active::after {
+  background: #2f7d4f;
+}
+
+.tab-content-container {
+  background: #ffffff;
+  border: 1px solid #d3decb;
+  box-shadow: 0 18px 32px rgba(43, 61, 43, 0.12);
+}
+
+.notification-container,
+.notification-header {
+  background: #ffffff;
+}
+
+.notification-title {
+  color: #203120;
+}
+
+.settings-icon {
+  background: #edf3e7;
+  border-color: #cedac6;
+  color: #4f604f;
+}
+
+.settings-icon:hover {
+  background: #e3ecda;
+  color: #2f7d4f;
+}
+
+.notification-card {
+  background: #f8fbf5;
+  border: 1px solid #d4dfcc;
+}
+
+.notification-card.unread {
+  background: #f0f6ea;
+  border-left-color: #2f7d4f;
+}
+
+.notification-title,
+.notification-text {
+  color: #2a3a2a;
+}
+
+.notification-time,
+.pagination-text {
+  color: #708070;
+}
+
+.action-button-large {
+  background-color: #ecf3e6;
+  color: #385038;
+  border-color: #cfdbc7;
+}
+
+.action-button-large:hover:not(.disabled) {
+  background-color: #e1ecd9;
+}
+
+.action-button-large.danger {
+  background-color: rgba(209, 73, 91, 0.1);
+  color: #c33e50;
+  border-color: rgba(209, 73, 91, 0.24);
+}
+
+.page-nav-button,
+.page-number-button {
+  background-color: #edf3e8;
+  color: #3d523d;
+  border-color: #d1ddc9;
+}
+
+.page-number-button.active {
+  background-color: #2f7d4f;
+  border-color: #2f7d4f;
+  color: #ffffff;
+}
+
+.modal-overlay {
+  background: rgba(31, 42, 31, 0.34);
+}
+
+.modal-content {
+  background: linear-gradient(160deg, #ffffff 0%, #f3f8ef 100%);
+  border: 1px solid #d0dcc8;
+  color: #253525;
+}
+
+.close-button {
+  background: #edf3e7;
+  color: #506050;
+}
+
+.close-button:hover {
+  background: #e3ecda;
+  color: #2f7d4f;
+}
+
+.login-required-content {
+  background-color: #f5faef;
+  border: 1px solid #d2deca;
+  box-shadow: 0 10px 24px rgba(43, 61, 43, 0.1);
+}
+
+.login-required-content h3 {
+  color: #1f2a1f;
+}
+
+.login-required-content p {
+  color: #617161;
+}
+
+.login-button {
+  background: linear-gradient(180deg, #2f7d4f 0%, #246a41 100%);
+}
+
+.login-button:hover {
+  box-shadow: 0 5px 15px rgba(47, 125, 79, 0.25);
+}
 </style>
