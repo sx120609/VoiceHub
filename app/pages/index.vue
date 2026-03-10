@@ -1606,9 +1606,9 @@ if (
   height: 309px;
   background: radial-gradient(
     ellipse at center,
-    rgba(11, 90, 254, 0.3) 0%,
-    rgba(11, 90, 254, 0.15) 30%,
-    rgba(11, 90, 254, 0) 70%
+    rgba(47, 125, 79, 0.2) 0%,
+    rgba(47, 125, 79, 0.08) 32%,
+    rgba(47, 125, 79, 0) 70%
   );
   z-index: 0;
   pointer-events: none;
@@ -2062,7 +2062,7 @@ if (
 
 /* 内容容器 */
 .tab-content-container {
-  background: #f5f9f1;
+  background: transparent;
   border: 2px solid #cfdcc7;
   border-radius: 0 15px 15px 15px;
   padding: 1.5rem;
@@ -2620,12 +2620,12 @@ if (
   justify-content: center;
   gap: 10px;
   padding: 15px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #dbe6d4;
 }
 
 .action-button-large {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: none;
+  background-color: #ecf3e6;
+  border: 1px solid #cfdbc7;
   color: #355035;
   padding: 8px 16px;
   border-radius: 6px;
@@ -2635,7 +2635,7 @@ if (
 }
 
 .action-button-large:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: #e1ecd9;
 }
 
 .action-button-large.danger {
@@ -2647,14 +2647,14 @@ if (
 }
 
 .action-button-large.disabled {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.3);
+  background-color: #f3f8ef;
+  color: #9ba99b;
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 .action-button-large.disabled:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: #f3f8ef;
 }
 
 /* ==================== 移动端设计 ==================== */
@@ -2682,7 +2682,7 @@ if (
     align-items: center;
     padding: 10px 12px;
     margin: 0;
-    background: linear-gradient(180deg, rgba(11, 90, 254, 0.08) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(47, 125, 79, 0.08) 0%, transparent 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
@@ -2703,7 +2703,7 @@ if (
   .logo-divider {
     height: 28px;
     width: 1px;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(47, 125, 79, 0.28);
   }
 
   /* 移动端的主页面里不需要写学校名，保持简洁 */
@@ -2910,9 +2910,9 @@ if (
     right: 0;
     width: 8px;
     height: 8px;
-    background: #0b5afe;
+    background: #2f7d4f;
     border-radius: 50%;
-    border: 1.5px solid #0a0a0f;
+    border: 1.5px solid #f6f8f2;
     box-shadow: 0 0 5px rgba(47, 125, 79, 0.3);
     z-index: 2;
   }
@@ -3480,7 +3480,7 @@ if (
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #0b5afe;
+  background-color: #2f7d4f;
   display: inline-block;
   z-index: 2;
 }
@@ -3579,5 +3579,66 @@ if (
 .pagination-text,
 .page-size-selector label {
   color: #5f715f;
+}
+
+/* 首页三大模块统一浅色，避免出现白底/深色主体冲突 */
+.home :deep(.schedule-list),
+.home :deep(.song-list),
+.home :deep(.request-form) {
+  background: transparent !important;
+  color: #1f2a1f !important;
+}
+
+.home :deep(.schedule-content),
+.home :deep(.song-list-header),
+.home :deep(.schedule-header),
+.home :deep(.date-selector),
+.home :deep(.form-container),
+.home :deep(.rules-section),
+.home :deep(.search-results),
+.home :deep(.search-box),
+.home :deep(.tab-button),
+.home :deep(.mobile-tab-btn) {
+  background: #f5f9f1 !important;
+  border-color: #cfdcc7 !important;
+}
+
+.home :deep(.song-card),
+.home :deep(.schedule-item),
+.home :deep(.date-item),
+.home :deep(.request-item) {
+  background: #eef4e8 !important;
+  border-color: #c8d6bf !important;
+}
+
+/* request 页残留深色 Tailwind 类兜底 */
+.home :deep(.bg-zinc-950),
+.home :deep(.bg-zinc-900),
+.home :deep(.bg-zinc-800),
+.home :deep([class*='bg-zinc-950/']),
+.home :deep([class*='bg-zinc-900/']),
+.home :deep([class*='bg-zinc-800/']) {
+  background-color: #f5f9f1 !important;
+}
+
+.home :deep(.text-zinc-100),
+.home :deep(.text-zinc-200),
+.home :deep(.text-zinc-300) {
+  color: #1f2a1f !important;
+}
+
+.home :deep(.text-zinc-400),
+.home :deep(.text-zinc-500),
+.home :deep(.text-zinc-600) {
+  color: #5f715f !important;
+}
+
+.home :deep(.border-zinc-900),
+.home :deep(.border-zinc-800),
+.home :deep(.border-zinc-700),
+.home :deep([class*='border-zinc-900/']),
+.home :deep([class*='border-zinc-800/']),
+.home :deep([class*='border-zinc-700/']) {
+  border-color: #cfdbc7 !important;
 }
 </style>
