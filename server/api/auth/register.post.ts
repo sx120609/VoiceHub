@@ -6,7 +6,7 @@ import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { SmtpService } from '~~/server/services/smtpService'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
-import { buildPublicAppUrl } from '~~/server/utils/public-url'
+import { buildPublicAppUrl, getPublicOrigin } from '~~/server/utils/public-url'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
 import {
   createRegistrationActivationToken,
@@ -64,8 +64,10 @@ export default defineEventHandler(async (event) => {
     const clientIp = getClientIP(event)
     const activationExpiresDays = getRegistrationActivationExpiresDays()
 
+    const redirectOrigin = getPublicOrigin(event)
+
     const sendActivationLink = async (email: string, userId: number, name: string, username: string) => {
-      const token = createRegistrationActivationToken(email, userId)
+      const token = createRegistrationActivationToken(email, userId, redirectOrigin)
       const activationUrl = buildActivationUrl(event, token)
       const smtp = SmtpService.getInstance()
       await smtp.initializeSmtpConfig()

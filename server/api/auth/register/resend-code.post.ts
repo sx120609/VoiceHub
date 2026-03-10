@@ -6,7 +6,7 @@ import {
   createRegistrationActivationToken,
   getRegistrationActivationExpiresDays
 } from '~~/server/utils/registration-verification'
-import { buildPublicAppUrl } from '~~/server/utils/public-url'
+import { buildPublicAppUrl, getPublicOrigin } from '~~/server/utils/public-url'
 
 const buildActivationUrl = (event: any, token: string) => {
   return buildPublicAppUrl(event, `/api/auth/register/activate?token=${encodeURIComponent(token)}`)
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const activationToken = createRegistrationActivationToken(qqEmail, user.id)
+  const activationToken = createRegistrationActivationToken(qqEmail, user.id, getPublicOrigin(event))
   const activationUrl = buildActivationUrl(event, activationToken)
   const expiresInDays = getRegistrationActivationExpiresDays()
   const smtp = SmtpService.getInstance()

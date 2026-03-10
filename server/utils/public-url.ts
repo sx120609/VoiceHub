@@ -20,6 +20,21 @@ const normalizeProtocol = (proto: string, fallback: string): string => {
   return fallback
 }
 
+export const normalizePublicOrigin = (origin?: string | null): string | null => {
+  if (!origin || typeof origin !== 'string') {
+    return null
+  }
+  try {
+    const parsed = new URL(origin.trim())
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null
+    }
+    return parsed.origin
+  } catch {
+    return null
+  }
+}
+
 export const getPublicOrigin = (event: H3Event): string => {
   const requestUrl = getRequestURL(event)
 
@@ -66,9 +81,19 @@ export const getPublicOrigin = (event: H3Event): string => {
 }
 
 export const buildPublicAppUrl = (event: H3Event, path: string): string => {
+  const origin = getPublicOrigin(event)
+  return buildPublicAppUrlFromOrigin(event, origin, path)
+}
+
+export const buildPublicAppUrlFromOrigin = (
+  event: H3Event,
+  origin: string,
+  path: string
+): string => {
   const runtimeConfig = useRuntimeConfig(event)
   const rawBaseURL = (runtimeConfig.app?.baseURL || '/').toString()
   const normalizedBaseURL = rawBaseURL === '/' ? '' : rawBaseURL.replace(/\/$/, '')
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  return `${getPublicOrigin(event)}${normalizedBaseURL}${normalizedPath}`
+  const normalizedOrigin = normalizePublicOrigin(origin) || getPublicOrigin(event)
+  return `${normalizedOrigin}${normalizedBaseURL}${normalizedPath}`
 }
