@@ -534,6 +534,7 @@
                     label-key="displayName"
                     value-key="name"
                     placeholder="请选择角色"
+                    theme="light"
                   />
                 </div>
                 <div class="space-y-2">
@@ -546,6 +547,7 @@
                     label-key="label"
                     value-key="value"
                     placeholder="请选择状态"
+                    theme="light"
                   />
                 </div>
               </div>

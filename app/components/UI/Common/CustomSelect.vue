@@ -1,11 +1,10 @@
 <template>
   <div ref="containerRef" class="relative" :class="className">
     <div
-      class="flex items-center gap-2 px-3 py-2 bg-zinc-950 border rounded-lg transition-all cursor-pointer select-none"
+      class="flex items-center gap-2 px-3 py-2 border rounded-lg transition-all cursor-pointer select-none"
       :class="[
-        isOpen
-          ? 'border-blue-500/50 bg-blue-600/5 shadow-lg'
-          : 'border-zinc-800 hover:border-zinc-700'
+        triggerThemeClass,
+        isOpen ? triggerOpenClass : triggerClosedClass
       ]"
       @click="toggleDropdown"
     >
@@ -13,14 +12,14 @@
         <span
           v-if="label"
           class="text-[8px] font-black uppercase tracking-widest leading-none mb-0.5 transition-colors"
-          :class="isOpen ? 'text-blue-400' : 'text-zinc-600'"
+          :class="isOpen ? labelOpenClass : labelClosedClass"
         >
           {{ label }}
         </span>
-        <span class="text-[11px] font-bold text-zinc-300 truncate">{{ displayLabel }}</span>
+        <span class="text-[11px] font-bold truncate" :class="valueTextClass">{{ displayLabel }}</span>
       </div>
       <div class="transition-transform duration-200" :class="{ 'rotate-180': isOpen }">
-        <ChevronDown :size="12" :class="isOpen ? 'text-blue-400' : 'text-zinc-700'" />
+        <ChevronDown :size="12" :class="isOpen ? chevronOpenClass : chevronClosedClass" />
       </div>
     </div>
 
@@ -37,7 +36,8 @@
           v-if="isOpen"
           ref="dropdownRef"
           :style="dropdownStyle"
-          class="fixed z-[9999] p-1 bg-[#0c0c0e] border border-zinc-800 rounded-lg shadow-2xl backdrop-blur-xl origin-top"
+          class="fixed z-[9999] p-1 border rounded-lg shadow-2xl backdrop-blur-xl origin-top"
+          :class="dropdownPanelClass"
         >
           <div class="max-h-[200px] overflow-y-auto custom-scrollbar">
             <button
@@ -45,9 +45,7 @@
               :key="option.value"
               class="w-full flex items-center justify-between px-3 py-2 rounded-md text-[11px] font-bold transition-all"
               :class="[
-                isSelected(option)
-                  ? 'bg-blue-600/10 text-blue-400'
-                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40'
+                isSelected(option) ? optionSelectedClass : optionDefaultClass
               ]"
               @click="selectOption(option)"
             >
@@ -85,6 +83,10 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: '请选择'
+  },
+  theme: {
+    type: String,
+    default: 'dark'
   }
 })
 
@@ -100,6 +102,35 @@ const currentValue = computed(() => {
   if (props.modelValue !== undefined) return props.modelValue
   return props.value
 })
+
+const isLightTheme = computed(() => props.theme === 'light')
+const triggerThemeClass = computed(() => (isLightTheme.value ? 'bg-white' : 'bg-zinc-950'))
+const triggerOpenClass = computed(() =>
+  isLightTheme.value
+    ? 'border-emerald-400/70 bg-emerald-50/80 shadow-md'
+    : 'border-blue-500/50 bg-blue-600/5 shadow-lg'
+)
+const triggerClosedClass = computed(() =>
+  isLightTheme.value ? 'border-emerald-200 hover:border-emerald-300' : 'border-zinc-800 hover:border-zinc-700'
+)
+const labelOpenClass = computed(() => (isLightTheme.value ? 'text-emerald-600' : 'text-blue-400'))
+const labelClosedClass = computed(() => (isLightTheme.value ? 'text-emerald-700/80' : 'text-zinc-600'))
+const valueTextClass = computed(() => (isLightTheme.value ? 'text-emerald-900' : 'text-zinc-300'))
+const chevronOpenClass = computed(() => (isLightTheme.value ? 'text-emerald-600' : 'text-blue-400'))
+const chevronClosedClass = computed(() => (isLightTheme.value ? 'text-emerald-500/80' : 'text-zinc-700'))
+const dropdownPanelClass = computed(() =>
+  isLightTheme.value
+    ? 'bg-[#f7fbf5] border-emerald-200/80 shadow-[0_18px_45px_rgba(49,95,62,0.16)]'
+    : 'bg-[#0c0c0e] border-zinc-800'
+)
+const optionSelectedClass = computed(() =>
+  isLightTheme.value ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-600/10 text-blue-400'
+)
+const optionDefaultClass = computed(() =>
+  isLightTheme.value
+    ? 'text-emerald-900/85 hover:text-emerald-900 hover:bg-emerald-50'
+    : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40'
+)
 
 // 规范化选项为 { label, value } 格式
 const normalizedOptions = computed(() => {
