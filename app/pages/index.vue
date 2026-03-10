@@ -5,7 +5,7 @@
       <div class="top-bar">
         <div class="logo-section">
           <NuxtLink class="logo-link" to="/">
-            <img alt="VoiceHub Logo" class="logo-image" :src="logo" >
+            <img alt="VoiceHub Logo" class="logo-image" :src="proxiedSiteLogoUrl" >
           </NuxtLink>
           <!-- 横线和学校logo -->
           <div v-if="schoolLogoHomeUrl && schoolLogoHomeUrl.trim()" class="logo-divider-container">
@@ -647,14 +647,17 @@ import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 import { useNotifications } from '~/composables/useNotifications'
 import { useSiteConfig } from '~/composables/useSiteConfig'
 import CustomSelect from '~/components/UI/Common/CustomSelect.vue'
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 
 // 获取运行时配置
 const config = useRuntimeConfig()
+const apiBase = computed(() => normalizeApiBase(config.public.apiBase, config.app.baseURL))
 const router = useRouter()
 
 // 站点配置
 const {
   siteTitle,
+  logoUrl,
   description: siteDescription,
   guidelines: submissionGuidelines,
   icp: icpNumber,
@@ -1225,22 +1228,20 @@ const filteredSongs = computed(() => {
 const loading = computed(() => songs?.loading?.value || false)
 const error = computed(() => songs?.error?.value || '')
 
+const resolveLogoSrc = (url, fallback = '') => {
+  const value = (url || '').trim()
+  if (!value) return fallback
+  if (value.startsWith('http://')) {
+    return withApiBase(`/api/proxy/image?url=${encodeURIComponent(value)}`, apiBase.value)
+  }
+  return value
+}
+
+// 顶部站点Logo优先使用后台配置
+const proxiedSiteLogoUrl = computed(() => resolveLogoSrc(logoUrl.value, logo))
+
 // 处理学校logo的HTTP/HTTPS代理
-const proxiedSchoolLogoUrl = computed(() => {
-  if (!schoolLogoHomeUrl.value || !schoolLogoHomeUrl.value.trim()) {
-    return ''
-  }
-
-  const logoUrl = schoolLogoHomeUrl.value.trim()
-
-  // 如果是HTTP链接，通过代理访问
-  if (logoUrl.startsWith('http://')) {
-    return `/api/proxy/image?url=${encodeURIComponent(logoUrl)}`
-  }
-
-  // HTTPS链接或相对路径直接返回
-  return logoUrl
-})
+const proxiedSchoolLogoUrl = computed(() => resolveLogoSrc(schoolLogoHomeUrl.value))
 
 // 处理投稿请求
 const handleRequest = async (songData) => {
@@ -2625,7 +2626,7 @@ if (
 .action-button-large {
   background-color: rgba(255, 255, 255, 0.1);
   border: none;
-  color: var(--light);
+  color: #355035;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
@@ -2662,7 +2663,7 @@ if (
 @media (max-width: 768px) {
   .home {
     padding: 0;
-    background-color: #0a0a0f;
+    background-color: #f6f8f2;
   }
 
   .main-content {
@@ -2727,8 +2728,8 @@ if (
   .user-avatar-wrapper {
     width: 32px;
     height: 32px;
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: #f8fbf6;
+    border-color: #d2deca;
   }
 
   .user-avatar-placeholder {
@@ -3230,9 +3231,9 @@ if (
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.4);
+  background: #edf3e7;
+  border: 1px solid #d2deca;
+  color: #5f715f;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3555,5 +3556,28 @@ if (
 .login-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(47, 125, 79, 0.28);
+}
+
+/* 可读性兜底修正：避免浅底白字 */
+.site-title,
+.title-container,
+.main-title,
+.sub-title,
+.notification-title,
+.notification-text,
+.notification-time,
+.pagination-text,
+.page-size-selector label,
+.rules-text,
+.guidelines-content,
+.rule-item {
+  color: #1f2a1f;
+}
+
+.sub-title,
+.notification-time,
+.pagination-text,
+.page-size-selector label {
+  color: #5f715f;
 }
 </style>
