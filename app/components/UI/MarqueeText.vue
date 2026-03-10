@@ -22,6 +22,14 @@ const props = defineProps({
   activated: {
     type: Boolean,
     default: true // 默认为true保持向后兼容性
+  },
+  pauseDuration: {
+    type: Number,
+    default: 1.2 // 每轮滚动后的停顿秒数
+  },
+  overflowThreshold: {
+    type: Number,
+    default: 4 // 仅在超出阈值像素时才滚动，避免轻微抖动
   }
 })
 
@@ -31,6 +39,36 @@ const scrolling = ref(false)
 let intersectionObserver = null
 let resizeObserver = null
 let rafId = 0
+let pauseTimer = 0
+
+const clearPauseTimer = () => {
+  if (!pauseTimer) return
+  clearTimeout(pauseTimer)
+  pauseTimer = 0
+}
+
+const handleAnimationIteration = () => {
+  if (!contentEl.value || !scrolling.value) return
+
+  const pauseMs = Math.max(props.pauseDuration, 0) * 1000
+  if (pauseMs <= 0) return
+
+  contentEl.value.style.animationPlayState = 'paused'
+  clearPauseTimer()
+  pauseTimer = window.setTimeout(() => {
+    pauseTimer = 0
+    if (!contentEl.value || !scrolling.value) return
+    contentEl.value.style.animationPlayState = 'running'
+  }, pauseMs)
+}
+
+const bindAnimationHooks = () => {
+  if (!contentEl.value) return
+  contentEl.value.removeEventListener('animationiteration', handleAnimationIteration)
+  if (!scrolling.value) return
+  contentEl.value.style.animationPlayState = 'running'
+  contentEl.value.addEventListener('animationiteration', handleAnimationIteration)
+}
 
 const queueOverflowCheck = () => {
   if (rafId) {
@@ -56,7 +94,8 @@ const checkOverflow = async () => {
   }
 
   const singleTextWidth = firstTextItem.offsetWidth
-  const shouldScroll = props.activated && singleTextWidth > containerWidth
+  const overflowPixels = singleTextWidth - containerWidth
+  const shouldScroll = props.activated && overflowPixels > props.overflowThreshold
 
   if (scrolling.value !== shouldScroll) {
     scrolling.value = shouldScroll
@@ -67,7 +106,12 @@ const checkOverflow = async () => {
     const scrollDistance = firstTextItem.offsetWidth
     const animationDuration = Math.max(scrollDistance / props.speed, 4)
     contentEl.value.style.setProperty('--duration', `${animationDuration}s`)
+  } else if (contentEl.value) {
+    contentEl.value.style.animationPlayState = 'running'
   }
+
+  clearPauseTimer()
+  bindAnimationHooks()
 }
 
 const handleResize = () => {
@@ -108,6 +152,10 @@ onUnmounted(() => {
     resizeObserver.disconnect()
     resizeObserver = null
   }
+  clearPauseTimer()
+  if (contentEl.value) {
+    contentEl.value.removeEventListener('animationiteration', handleAnimationIteration)
+  }
   if (rafId) {
     cancelAnimationFrame(rafId)
     rafId = 0
@@ -124,6 +172,13 @@ watch(
 
 watch(
   () => props.activated,
+  () => {
+    queueOverflowCheck()
+  }
+)
+
+watch(
+  () => [props.speed, props.pauseDuration, props.overflowThreshold],
   () => {
     queueOverflowCheck()
   }

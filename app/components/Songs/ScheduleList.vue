@@ -3684,6 +3684,52 @@ const vRipple = {
   border-color: #266942 !important;
 }
 
+/* Desktop schedule cards: make songs easier to read */
+@media (min-width: 769px) {
+  .schedule-list .song-cards {
+    gap: 1.2rem !important;
+  }
+
+  .schedule-list .song-card {
+    width: calc(50% - 0.6rem) !important;
+    min-width: 360px !important;
+    max-width: 520px !important;
+    border-radius: 12px !important;
+  }
+
+  .schedule-list .song-card-main {
+    min-height: 108px !important;
+    height: 108px !important;
+    padding: 14px 16px !important;
+    gap: 16px !important;
+  }
+
+  .schedule-list .song-cover {
+    width: 66px !important;
+    height: 66px !important;
+    border-radius: 10px !important;
+  }
+
+  .schedule-list .song-title {
+    font-size: 19px !important;
+    line-height: 1.32 !important;
+  }
+
+  .schedule-list .requester,
+  .schedule-list .replay-requester {
+    font-size: 14px !important;
+  }
+
+  .schedule-list .vote-count .count {
+    font-size: 34px !important;
+    line-height: 1 !important;
+  }
+
+  .schedule-list .vote-count .label {
+    font-size: 13px !important;
+  }
+}
+
 @media (max-width: 768px) {
   .schedule-list .mobile-action-btn {
     background: #2f7d4f !important;
