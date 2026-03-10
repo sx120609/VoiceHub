@@ -57,6 +57,11 @@ export default defineEventHandler(async (event) => {
     return
   }
 
+  // 歌曲列表允许公开读取（仅放行精确路径 /api/songs，避免放开写接口）
+  if (requestMethod === 'GET' && routePath === '/api/songs') {
+    return
+  }
+
   // 公共API路径
   const publicApiPaths = [
     '/api/auth/login',

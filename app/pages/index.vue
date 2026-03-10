@@ -1062,11 +1062,11 @@ const updateSongCounts = async (semester = null) => {
     scheduleCount.value = schedules.length
 
     // 更新总歌曲数量
-    if (isClientAuthenticated.value && songs?.songs?.value) {
-      // 已登录用户：使用完整歌曲列表
+    if (songs?.songs?.value && songs.songs.value.length > 0) {
+      // 优先使用当前已加载的完整歌曲列表（登录/未登录一致）
       songCount.value = songs.songs.value.length
     } else {
-      // 未登录用户：使用缓存的歌曲总数
+      // 回退到缓存歌曲总数
       songCount.value = songs?.songCount?.value || 0
     }
   } catch (e) {
@@ -1149,7 +1149,7 @@ onMounted(async () => {
 
       await checkPasswordChangeRequired(currentUser)
     } else {
-      await Promise.allSettled([songs.fetchSongCount(), songs.fetchPublicSchedules()])
+      await Promise.allSettled([songs.fetchSongs(), songs.fetchPublicSchedules()])
     }
 
     await updateSongCounts()
@@ -1173,7 +1173,7 @@ onMounted(async () => {
               loadNotifications()
             ])
           } else {
-            await Promise.allSettled([songs.fetchPublicSchedules(true), songs.fetchSongCount()])
+            await Promise.allSettled([songs.fetchSongs(true), songs.fetchPublicSchedules(true)])
           }
 
           await updateSongCounts()
