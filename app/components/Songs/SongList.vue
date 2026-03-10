@@ -309,38 +309,40 @@
             <div class="submission-footer">
               <div class="submission-time">投稿时间：{{ song.requestedAt }}</div>
 
-              <!-- 如果是自己的投稿或联合投稿，显示撤回/退出按钮 -->
-              <button
-                v-if="(isMySong(song) || isCollaborator(song)) && !song.played && !song.scheduled"
-                :disabled="actionInProgress"
-                :title="isMySong(song) ? '撤回投稿' : '退出联合投稿'"
-                class="withdraw-button"
-                @click.stop="handleWithdraw(song)"
-              >
-                撤销
-              </button>
-
-              <!-- 申请/取消重播按钮 -->
-              <template v-if="song.played && isAuthenticated">
+              <div class="submission-actions">
+                <!-- 如果是自己的投稿或联合投稿，显示撤回/退出按钮 -->
                 <button
-                  v-if="shouldShowCancelButton(song)"
+                  v-if="(isMySong(song) || isCollaborator(song)) && !song.played && !song.scheduled"
                   :disabled="actionInProgress"
-                  class="withdraw-button replay-cancel-btn"
-                  title="撤回重播申请"
-                  @click.stop="handleCancelReplay(song)"
+                  :title="isMySong(song) ? '撤回投稿' : '退出联合投稿'"
+                  class="withdraw-button"
+                  @click.stop="handleWithdraw(song)"
                 >
-                  撤回申请
+                  {{ isMySong(song) ? '撤回投稿' : '退出联合' }}
                 </button>
-                <button
-                  v-else-if="enableReplayRequests && shouldShowRequestButton(song)"
-                  :disabled="isReplayButtonDisabled(song)"
-                  class="withdraw-button replay-request-btn"
-                  :title="getReplayButtonTitle(song)"
-                  @click.stop="handleRequestReplay(song)"
-                >
-                  {{ getReplayButtonText(song) }}
-                </button>
-              </template>
+
+                <!-- 申请/取消重播按钮 -->
+                <template v-if="song.played && isAuthenticated">
+                  <button
+                    v-if="shouldShowCancelButton(song)"
+                    :disabled="actionInProgress"
+                    class="withdraw-button replay-cancel-btn"
+                    title="撤回重播申请"
+                    @click.stop="handleCancelReplay(song)"
+                  >
+                    撤回申请
+                  </button>
+                  <button
+                    v-else-if="enableReplayRequests && shouldShowRequestButton(song)"
+                    :disabled="isReplayButtonDisabled(song)"
+                    class="withdraw-button replay-request-btn"
+                    :title="getReplayButtonTitle(song)"
+                    @click.stop="handleRequestReplay(song)"
+                  >
+                    {{ getReplayButtonText(song) }}
+                  </button>
+                </template>
+              </div>
             </div>
           </div>
         </TransitionGroup>
@@ -2298,6 +2300,18 @@ const vRipple = {
   max-width: 70%;
 }
 
+.submission-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.submission-actions:empty {
+  display: none;
+}
+
 .withdraw-button {
   background: linear-gradient(180deg, #ff2f2f 0%, #ff654d 100%);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -2729,6 +2743,11 @@ button:disabled {
     font-weight: 400;
   }
 
+  .submission-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .withdraw-button {
     height: 28px;
     padding: 0 12px;
@@ -3107,9 +3126,13 @@ button:disabled {
   padding: 0.5rem 1rem !important;
 }
 
-.song-list .submission-time {
-  color: #607260 !important;
-}
+  .song-list .submission-time {
+    color: #607260 !important;
+  }
+
+  .song-list .submission-actions {
+    gap: 8px !important;
+  }
 
 .song-list .loading,
 .song-list .empty {
@@ -3176,6 +3199,9 @@ button:disabled {
     border-top: 1px solid #dbe7d3 !important;
     width: 100% !important;
     border-radius: 0 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
   }
 
   .song-list .song-title {
@@ -3186,6 +3212,24 @@ button:disabled {
   .song-list .submission-time,
   .song-list .vote-count .label {
     color: #5f715f !important;
+  }
+
+  .song-list .submission-time {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+
+  .song-list .submission-actions {
+    flex: 1 1 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  .song-list .withdraw-button {
+    min-height: 34px !important;
+    padding: 0 12px !important;
+    border-radius: 10px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
