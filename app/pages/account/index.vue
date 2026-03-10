@@ -272,7 +272,7 @@ const saveDisplayName = async () => {
     originalDisplayName.value = normalizedDisplayName
     showToast('显示昵称保存成功', 'success')
     await auth.refreshUser()
-  } catch (error: any) {
+  } catch (error) {
     const message = error?.data?.message || error?.message || '保存昵称失败'
     displayNameError.value = message
     showToast(message, 'error')
