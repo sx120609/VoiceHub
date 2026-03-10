@@ -91,7 +91,7 @@ onMounted(() => {
   text-align: center;
   padding: 20px 0;
   margin-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #d2deca;
   width: 100%;
 }
 
@@ -104,7 +104,7 @@ onMounted(() => {
 }
 
 .footer-item {
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   font-size: 12px;
   white-space: nowrap;
 }
@@ -112,7 +112,7 @@ onMounted(() => {
 .footer-item:not(:last-child)::after {
   content: ' | ';
   margin: 0 10px;
-  color: rgba(255, 255, 255, 0.4);
+  color: #8a9b8a;
 }
 
 .footer-item a {
@@ -122,7 +122,7 @@ onMounted(() => {
 }
 
 .footer-item a:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: #1f2a1f;
 }
 
 .icp-link,
@@ -134,7 +134,7 @@ onMounted(() => {
 
 .icp-link:hover,
 .voicehub-link:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: #1f2a1f;
 }
 
 .netlify-badge {
