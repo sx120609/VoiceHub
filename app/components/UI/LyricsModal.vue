@@ -5,7 +5,7 @@
         v-if="isVisible"
         class="lyrics-modal-overlay"
         tabindex="-1"
-        style="--main-cover-color: 255, 255, 255"
+        style="--main-cover-color: 47, 125, 79"
         @click="handleOverlayClick"
       >
         <div
@@ -2049,5 +2049,182 @@ onUnmounted(() => {
   /* 优化图片渲染 */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
+}
+
+/* Light theme overrides for fullscreen player */
+.lyrics-modal-overlay {
+  background: rgba(31, 42, 31, 0.16) !important;
+}
+
+.lyrics-fullscreen-container {
+  background: #f8fbf6 !important;
+  color: #1f2a1f !important;
+}
+
+.background-overlay {
+  background: radial-gradient(
+    circle at center,
+    rgba(248, 251, 246, 0.2) 0%,
+    rgba(248, 251, 246, 0.72) 100%
+  ) !important;
+}
+
+.cover-background {
+  filter: blur(56px) brightness(1.08) saturate(0.72) !important;
+}
+
+.song-title,
+.mini-title {
+  color: #1f2a1f !important;
+  text-shadow: none !important;
+}
+
+.song-artist,
+.mini-artist {
+  color: #5f715f !important;
+}
+
+.close-button {
+  background: #edf3e7 !important;
+  color: #5f715f !important;
+  border: 1px solid #d2deca !important;
+}
+
+.close-button:hover {
+  background: #e3ecda !important;
+  color: #1f2a1f !important;
+}
+
+.playback-controls {
+  background: linear-gradient(
+    to top,
+    rgba(248, 251, 246, 0.95) 0%,
+    rgba(248, 251, 246, 0.82) 55%,
+    rgba(248, 251, 246, 0) 100%
+  ) !important;
+}
+
+.time-display {
+  color: #607260 !important;
+}
+
+.progress-bar {
+  background: #d8e5d1 !important;
+}
+
+.progress-fill {
+  background: #2f7d4f !important;
+}
+
+.progress-thumb {
+  background: #2f7d4f !important;
+  box-shadow: 0 2px 8px rgba(47, 125, 79, 0.25) !important;
+}
+
+.control-btn {
+  color: #5f715f !important;
+}
+
+.control-btn:hover {
+  color: #1f2a1f !important;
+}
+
+.secondary-btn {
+  opacity: 0.75 !important;
+}
+
+.secondary-btn.active {
+  color: #2f7d4f !important;
+  text-shadow: none !important;
+}
+
+.play-pause-btn {
+  color: #2f7d4f !important;
+}
+
+.play-pause-btn:hover {
+  color: #266942 !important;
+}
+
+.toolbar-btn {
+  background: #edf3e7 !important;
+  color: #5f715f !important;
+  border: 1px solid #d2deca !important;
+}
+
+.toolbar-btn:hover {
+  background: #e3ecda !important;
+  color: #1f2a1f !important;
+}
+
+.lyric-settings-content {
+  background: #f8fbf6 !important;
+  border: 1px solid #d2deca !important;
+  border-radius: 12px;
+}
+
+.setting-item {
+  color: #2f4430 !important;
+}
+
+.setting-item .control {
+  background: #eef4e8 !important;
+}
+
+.setting-item button {
+  color: #2f4430 !important;
+}
+
+.setting-item button:hover {
+  background: #e3ecda !important;
+}
+
+.mobile-quality-badge {
+  background: #edf3e7 !important;
+  color: #2f4430 !important;
+  border: 1px solid #d2deca !important;
+}
+
+.dot {
+  background: rgba(47, 125, 79, 0.28) !important;
+}
+
+.dot.active {
+  background: #2f7d4f !important;
+  box-shadow: 0 0 8px rgba(47, 125, 79, 0.28) !important;
+}
+
+/* Lyric text contrast overrides (both default and AML lyric renderers) */
+.lyrics-fullscreen-container :deep(.lyric-loading) {
+  color: #5f715f !important;
+}
+
+.lyrics-fullscreen-container :deep(.lyric .lrc-line .content),
+.lyrics-fullscreen-container :deep(.lyric .lrc-line .tran),
+.lyrics-fullscreen-container :deep(.lyric .lrc-line .roma) {
+  color: #5f715f !important;
+}
+
+.lyrics-fullscreen-container :deep(.lyric .lrc-line.on .content) {
+  color: #1f2a1f !important;
+}
+
+.lyrics-fullscreen-container :deep(.lyric .lrc-line.on .tran),
+.lyrics-fullscreen-container :deep(.lyric .lrc-line.on .roma) {
+  color: #506550 !important;
+}
+
+.lyrics-fullscreen-container :deep(.am-lyric .current),
+.lyrics-fullscreen-container :deep(.am-lyric .is-current),
+.lyrics-fullscreen-container :deep(.am-lyric .active),
+.lyrics-fullscreen-container :deep(.am-lyric .is-active),
+.lyrics-fullscreen-container :deep(.am-lyric .lyric-line.current),
+.lyrics-fullscreen-container :deep(.am-lyric .lyric-line.is-current) {
+  color: #1f2a1f !important;
+  text-shadow: none !important;
+}
+
+.lyrics-fullscreen-container :deep(.am-lyric) {
+  color: #5f715f !important;
 }
 </style>
