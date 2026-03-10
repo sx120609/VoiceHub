@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-import { db, eq, users } from '~/drizzle/db'
+import { db, eq, or, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import {
   getAccountLockRemainingTime,
@@ -31,6 +31,12 @@ export default defineEventHandler(async (event) => {
         message: '账号名和密码不能为空'
       })
     }
+    const rawAccount = String(body.username).trim()
+    const normalizedAccount = rawAccount.toLowerCase()
+    const qqPrefixFromEmail = normalizedAccount.endsWith('@qq.com')
+      ? normalizedAccount.slice(0, -'@qq.com'.length)
+      : ''
+    const usernameForLookup = qqPrefixFromEmail || rawAccount
 
     if (!process.env.JWT_SECRET) {
       console.error('JWT_SECRET environment variable is not set')
@@ -61,8 +67,8 @@ export default defineEventHandler(async (event) => {
     }
 
     // 检查账户是否被锁定
-    if (isAccountLocked(body.username)) {
-      const remainingTime = getAccountLockRemainingTime(body.username)
+    if (isAccountLocked(rawAccount)) {
+      const remainingTime = getAccountLockRemainingTime(rawAccount)
       throw createError({
         statusCode: 423,
         message: `账户已被锁定，请在 ${remainingTime} 分钟后重试`
@@ -87,14 +93,18 @@ export default defineEventHandler(async (event) => {
         emailVerified: users.emailVerified
       })
       .from(users)
-      .where(eq(users.username, body.username))
+      .where(
+        qqPrefixFromEmail
+          ? or(eq(users.username, usernameForLookup), eq(users.email, normalizedAccount))
+          : eq(users.username, usernameForLookup)
+      )
       .limit(1)
 
     const user = userResult[0] || null
 
     if (!user) {
       // 记录登录失败（用户不存在）
-      recordLoginFailure(body.username, clientIp)
+      recordLoginFailure(rawAccount, clientIp)
       throw createError({
         statusCode: 401,
         message: '用户不存在'
@@ -106,7 +116,7 @@ export default defineEventHandler(async (event) => {
     const isPasswordValid = await bcrypt.compare(body.password, user.password)
     if (!isPasswordValid) {
       // 记录登录失败（密码错误）
-      recordLoginFailure(body.username, clientIp)
+      recordLoginFailure(rawAccount, clientIp)
       throw createError({
         statusCode: 401,
         message: '密码不正确'
@@ -142,9 +152,9 @@ export default defineEventHandler(async (event) => {
       user.emailVerified = true
     }
 
-    recordLoginSuccess(body.username, clientIp)
+    recordLoginSuccess(rawAccount, clientIp)
 
-    const ipSwitchExceeded = recordAccountIpLogin(body.username, clientIp)
+    const ipSwitchExceeded = recordAccountIpLogin(rawAccount, clientIp)
     if (ipSwitchExceeded) {
       blockUser(user.id)
       const ipRemain = getIPBlockRemainingTime(clientIp)

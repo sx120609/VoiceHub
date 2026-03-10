@@ -1067,137 +1067,113 @@ watch(
 
 // 在组件挂载后初始化认证和歌曲（只会在客户端执行）
 onMounted(async () => {
-  // 初始化站点配置
-  await initSiteConfig()
+  try {
+    // 初始化站点配置
+    await initSiteConfig()
 
-  // 初始化认证状态并获取用户信息
-  const currentUser = await auth.initAuth()
+    // 初始化认证状态并获取用户信息
+    const currentUser = await auth.initAuth()
 
-  // 监听登录状态变化，确保UI立即响应
-  watch(
-    () => auth?.isAuthenticated?.value,
-    async (newAuthState, oldAuthState) => {
-      if (newAuthState && !oldAuthState) {
-        // 用户刚刚登录成功，立即更新相关数据
-        console.log('用户登录状态变化，开始强制更新通知按钮')
+    // 监听登录状态变化，确保UI立即响应
+    watch(
+      () => auth?.isAuthenticated?.value,
+      async (newAuthState, oldAuthState) => {
+        if (newAuthState && !oldAuthState) {
+          console.log('用户登录状态变化，开始强制更新通知按钮')
 
-        // 方法1: 更新key值强制重新渲染
-        notificationTabKey.value++
+          notificationTabKey.value++
+          await nextTick()
 
-        await nextTick()
-
-        // 方法2: 直接操作ref元素
-        if (notificationTabRef.value) {
-          notificationTabRef.value.classList.remove('disabled')
-          notificationTabRef.value.style.opacity = '1'
-          notificationTabRef.value.style.cursor = 'pointer'
-          notificationTabRef.value.style.pointerEvents = 'auto'
-        }
-
-        // 方法3: 强制触发响应式更新
-        await nextTick(() => {
-          // 强制重新计算isClientAuthenticated
-          if (typeof window !== 'undefined') {
-            // 直接操作DOM确保样式立即更新
-            const notificationTab = document.querySelector('.section-tab[data-tab="notification"]')
-            if (notificationTab) {
-              notificationTab.classList.remove('disabled')
-              // 强制重新应用class绑定
-              notificationTab.style.opacity = '1'
-              notificationTab.style.cursor = 'pointer'
-              notificationTab.style.pointerEvents = 'auto'
-            }
+          if (notificationTabRef.value) {
+            notificationTabRef.value.classList.remove('disabled')
+            notificationTabRef.value.style.opacity = '1'
+            notificationTabRef.value.style.cursor = 'pointer'
+            notificationTabRef.value.style.pointerEvents = 'auto'
           }
-        })
 
-        // 方法4: 再次更新key值确保完全重新渲染
-        await nextTick()
-        notificationTabKey.value++
+          await nextTick(() => {
+            if (typeof window !== 'undefined') {
+              const notificationTab = document.querySelector('.section-tab[data-tab="notification"]')
+              if (notificationTab) {
+                notificationTab.classList.remove('disabled')
+                notificationTab.style.opacity = '1'
+                notificationTab.style.cursor = 'pointer'
+                notificationTab.style.pointerEvents = 'auto'
+              }
+            }
+          })
 
-        // 方法5: 再次使用nextTick确保Vue响应式系统完全更新
-        await nextTick()
+          await nextTick()
+          notificationTabKey.value++
+          await nextTick()
 
-        console.log('通知按钮强制更新完成')
+          console.log('通知按钮强制更新完成')
+          await Promise.allSettled([loadNotifications(), fetchNotificationSettings()])
+        }
+      },
+      { immediate: false, flush: 'post' }
+    )
 
-        await Promise.all([loadNotifications(), fetchNotificationSettings()])
-      }
-    },
-    { immediate: false, flush: 'post' }
-  )
-
-  // 确保title正确设置
-  if (typeof document !== 'undefined' && siteTitle.value) {
-    document.title = `首页 | ${siteTitle.value}`
-  }
-
-  // 通知服务已在setup阶段初始化，这里不需要重复初始化
-
-  // 优化数据加载流程：根据用户状态加载不同数据
-  if (isClientAuthenticated.value) {
-    // 已登录用户：并行加载完整歌曲列表、公共排期、通知和设置
-    await Promise.all([
-      songs.fetchSongs(),
-      songs.fetchPublicSchedules(),
-      loadNotifications(),
-      fetchNotificationSettings()
-    ])
-
-    // 检查用户是否需要修改密码并显示提示
-    await checkPasswordChangeRequired(currentUser)
-  } else {
-    // 未登录用户：并行加载歌曲总数和公共排期
-    await Promise.all([songs.fetchSongCount(), songs.fetchPublicSchedules()])
-  }
-
-  // 更新统计数据（基于已加载的缓存数据）
-  await updateSongCounts()
-
-  // 设置智能定时刷新（只刷新过期或即将过期的数据）
-  const setupRefreshInterval = () => {
-    // 清除之前的定时器
-    if (refreshInterval) {
-      clearInterval(refreshInterval)
+    if (typeof document !== 'undefined' && siteTitle.value) {
+      document.title = `首页 | ${siteTitle.value}`
     }
 
-    // 获取用户设置的刷新间隔（秒），默认60秒
-    const intervalSeconds = notificationSettings.value.refreshInterval || 60
-    const intervalMs = intervalSeconds * 1000
+    // 初始化数据：使用 allSettled，避免单个接口失败导致首页整体崩溃
+    if (isClientAuthenticated.value) {
+      await Promise.allSettled([
+        songs.fetchSongs(),
+        songs.fetchPublicSchedules(),
+        loadNotifications(),
+        fetchNotificationSettings()
+      ])
 
-    console.log(`设置智能刷新间隔: ${intervalSeconds}秒`)
+      await checkPasswordChangeRequired(currentUser)
+    } else {
+      await Promise.allSettled([songs.fetchSongCount(), songs.fetchPublicSchedules()])
+    }
 
-    refreshInterval = setInterval(async () => {
-      try {
-        // 定期刷新数据
-        if (isClientAuthenticated.value) {
-          // 已登录用户：刷新歌曲列表、公共排期和通知
-          await Promise.allSettled([
-            songs.fetchSongs(true),
-            songs.fetchPublicSchedules(true),
-            loadNotifications()
-          ])
-        } else {
-          // 未登录用户：刷新公共排期和歌曲总数
-          await Promise.allSettled([songs.fetchPublicSchedules(true), songs.fetchSongCount()])
+    await updateSongCounts()
+
+    const setupRefreshInterval = () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval)
+      }
+
+      const intervalSeconds = notificationSettings.value.refreshInterval || 60
+      const intervalMs = intervalSeconds * 1000
+
+      console.log(`设置智能刷新间隔: ${intervalSeconds}秒`)
+
+      refreshInterval = setInterval(async () => {
+        try {
+          if (isClientAuthenticated.value) {
+            await Promise.allSettled([
+              songs.fetchSongs(true),
+              songs.fetchPublicSchedules(true),
+              loadNotifications()
+            ])
+          } else {
+            await Promise.allSettled([songs.fetchPublicSchedules(true), songs.fetchSongCount()])
+          }
+
+          await updateSongCounts()
+        } catch (error) {
+          console.error('定期刷新失败:', error)
         }
+      }, intervalMs)
+    }
 
-        // 更新统计数据
-        await updateSongCounts()
-      } catch (error) {
-        console.error('定期刷新失败:', error)
-      }
-    }, intervalMs)
-  }
+    setupRefreshInterval()
 
-  // 初始设置刷新间隔
-  setupRefreshInterval()
-
-  // 监听通知
-  if (songs.notification && songs.notification.value) {
-    watch(songs.notification, (newVal) => {
-      if (newVal.show) {
-        showNotification(newVal.message, newVal.type)
-      }
-    })
+    if (songs.notification && songs.notification.value) {
+      watch(songs.notification, (newVal) => {
+        if (newVal.show) {
+          showNotification(newVal.message, newVal.type)
+        }
+      })
+    }
+  } catch (error) {
+    console.error('首页初始化失败:', error)
   }
 })
 
