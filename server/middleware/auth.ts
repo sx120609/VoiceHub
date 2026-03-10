@@ -2,6 +2,7 @@ import { JWTEnhanced } from '../utils/jwt-enhanced'
 import { db, users } from '~/drizzle/db'
 import { eq } from 'drizzle-orm'
 import { isUserBlocked, getUserBlockRemainingTime } from '../services/securityService'
+import { normalizeRoleOrDefault } from '~~/server/utils/role'
 
 const normalizeBaseURL = (baseURL: string) => {
   const withLeadingSlash = baseURL.startsWith('/') ? baseURL : `/${baseURL}`
@@ -213,11 +214,15 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    event.context.user = user
+    const normalizedUser = {
+      ...user,
+      role: normalizeRoleOrDefault(user.role, 'USER')
+    }
+    event.context.user = normalizedUser
 
-    if (isUserBlocked(user.id)) {
+    if (isUserBlocked(normalizedUser.id)) {
       delete event.context.user
-      const remaining = getUserBlockRemainingTime(user.id)
+      const remaining = getUserBlockRemainingTime(normalizedUser.id)
       return sendError(
         event,
         createError({
@@ -230,7 +235,7 @@ export default defineEventHandler(async (event) => {
     // 检查管理员专用路由
     if (
       routePath.startsWith('/api/admin') &&
-      !['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(user.role)
+      !['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(normalizedUser.role)
     ) {
       return sendError(
         event,

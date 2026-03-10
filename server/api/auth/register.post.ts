@@ -7,6 +7,7 @@ import { getClientIP } from '~~/server/utils/ip-utils'
 import { SmtpService } from '~~/server/services/smtpService'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { buildPublicAppUrl } from '~~/server/utils/public-url'
+import { normalizeRoleOrDefault } from '~~/server/utils/role'
 import {
   createRegistrationActivationToken,
   extractQQNumberFromEmail,
@@ -225,7 +226,8 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const token = JWTEnhanced.generateToken(newUser.id, newUser.role)
+    const normalizedRole = normalizeRoleOrDefault(newUser.role, 'USER')
+    const token = JWTEnhanced.generateToken(newUser.id, normalizedRole)
     const isSecure =
       getRequestURL(event).protocol === 'https:' ||
       getRequestHeader(event, 'x-forwarded-proto') === 'https'
@@ -245,6 +247,7 @@ export default defineEventHandler(async (event) => {
       message: '注册成功',
       user: {
         ...newUser,
+        role: normalizedRole,
         name: newUser.name || qqProfile?.name || newUser.username,
         avatar: qqProfile?.avatar || null,
         needsPasswordChange: false

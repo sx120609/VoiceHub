@@ -164,17 +164,17 @@
                 </td>
                 <td class="px-6 py-5">
                   <span
-                    v-if="user.role === 'super_admin'"
+                    v-if="isRole(user.role, 'SUPER_ADMIN')"
                     class="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-black rounded border border-orange-500/20 uppercase tracking-widest"
                     >超级管理员</span
                   >
                   <span
-                    v-else-if="user.role === 'admin'"
+                    v-else-if="isRole(user.role, 'ADMIN')"
                     class="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-black rounded border border-blue-500/20 uppercase tracking-widest"
                     >管理员</span
                   >
                   <span
-                    v-else-if="user.role === 'song_admin'"
+                    v-else-if="isRole(user.role, 'SONG_ADMIN')"
                     class="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] font-black rounded border border-purple-500/20 uppercase tracking-widest"
                     >歌曲管理</span
                   >
@@ -322,17 +322,17 @@
                 </p>
                 <div>
                   <span
-                    v-if="user.role === 'super_admin'"
+                    v-if="isRole(user.role, 'SUPER_ADMIN')"
                     class="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-black rounded border border-orange-500/20 uppercase tracking-widest"
                     >超级管理员</span
                   >
                   <span
-                    v-else-if="user.role === 'admin'"
+                    v-else-if="isRole(user.role, 'ADMIN')"
                     class="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-black rounded border border-blue-500/20 uppercase tracking-widest"
                     >管理员</span
                   >
                   <span
-                    v-else-if="user.role === 'song_admin'"
+                    v-else-if="isRole(user.role, 'SONG_ADMIN')"
                     class="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] font-black rounded border border-purple-500/20 uppercase tracking-widest"
                     >歌曲管理</span
                   >
@@ -1574,24 +1574,36 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('zh-CN')
 }
 
+const normalizeRole = (role) => {
+  if (!role || typeof role !== 'string') return 'USER'
+  const normalized = role.trim().toUpperCase().replace(/[-\s]/g, '_')
+  if (normalized === 'SONGADMIN') return 'SONG_ADMIN'
+  if (normalized === 'SUPERADMIN') return 'SUPER_ADMIN'
+  return normalized
+}
+
+const isRole = (role, targetRole) => normalizeRole(role) === targetRole
+
 const getRoleClass = (role) => {
+  const normalizedRole = normalizeRole(role)
   const classes = {
     USER: 'user',
     ADMIN: 'admin',
     SONG_ADMIN: 'song-admin',
     SUPER_ADMIN: 'super-admin'
   }
-  return classes[role] || 'user'
+  return classes[normalizedRole] || 'user'
 }
 
 const getRoleDisplayName = (role) => {
+  const normalizedRole = normalizeRole(role)
   const names = {
     USER: '普通用户',
     ADMIN: '管理员',
     SONG_ADMIN: '歌曲管理员',
     SUPER_ADMIN: '超级管理员'
   }
-  return names[role] || role
+  return names[normalizedRole] || role
 }
 
 const getStatusClass = (status) => {
@@ -1625,7 +1637,7 @@ const editUser = (user) => {
     email: user.email || '',
     password: '',
     emailVerified: user.emailVerified ?? true,
-    role: user.role,
+    role: normalizeRole(user.role),
     status: user.status || 'active',
     grade: user.grade || '',
     class: user.class || ''
@@ -1776,8 +1788,9 @@ const saveUser = async () => {
   const normalizedUsername = (userForm.value.username || '').trim()
   const normalizedName = (userForm.value.name || '').trim()
   const normalizedEmail = (userForm.value.email || '').trim().toLowerCase()
-  const targetUserRole = editingUser.value?.role || userForm.value.role
-  const shouldRequireQQEmail = targetUserRole === 'USER' || userForm.value.role === 'USER'
+  const normalizedRole = normalizeRole(userForm.value.role)
+  const targetUserRole = normalizeRole(editingUser.value?.role || userForm.value.role)
+  const shouldRequireQQEmail = targetUserRole === 'USER' || normalizedRole === 'USER'
 
   if (!normalizedUsername) {
     formError.value = '用户名不能为空'
@@ -1808,7 +1821,7 @@ const saveUser = async () => {
       username: normalizedUsername,
       ...(normalizedEmail ? { email: normalizedEmail } : {}),
       emailVerified: userForm.value.emailVerified,
-      role: userForm.value.role,
+      role: normalizedRole,
       status: userForm.value.status,
       grade: userForm.value.grade,
       class: userForm.value.class
@@ -1819,9 +1832,9 @@ const saveUser = async () => {
     }
 
     // 检查是否是权限更新
-    const isRoleUpdate = editingUser.value && editingUser.value.role !== userForm.value.role
-    const oldRole = editingUser.value?.role
-    const newRole = userForm.value.role
+    const oldRole = normalizeRole(editingUser.value?.role)
+    const newRole = normalizedRole
+    const isRoleUpdate = editingUser.value && oldRole !== newRole
 
     if (editingUser.value) {
       await $fetch(`/api/admin/users/${editingUser.value.id}`, {
@@ -1938,7 +1951,10 @@ const loadUsers = async (page = 1, limit = 100) => {
 
     // 处理分页响应数据
     if (response.users) {
-      users.value = response.users
+      users.value = response.users.map((u) => ({
+        ...u,
+        role: normalizeRole(u.role)
+      }))
       console.log('加载用户成功:', users.value.length)
       // 更新分页信息
       if (response.pagination) {

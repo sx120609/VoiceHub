@@ -10,6 +10,17 @@ interface LoginResponse {
   tempToken?: string // 预认证临时令牌
 }
 
+const normalizeRole = (role?: string | null): string => {
+  if (!role) return 'USER'
+  const normalized = role.trim().toUpperCase().replace(/[-\s]/g, '_')
+  if (normalized === 'SONGADMIN') return 'SONG_ADMIN'
+  if (normalized === 'SUPERADMIN') return 'SUPER_ADMIN'
+  if (['USER', 'SONG_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(normalized)) {
+    return normalized
+  }
+  return 'USER'
+}
+
 export const useAuth = () => {
   const user = useState<User | null>('user', () => null)
   const token = useState<string | null>('token', () => null)
@@ -25,10 +36,14 @@ export const useAuth = () => {
   }
 
   const setAuthState = (loggedInUser: User) => {
+    const normalizedUser = {
+      ...loggedInUser,
+      role: normalizeRole(loggedInUser.role)
+    }
     token.value = 'cookie-based'
-    user.value = loggedInUser
+    user.value = normalizedUser
     isAuthenticated.value = true
-    isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(loggedInUser.role)
+    isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(normalizedUser.role)
   }
 
   const initAuth = async () => {
@@ -50,11 +65,14 @@ export const useAuth = () => {
       })
 
       if (data && data.user) {
-        user.value = data.user
+        user.value = {
+          ...data.user,
+          role: normalizeRole(data.user.role)
+        }
         isAuthenticated.value = true
-        isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(data.user.role)
+        isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(user.value.role)
         token.value = 'cookie-based'
-        return data.user
+        return user.value
       } else {
         clearAuthState()
         return null
@@ -151,9 +169,12 @@ export const useAuth = () => {
   const refreshUser = async () => {
     const data = await $fetch<{ user: User }>('/api/auth/verify')
     if (data && data.user) {
-      user.value = data.user
+      user.value = {
+        ...data.user,
+        role: normalizeRole(data.user.role)
+      }
       isAuthenticated.value = true
-      isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(data.user.role)
+      isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(user.value.role)
     }
   }
 

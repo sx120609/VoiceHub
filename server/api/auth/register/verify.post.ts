@@ -5,6 +5,7 @@ import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { verifyRegistrationActivationToken } from '~~/server/utils/registration-verification'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
+import { normalizeRoleOrDefault } from '~~/server/utils/role'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -47,6 +48,7 @@ export default defineEventHandler(async (event) => {
       message: '账号不存在'
     })
   }
+  const normalizedRole = normalizeRoleOrDefault(user.role, 'USER')
 
   if (user.status !== 'active') {
     throw createError({
@@ -73,7 +75,7 @@ export default defineEventHandler(async (event) => {
       .where(eq(users.id, user.id))
   }
 
-  const authToken = JWTEnhanced.generateToken(user.id, user.role)
+  const authToken = JWTEnhanced.generateToken(user.id, normalizedRole)
   const isSecure =
     getRequestURL(event).protocol === 'https:' ||
     getRequestHeader(event, 'x-forwarded-proto') === 'https'
@@ -96,7 +98,7 @@ export default defineEventHandler(async (event) => {
       name: user.name || qqProfile?.name || user.username,
       grade: user.grade,
       class: user.class,
-      role: user.role,
+      role: normalizedRole,
       avatar: qqProfile?.avatar || null,
       needsPasswordChange: false
     }

@@ -4,12 +4,14 @@ import { users, userStatusLogs } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { updateUserPassword } from '~~/server/services/userService'
 import { normalizeEmail, requireQQEmail } from '~~/server/utils/qq-email'
+import { normalizeRole, normalizeRoleOrDefault } from '~~/server/utils/role'
 
 export default defineEventHandler(async (event) => {
   try {
     // 检查认证和权限
     const user = event.context.user
-    if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    const operatorRole = normalizeRole(user?.role)
+    if (!user || !operatorRole || !['ADMIN', 'SUPER_ADMIN'].includes(operatorRole)) {
       throw createError({
         statusCode: 403,
         statusMessage: '没有权限访问'
@@ -70,7 +72,8 @@ export default defineEventHandler(async (event) => {
 
     // 3. 越级修改保护
     // 如果目标用户是 SUPER_ADMIN，操作者必须是 SUPER_ADMIN
-    if (targetUser.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const targetUserRole = normalizeRoleOrDefault(targetUser.role, 'USER')
+    if (targetUserRole === 'SUPER_ADMIN' && operatorRole !== 'SUPER_ADMIN') {
       throw createError({
         statusCode: 403,
         message: '权限不足：普通管理员无法修改超级管理员信息'
@@ -109,22 +112,23 @@ export default defineEventHandler(async (event) => {
     }
 
     // 角色权限控制
-    let validRole = targetUser.role
+    let validRole = targetUserRole
     if (typeof role === 'string') {
-      if (!['USER', 'ADMIN', 'SONG_ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      const requestedRole = normalizeRole(role)
+      if (!requestedRole) {
         throw createError({
           statusCode: 400,
           message: '无效的用户角色'
         })
       }
       // 超级管理员可以设置任何角色
-      if (user.role === 'SUPER_ADMIN') {
-        validRole = role
+      if (operatorRole === 'SUPER_ADMIN') {
+        validRole = requestedRole
       }
       // 管理员只能设置管理员以下的角色（USER, SONG_ADMIN）
-      else if (user.role === 'ADMIN') {
-        if (['USER', 'SONG_ADMIN'].includes(role)) {
-          validRole = role
+      else if (operatorRole === 'ADMIN') {
+        if (['USER', 'SONG_ADMIN'].includes(requestedRole)) {
+          validRole = requestedRole
         } else {
           throw createError({
             statusCode: 403,
@@ -153,7 +157,7 @@ export default defineEventHandler(async (event) => {
       const trimmedEmail = email.trim()
       if (!trimmedEmail) {
         normalizedEmailValue = null
-      } else if (validRole === 'USER' || targetUser.role === 'USER') {
+      } else if (validRole === 'USER' || targetUserRole === 'USER') {
         normalizedEmailValue = requireQQEmail(trimmedEmail)
       } else {
         normalizedEmailValue = normalizeEmail(trimmedEmail)

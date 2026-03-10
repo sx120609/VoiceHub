@@ -3,11 +3,13 @@ import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { requireQQEmail } from '~~/server/utils/qq-email'
+import { normalizeRole } from '~~/server/utils/role'
 
 export default defineEventHandler(async (event) => {
   // 检查认证和权限
   const user = event.context.user
-  if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+  const operatorRole = normalizeRole(user?.role)
+  if (!user || !operatorRole || !['ADMIN', 'SUPER_ADMIN'].includes(operatorRole)) {
     throw createError({
       statusCode: 403,
       message: '没有权限访问'
@@ -62,15 +64,16 @@ export default defineEventHandler(async (event) => {
 
     // 角色权限控制
     let validRole = 'USER'
-    if (body.role && ['USER', 'ADMIN', 'SONG_ADMIN', 'SUPER_ADMIN'].includes(body.role)) {
+    const requestedRole = normalizeRole(body.role)
+    if (requestedRole) {
       // 超级管理员可以创建任何角色的用户
-      if (user.role === 'SUPER_ADMIN') {
-        validRole = body.role
+      if (operatorRole === 'SUPER_ADMIN') {
+        validRole = requestedRole
       }
       // 管理员只能创建管理员以下的角色（USER, SONG_ADMIN）
-      else if (user.role === 'ADMIN') {
-        if (['USER', 'SONG_ADMIN'].includes(body.role)) {
-          validRole = body.role
+      else if (operatorRole === 'ADMIN') {
+        if (['USER', 'SONG_ADMIN'].includes(requestedRole)) {
+          validRole = requestedRole
         } else {
           throw createError({
             statusCode: 403,

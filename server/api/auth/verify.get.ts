@@ -4,6 +4,7 @@ import { users } from '~/drizzle/schema'
 import { executeRedisCommand, isRedisReady } from '../../utils/redis'
 import { eq } from 'drizzle-orm'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
+import { normalizeRoleOrDefault } from '~~/server/utils/role'
 
 // 用户认证缓存（永久缓存，登出或权限变更时主动失效）
 
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
           name: cachedUser.name,
           grade: cachedUser.grade,
           class: cachedUser.class,
-          role: cachedUser.role,
+          role: normalizeRoleOrDefault(cachedUser.role, 'USER'),
           requirePasswordChange: cachedUser.forcePasswordChange || !cachedUser.passwordChangedAt,
           has2FA: false,
           avatar: cachedUser.identities?.find((id: any) => id.provider === 'github')?.providerUsername
@@ -110,7 +111,7 @@ export default defineEventHandler(async (event) => {
       name: dbUser.name || qqProfile?.name || dbUser.username,
       grade: dbUser.grade,
       class: dbUser.class,
-      role: dbUser.role,
+      role: normalizeRoleOrDefault(dbUser.role, 'USER'),
       requirePasswordChange: dbUser.forcePasswordChange || !dbUser.passwordChangedAt,
       has2FA: false,
       // 动态生成 GitHub 头像 URL

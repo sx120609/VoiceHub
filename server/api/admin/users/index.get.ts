@@ -2,6 +2,7 @@ import { createError, defineEventHandler, getQuery } from 'h3'
 import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { and, asc, desc, count, eq, ilike, or, sql } from 'drizzle-orm'
+import { normalizeRole } from '~~/server/utils/role'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -24,7 +25,10 @@ export default defineEventHandler(async (event) => {
 
     // 角色筛选
     if (role && typeof role === 'string' && role.trim()) {
-      whereConditions.push(eq(users.role, role.trim()))
+      const normalizedRole = normalizeRole(role.trim())
+      if (normalizedRole) {
+        whereConditions.push(eq(users.role, normalizedRole))
+      }
     }
 
     // 状态筛选
@@ -115,6 +119,7 @@ export default defineEventHandler(async (event) => {
     // 处理用户列表，添加头像字段
     const formattedUsers = usersList.map((user) => ({
       ...user,
+      role: normalizeRole(user.role) || user.role,
       avatar: user.identities?.[0]?.providerUsername
         ? `https://github.com/${user.identities[0].providerUsername}.png`
         : null
