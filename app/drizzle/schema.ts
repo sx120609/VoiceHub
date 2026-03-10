@@ -276,6 +276,7 @@ export const songComments = pgTable('song_comments', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   songId: integer('song_id').notNull(),
   userId: integer('user_id').notNull(),
+  parentCommentId: integer('parent_comment_id'),
   content: text('content').notNull(),
 })
 

@@ -45,6 +45,9 @@ export interface SongComment {
   userId: number | null
   userDisplayName: string
   content: string
+  parentCommentId?: number | null
+  replyToUserDisplayName?: string | null
+  replies?: SongComment[]
   createdAt: string
   updatedAt?: string
 }
@@ -70,7 +73,13 @@ export interface Schedule {
   }
 }
 
-export type NotificationType = 'SONG_SELECTED' | 'SONG_PLAYED' | 'SONG_VOTED' | 'SYSTEM_NOTICE'
+export type NotificationType =
+  | 'SONG_SELECTED'
+  | 'SONG_PLAYED'
+  | 'SONG_VOTED'
+  | 'SONG_COMMENTED'
+  | 'SONG_COMMENT_REPLIED'
+  | 'SYSTEM_NOTICE'
 
 export interface Notification {
   id: number

@@ -1140,7 +1140,28 @@ const refreshSongComments = async () => {
   fetchSongCommentCounts([currentSongId])
 }
 
-const submitSongComment = async (content) => {
+const normalizeCommentSubmitPayload = (payload) => {
+  if (typeof payload === 'string') {
+    return {
+      content: payload.trim(),
+      parentCommentId: null
+    }
+  }
+
+  const content = String(payload?.content || '').trim()
+  const parsedParentCommentId = Number(payload?.parentCommentId)
+  const parentCommentId =
+    Number.isInteger(parsedParentCommentId) && parsedParentCommentId > 0
+      ? parsedParentCommentId
+      : null
+
+  return {
+    content,
+    parentCommentId
+  }
+}
+
+const submitSongComment = async (payload) => {
   if (!isAuthenticated.value) {
     showToast('请先登录后再评论', 'error')
     return
@@ -1149,13 +1170,20 @@ const submitSongComment = async (content) => {
   const currentSongId = songCommentsDialog.value.song?.id
   if (!currentSongId) return
 
+  const { content, parentCommentId } = normalizeCommentSubmitPayload(payload)
+  if (!content) {
+    showToast('评论内容不能为空', 'error')
+    return
+  }
+
   songCommentsDialog.value.submitting = true
   try {
     const response = await $fetch('/api/songs/comments', {
       method: 'POST',
       body: {
         songId: currentSongId,
-        content
+        content,
+        ...(parentCommentId ? { parentCommentId } : {})
       }
     })
 
@@ -1164,7 +1192,7 @@ const submitSongComment = async (content) => {
       songCommentsDialog.value.song.commentCount = latestCount
     }
 
-    showToast('评论发布成功', 'success')
+    showToast(parentCommentId ? '回复发布成功' : '评论发布成功', 'success')
     await loadSongComments(currentSongId, true)
     await fetchSongCommentCounts([currentSongId])
   } catch (error) {
@@ -2384,13 +2412,13 @@ const vRipple = {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0; /* 完全移除间距 */
+  gap: 8px;
   margin-left: auto;
-  margin-right: 10px; /* 添加右侧外边距，使整体向左移动 */
+  margin-right: 10px;
   flex-shrink: 0;
-  width: auto; /* 使用自动宽度 */
-  min-width: 156px; /* 兼容热度、点赞和评论按钮 */
-  padding-right: 0; /* 移除右侧内边距 */
+  width: auto;
+  min-width: 164px;
+  padding-right: 0;
 }
 
 /* 热度样式 */
@@ -2425,12 +2453,13 @@ const vRipple = {
 
 /* 点赞按钮样式 */
 .like-button-wrapper {
-  /* 向右移动点赞按钮，但考虑到整体已向左移动，减小负边距 */
-  margin-right: -10px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .comment-button-wrapper {
-  margin-right: -6px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .like-button {

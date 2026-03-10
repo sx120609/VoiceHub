@@ -106,6 +106,13 @@
       "when": 1773143400000,
       "tag": "20260310195000_add_song_comments",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1773152100000,
+      "tag": "20260310221500_add_song_comment_replies",
+      "breakpoints": true
     }
   ]
 }

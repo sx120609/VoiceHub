@@ -1,13 +1,18 @@
 import { createError, defineEventHandler, readBody } from 'h3'
-import { count, eq } from 'drizzle-orm'
+import { and, count, eq } from 'drizzle-orm'
 import { db } from '~/drizzle/db'
 import { songComments, songs, users } from '~/drizzle/schema'
+import { createSongCommentNotification } from '~~/server/services/notificationService'
+import { getClientIP } from '~~/server/utils/ip-utils'
 
 const isCommentsTableMissing = (error: any) => {
   return (
     error?.code === '42P01' ||
+    error?.code === '42703' ||
     error?.cause?.code === '42P01' ||
-    String(error?.message || '').includes('song_comments')
+    error?.cause?.code === '42703' ||
+    String(error?.message || '').includes('song_comments') ||
+    String(error?.message || '').includes('parent_comment_id')
   )
 }
 
@@ -23,6 +28,12 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const songId = Number(body?.songId)
   const content = String(body?.content || '').trim()
+  const parsedParentCommentId = Number(body?.parentCommentId)
+  const parentCommentId =
+    Number.isInteger(parsedParentCommentId) && parsedParentCommentId > 0
+      ? parsedParentCommentId
+      : null
+  const clientIP = getClientIP(event)
 
   if (!songId || Number.isNaN(songId) || songId <= 0) {
     throw createError({
@@ -46,12 +57,48 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const songRows = await db.select({ id: songs.id }).from(songs).where(eq(songs.id, songId)).limit(1)
-    if (songRows.length === 0) {
+    const songRows = await db
+      .select({
+        id: songs.id,
+        title: songs.title,
+        requesterId: songs.requesterId
+      })
+      .from(songs)
+      .where(eq(songs.id, songId))
+      .limit(1)
+
+    const song = songRows[0]
+    if (!song) {
       throw createError({
         statusCode: 404,
         message: '歌曲不存在'
       })
+    }
+
+    let parentComment:
+      | {
+          id: number
+          userId: number
+        }
+      | undefined
+
+    if (parentCommentId) {
+      const parentRows = await db
+        .select({
+          id: songComments.id,
+          userId: songComments.userId
+        })
+        .from(songComments)
+        .where(and(eq(songComments.id, parentCommentId), eq(songComments.songId, songId)))
+        .limit(1)
+
+      parentComment = parentRows[0]
+      if (!parentComment) {
+        throw createError({
+          statusCode: 404,
+          message: '回复目标不存在或不属于该歌曲'
+        })
+      }
     }
 
     const inserted = await db
@@ -59,14 +106,16 @@ export default defineEventHandler(async (event) => {
       .values({
         songId,
         userId: user.id,
-        content
+        content,
+        ...(parentCommentId ? { parentCommentId } : {})
       })
       .returning({
         id: songComments.id,
         content: songComments.content,
         createdAt: songComments.createdAt,
         updatedAt: songComments.updatedAt,
-        userId: songComments.userId
+        userId: songComments.userId,
+        parentCommentId: songComments.parentCommentId
       })
 
     const newComment = inserted[0]
@@ -89,6 +138,22 @@ export default defineEventHandler(async (event) => {
     const currentUser = userRow[0]
     const userDisplayName = currentUser?.name || currentUser?.username || `用户${user.id}`
 
+    createSongCommentNotification(
+      {
+        songId,
+        songTitle: song.title,
+        songOwnerId: song.requesterId,
+        commenterId: user.id,
+        commenterName: userDisplayName,
+        commentContent: content,
+        parentCommentId: parentCommentId || null,
+        parentCommentOwnerId: parentComment?.userId || null
+      },
+      clientIP
+    ).catch((error) => {
+      console.error('[Songs Comments] 发送评论通知失败:', error)
+    })
+
     return {
       success: true,
       message: '评论发布成功',
@@ -99,6 +164,7 @@ export default defineEventHandler(async (event) => {
           createdAt: newComment.createdAt,
           updatedAt: newComment.updatedAt,
           userId: newComment.userId,
+          parentCommentId: newComment.parentCommentId,
           userDisplayName
         },
         commentCount: countResult[0]?.count || 0

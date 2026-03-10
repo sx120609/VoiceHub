@@ -240,6 +240,159 @@ function formatDate(date: Date): string {
   return formatDateTime(date, 'YYYY-MM-DD')
 }
 
+const buildCommentExcerpt = (content: string, maxLength = 48) => {
+  const normalized = String(content || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!normalized) {
+    return '（无内容）'
+  }
+
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized
+}
+
+/**
+ * 创建评论与回复通知
+ */
+export async function createSongCommentNotification(
+  params: {
+    songId: number
+    songTitle: string
+    songOwnerId: number
+    commenterId: number
+    commenterName: string
+    commentContent: string
+    parentCommentId?: number | null
+    parentCommentOwnerId?: number | null
+  },
+  ipAddress?: string
+) {
+  const {
+    songId,
+    songTitle,
+    songOwnerId,
+    commenterId,
+    commenterName,
+    commentContent,
+    parentCommentId,
+    parentCommentOwnerId
+  } = params
+
+  const createdNotifications = []
+  const commentExcerpt = buildCommentExcerpt(commentContent)
+  const isReply = Boolean(parentCommentId)
+
+  try {
+    if (songOwnerId !== commenterId) {
+      const ownerSettingsResult = await db
+        .select()
+        .from(notificationSettings)
+        .where(eq(notificationSettings.userId, songOwnerId))
+        .limit(1)
+      const ownerSettings = ownerSettingsResult[0]
+
+      if (!ownerSettings || ownerSettings.enabled) {
+        const ownerMessage = isReply
+          ? `您的歌曲《${songTitle}》收到了来自 ${commenterName} 的新回复：${commentExcerpt}`
+          : `您的歌曲《${songTitle}》收到了来自 ${commenterName} 的新评论：${commentExcerpt}`
+
+        const ownerNotificationResult = await db
+          .insert(notifications)
+          .values({
+            userId: songOwnerId,
+            type: 'SONG_COMMENTED',
+            message: ownerMessage,
+            songId
+          })
+          .returning()
+
+        createdNotifications.push(ownerNotificationResult[0])
+
+        try {
+          await sendMeowNotificationToUser(songOwnerId, isReply ? '收到歌曲回复' : '收到歌曲评论', ownerMessage)
+        } catch (error) {
+          console.error('发送歌曲评论 MeoW 通知失败:', error)
+        }
+
+        try {
+          await sendEmailNotificationToUser(
+            songOwnerId,
+            isReply ? '收到歌曲回复' : '收到歌曲评论',
+            ownerMessage,
+            undefined,
+            'notification.generic',
+            {
+              title: isReply ? '收到歌曲回复' : '收到歌曲评论',
+              message: ownerMessage
+            },
+            ipAddress
+          )
+        } catch (error) {
+          console.error('发送歌曲评论邮件通知失败:', error)
+        }
+      }
+    }
+
+    if (
+      isReply &&
+      parentCommentOwnerId &&
+      parentCommentOwnerId !== commenterId &&
+      parentCommentOwnerId !== songOwnerId
+    ) {
+      const replyTargetSettingsResult = await db
+        .select()
+        .from(notificationSettings)
+        .where(eq(notificationSettings.userId, parentCommentOwnerId))
+        .limit(1)
+      const replyTargetSettings = replyTargetSettingsResult[0]
+
+      if (!replyTargetSettings || replyTargetSettings.enabled) {
+        const replyMessage = `${commenterName} 回复了您在《${songTitle}》下的评论：${commentExcerpt}`
+
+        const replyNotificationResult = await db
+          .insert(notifications)
+          .values({
+            userId: parentCommentOwnerId,
+            type: 'SONG_COMMENT_REPLIED',
+            message: replyMessage,
+            songId
+          })
+          .returning()
+
+        createdNotifications.push(replyNotificationResult[0])
+
+        try {
+          await sendMeowNotificationToUser(parentCommentOwnerId, '评论收到回复', replyMessage)
+        } catch (error) {
+          console.error('发送评论回复 MeoW 通知失败:', error)
+        }
+
+        try {
+          await sendEmailNotificationToUser(
+            parentCommentOwnerId,
+            '评论收到回复',
+            replyMessage,
+            undefined,
+            'notification.generic',
+            {
+              title: '评论收到回复',
+              message: replyMessage
+            },
+            ipAddress
+          )
+        } catch (error) {
+          console.error('发送评论回复邮件通知失败:', error)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('创建评论通知失败:', error)
+  }
+
+  return createdNotifications
+}
+
 /**
  * 创建歌曲已播放的通知
  */

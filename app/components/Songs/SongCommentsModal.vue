@@ -40,17 +40,59 @@
                   <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
                 </div>
                 <p class="comment-content">{{ comment.content }}</p>
+                <div class="comment-actions-row">
+                  <button
+                    v-if="isAuthenticated"
+                    class="reply-btn"
+                    @click="startReply(comment)"
+                  >
+                    回复
+                  </button>
+                </div>
+
+                <ul v-if="comment.replies && comment.replies.length > 0" class="replies-list">
+                  <li v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+                    <div class="comment-meta">
+                      <span class="comment-user">{{ reply.userDisplayName || '匿名用户' }}</span>
+                      <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
+                    </div>
+                    <p class="comment-content">
+                      <span
+                        v-if="reply.replyToUserDisplayName"
+                        class="reply-target-user"
+                      >
+                        回复 {{ reply.replyToUserDisplayName }}：
+                      </span>
+                      {{ reply.content }}
+                    </p>
+                    <div class="comment-actions-row">
+                      <button
+                        v-if="isAuthenticated"
+                        class="reply-btn"
+                        @click="startReply(comment)"
+                      >
+                        回复
+                      </button>
+                    </div>
+                  </li>
+                </ul>
               </li>
             </ul>
           </div>
 
           <div class="comments-footer">
+            <div v-if="replyTarget" class="reply-target-banner">
+              <span>正在回复 {{ replyTarget.userDisplayName || '匿名用户' }}</span>
+              <button class="reply-cancel-btn" @click="clearReplyTarget">取消</button>
+            </div>
+
             <textarea
+              ref="commentInputRef"
               v-model="draftComment"
               :disabled="submitting"
               :maxlength="300"
               class="comment-input"
-              placeholder="写下你的评论（最多300字）"
+              :placeholder="inputPlaceholder"
             />
             <div class="comment-actions">
               <span v-if="!isAuthenticated" class="comment-tip">请先登录后再评论</span>
@@ -60,7 +102,7 @@
                 class="submit-btn"
                 @click="handleSubmit"
               >
-                {{ submitting ? '提交中...' : '发表评论' }}
+                {{ submitting ? '提交中...' : submitButtonText }}
               </button>
             </div>
           </div>
@@ -71,7 +113,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import Icon from '~/components/UI/Icon.vue'
 
 const props = defineProps({
@@ -108,12 +150,15 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit', 'refresh'])
 
 const draftComment = ref('')
+const replyTarget = ref(null)
+const commentInputRef = ref(null)
 
 watch(
   () => props.show,
   (show) => {
     if (!show) {
       draftComment.value = ''
+      replyTarget.value = null
     }
   }
 )
@@ -122,8 +167,35 @@ const submitDisabled = computed(() => {
   return !props.isAuthenticated || props.submitting || !draftComment.value.trim()
 })
 
+const inputPlaceholder = computed(() => {
+  if (!replyTarget.value) {
+    return '写下你的评论（最多300字）'
+  }
+  return `回复 ${replyTarget.value.userDisplayName || '该用户'}（最多300字）`
+})
+
+const submitButtonText = computed(() => {
+  return replyTarget.value ? '发表回复' : '发表评论'
+})
+
 const handleOverlayClose = () => {
   emit('close')
+}
+
+const clearReplyTarget = () => {
+  replyTarget.value = null
+}
+
+const startReply = async (comment) => {
+  if (!props.isAuthenticated) {
+    return
+  }
+
+  replyTarget.value = comment
+  await nextTick()
+  if (commentInputRef.value && typeof commentInputRef.value.focus === 'function') {
+    commentInputRef.value.focus()
+  }
 }
 
 const handleSubmit = () => {
@@ -131,8 +203,14 @@ const handleSubmit = () => {
   if (!content || submitDisabled.value) {
     return
   }
-  emit('submit', content)
+
+  emit('submit', {
+    content,
+    parentCommentId: replyTarget.value?.id || null
+  })
+
   draftComment.value = ''
+  replyTarget.value = null
 }
 
 const formatTime = (time) => {
@@ -289,10 +367,75 @@ const formatTime = (time) => {
   word-break: break-word;
 }
 
+.comment-actions-row {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reply-btn {
+  height: 28px;
+  border: 1px solid #b5ccb5;
+  background: #f8fbf6;
+  color: #2f7d4f;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.replies-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 2px solid #d7e4cf;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reply-item {
+  border: 1px solid #dce8d4;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.reply-target-user {
+  color: #2f7d4f;
+  font-weight: 600;
+}
+
 .comments-footer {
   padding: 12px 16px 16px;
   border-top: 1px solid #d2deca;
   background: #f8fbf6;
+}
+
+.reply-target-banner {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid #d2deca;
+  border-radius: 10px;
+  background: #f2f7ee;
+  color: #355835;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reply-cancel-btn {
+  height: 24px;
+  border: 1px solid #bdd4bd;
+  border-radius: 8px;
+  background: #f8fbf6;
+  color: #527052;
+  font-size: 12px;
+  padding: 0 10px;
+  cursor: pointer;
 }
 
 .comment-input {

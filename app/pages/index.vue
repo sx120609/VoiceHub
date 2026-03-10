@@ -283,6 +283,18 @@
                               color="#8b5cf6"
                               name="message-circle"
                             />
+                            <Icon
+                              v-else-if="notification.type === 'SONG_COMMENTED'"
+                              :size="20"
+                              color="#16a34a"
+                              name="message-circle"
+                            />
+                            <Icon
+                              v-else-if="notification.type === 'SONG_COMMENT_REPLIED'"
+                              :size="20"
+                              color="#2563eb"
+                              name="message-circle"
+                            />
                             <Icon v-else :size="20" color="#6b7280" name="bell" />
                           </div>
                           <div class="notification-title-row">
@@ -319,6 +331,12 @@
                               </span>
                               <span v-else-if="notification.type === 'COLLABORATION_RESPONSE'"
                                 >联合投稿回复</span
+                              >
+                              <span v-else-if="notification.type === 'SONG_COMMENTED'"
+                                >收到歌曲评论</span
+                              >
+                              <span v-else-if="notification.type === 'SONG_COMMENT_REPLIED'"
+                                >评论收到回复</span
                               >
                               <span v-else>系统通知</span>
                               <span v-if="!notification.read" class="unread-indicator" />
