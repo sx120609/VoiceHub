@@ -4,12 +4,12 @@
       <div v-if="!isFirstLogin" class="space-y-2">
         <label
           for="current-password"
-          class="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1"
+          class="text-xs font-black text-[var(--text-secondary)] uppercase tracking-widest ml-1"
           >当前密码</label
         >
         <div class="relative group">
           <div
-            class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] group-focus-within:text-[var(--primary)] transition-colors"
           >
             <Lock :size="18" />
           </div>
@@ -20,7 +20,7 @@
               inputClass,
               error
                 ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
-                : 'border-zinc-800 focus:border-blue-500/30'
+                : 'border-[var(--input-border)] focus:border-[var(--input-border-focus)] focus:shadow-[var(--input-shadow-focus)]'
             ]"
             :type="showCurrentPassword ? 'text' : 'password'"
             placeholder="请输入当前密码"
@@ -28,7 +28,7 @@
             @input="error = ''"
           >
           <button
-            class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] hover:text-[var(--text-secondary)] transition-colors"
             type="button"
             @click="showCurrentPassword = !showCurrentPassword"
           >
@@ -41,12 +41,12 @@
       <div class="space-y-2">
         <label
           for="new-password"
-          class="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1"
+          class="text-xs font-black text-[var(--text-secondary)] uppercase tracking-widest ml-1"
           >新密码</label
         >
         <div class="relative group">
           <div
-            class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] group-focus-within:text-[var(--primary)] transition-colors"
           >
             <KeyRound :size="18" />
           </div>
@@ -57,7 +57,7 @@
               inputClass,
               error
                 ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
-                : 'border-zinc-800 focus:border-blue-500/30'
+                : 'border-[var(--input-border)] focus:border-[var(--input-border-focus)] focus:shadow-[var(--input-shadow-focus)]'
             ]"
             :type="showNewPassword ? 'text' : 'password'"
             placeholder="请输入新密码"
@@ -68,7 +68,7 @@
             "
           >
           <button
-            class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] hover:text-[var(--text-secondary)] transition-colors"
             type="button"
             @click="showNewPassword = !showNewPassword"
           >
@@ -79,7 +79,7 @@
 
         <!-- 密码强度指示器 -->
         <div v-if="newPassword" class="px-1 pt-1 space-y-2">
-          <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+          <div class="h-1 w-full bg-[var(--bg-quaternary)] rounded-full overflow-hidden">
             <div
               class="h-full transition-all duration-500"
               :class="passwordStrength.colorClass"
@@ -87,7 +87,7 @@
             />
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500"
+            <span class="text-[10px] font-black uppercase tracking-widest text-[var(--text-tertiary)]"
               >密码强度</span
             >
             <span
@@ -103,12 +103,12 @@
       <div class="space-y-2">
         <label
           for="confirm-password"
-          class="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1"
+          class="text-xs font-black text-[var(--text-secondary)] uppercase tracking-widest ml-1"
           >确认新密码</label
         >
         <div class="relative group">
           <div
-            class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] group-focus-within:text-[var(--primary)] transition-colors"
           >
             <CheckCircle2 :size="18" />
           </div>
@@ -119,7 +119,7 @@
               inputClass,
               error || (confirmPassword && newPassword !== confirmPassword)
                 ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
-                : 'border-zinc-800 focus:border-blue-500/30'
+                : 'border-[var(--input-border)] focus:border-[var(--input-border-focus)] focus:shadow-[var(--input-shadow-focus)]'
             ]"
             :type="showConfirmPassword ? 'text' : 'password'"
             placeholder="请再次输入新密码"
@@ -127,7 +127,7 @@
             @input="error = ''"
           >
           <button
-            class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-quaternary)] hover:text-[var(--text-secondary)] transition-colors"
             type="button"
             @click="showConfirmPassword = !showConfirmPassword"
           >
@@ -171,7 +171,7 @@
 
       <button
         :disabled="loading || !isFormValid"
-        class="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-black rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-50"
+        class="w-full flex items-center justify-center gap-2 py-3 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] text-sm font-black rounded-xl shadow-[var(--shadow-md)] border border-[var(--btn-primary-border)] transition-all active:scale-[0.98] disabled:opacity-50"
         type="submit"
       >
         <Loader2 v-if="loading" :size="18" class="animate-spin" />
@@ -214,7 +214,7 @@ const loading = ref(false)
 
 // 样式类
 const inputClass =
-  'w-full bg-zinc-950 border rounded-xl pl-11 pr-11 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none transition-all'
+  'w-full bg-[var(--input-bg)] border rounded-xl pl-11 pr-11 py-3 text-sm text-[var(--input-text)] placeholder:text-[var(--input-placeholder)] focus:outline-none transition-all'
 
 // 密码显示状态
 const showCurrentPassword = ref(false)

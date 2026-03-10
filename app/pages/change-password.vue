@@ -1,58 +1,43 @@
 <template>
   <div class="auth-layout">
     <div class="auth-container">
-      <!-- 左侧信息区域 -->
-      <div class="info-section">
-        <div class="info-content">
-          <div class="logo-section">
-            <img alt="VoiceHub Logo" class="brand-logo" :src="logo" >
-            <h1 v-if="siteTitle" class="brand-title">{{ siteTitle || 'VoiceHub' }}</h1>
+      <div class="form-section">
+        <div class="form-header">
+          <div class="logo-row">
+            <img :src="brandLogoSrc" alt="Brand Logo" class="brand-logo-center" >
+            <div v-if="schoolLogoHomeUrl && schoolLogoHomeUrl.trim()" class="logo-divider" />
+            <img
+              v-if="schoolLogoHomeUrl && schoolLogoHomeUrl.trim()"
+              :src="schoolLogoHomeUrl"
+              alt="学校Logo"
+              class="school-logo"
+            >
           </div>
+          <h1 class="form-title">{{ siteTitle ? siteTitle + ' | VoiceHub' : 'VoiceHub' }}</h1>
+          <div class="header-divider" />
+        </div>
 
-          <div v-if="isFirstLogin" class="welcome-message">
-            <h2>欢迎使用VoiceHub</h2>
-            <p>为了保障您的账号安全，请设置一个新的密码</p>
-          </div>
-          <div v-else class="security-message">
-            <h2>账号安全</h2>
-            <p>定期更新密码有助于保护您的账号安全</p>
-          </div>
+        <div class="change-password-panel">
+          <h2>{{ isFirstLogin ? '欢迎使用 VoiceHub' : '账号安全' }}</h2>
+          <p>{{ isFirstLogin ? '为了保障您的账号安全，请设置一个新的密码' : '定期更新密码有助于保护您的账号安全' }}</p>
 
           <div class="security-tips">
             <h3>密码安全建议</h3>
             <div class="tip-list">
               <div class="tip-item">
-                <svg
-                  class="tip-icon"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
+                <svg class="tip-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <polyline points="20,6 9,17 4,12" />
                 </svg>
                 <span>至少8个字符</span>
               </div>
               <div class="tip-item">
-                <svg
-                  class="tip-icon"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
+                <svg class="tip-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <polyline points="20,6 9,17 4,12" />
                 </svg>
                 <span>包含大小写字母</span>
               </div>
               <div class="tip-item">
-                <svg
-                  class="tip-icon"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
+                <svg class="tip-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <polyline points="20,6 9,17 4,12" />
                 </svg>
                 <span>包含数字和特殊字符</span>
@@ -60,41 +45,37 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 右侧表单区域 -->
-      <div class="form-section">
-        <div class="form-container">
-          <div class="form-header">
-            <h2>{{ isFirstLogin ? '设置新密码' : '修改密码' }}</h2>
-            <p>{{ isFirstLogin ? '请设置一个安全的密码' : '更新您的登录密码' }}</p>
-          </div>
+        <ClientOnly>
+          <ChangePasswordForm :is-first-login="isFirstLogin" />
+        </ClientOnly>
 
-          <ClientOnly>
-            <ChangePasswordForm :is-first-login="isFirstLogin" />
-          </ClientOnly>
-
-          <div class="form-footer">
-            <NuxtLink class="back-link" to="/">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-              返回主页
-            </NuxtLink>
-          </div>
+        <div class="form-footer">
+          <NuxtLink class="back-link" to="/">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="15,18 9,12 15,6" />
+            </svg>
+            返回主页
+          </NuxtLink>
         </div>
       </div>
     </div>
+    <SiteFooter />
   </div>
 </template>
 
 <script setup>
 import ChangePasswordForm from '~/components/Auth/ChangePasswordForm.vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import logo from '~~/public/images/logo.svg'
 
 // 使用站点配置
-const { siteTitle, initSiteConfig } = useSiteConfig()
+const { siteTitle, initSiteConfig, logoUrl, schoolLogoHomeUrl } = useSiteConfig()
+const brandLogoSrc = computed(() => {
+  const url = logoUrl.value
+  if (url && !url.endsWith('.ico')) return url
+  return logo
+})
 
 const auth = useAuth()
 const router = useRouter()
@@ -104,6 +85,10 @@ const isFirstLogin = ref(false)
 onMounted(async () => {
   // 初始化站点配置
   await initSiteConfig()
+
+  if (typeof document !== 'undefined' && siteTitle.value) {
+    document.title = `修改密码 | ${siteTitle.value}`
+  }
 
   if (!auth.isAuthenticated.value && import.meta.client) {
     router.push('/login')
@@ -124,103 +109,117 @@ onMounted(async () => {
 <style scoped>
 .auth-layout {
   min-height: 100vh;
-  background: #0a0a0a;
+  background: var(--bg-primary);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 20px;
+  --brand-logo-size: clamp(48px, 8vw, 96px);
+  --school-logo-size: clamp(96px, 16vw, 160px);
+  --logo-gap: clamp(12px, 2vw, 24px);
+  --divider-height: clamp(32px, 10vw, 96px);
+  --content-footer-gap: clamp(16px, 4vh, 40px);
 }
 
 .auth-container {
   width: 100%;
-  max-width: 1200px;
-  background: #111111;
-  border-radius: 24px;
-  border: 1px solid #1f1f1f;
+  max-width: 620px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 600px;
+  margin: auto 0;
+  margin-bottom: var(--content-footer-gap);
 }
 
-.info-section {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  padding: 60px 40px;
+.form-section {
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.logo-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  overflow: hidden;
+  gap: var(--logo-gap);
+  margin-bottom: 12px;
 }
 
-.info-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-  opacity: 0.3;
+.logo-divider {
+  width: 1px;
+  height: var(--divider-height);
+  background: var(--border-secondary);
 }
 
-.info-content {
-  position: relative;
-  z-index: 1;
-  color: white;
-  text-align: center;
-}
-
-.logo-section {
-  margin-bottom: 40px;
-}
-
-.brand-logo {
-  width: 160px;
-  height: auto;
-  margin-bottom: 24px;
+.brand-logo-center {
+  width: var(--brand-logo-size);
+  height: var(--brand-logo-size);
+  margin: 0;
   object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
-.brand-title {
-  font-size: 36px;
-  font-weight: 700;
+.school-logo {
+  width: var(--school-logo-size);
+  height: var(--school-logo-size);
   margin: 0;
-  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
-.welcome-message,
-.security-message {
-  margin-bottom: 40px;
-}
-
-.welcome-message h2,
-.security-message h2 {
+.form-title {
   font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: white;
-}
-
-.welcome-message p,
-.security-message p {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.9);
+  font-weight: var(--font-bold);
   margin: 0;
-  line-height: 1.6;
+  color: var(--text-primary);
 }
 
-.security-tips {
-  text-align: left;
+.header-divider {
+  height: 1px;
+  background: var(--border-secondary);
+  margin: 14px auto 0;
+  width: 100%;
+}
+
+.change-password-panel {
+  background: linear-gradient(145deg, #f4f8f1 0%, #eef4ea 100%);
+  border: 1px solid var(--border-secondary);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.change-password-panel h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary);
+  font-weight: var(--font-bold);
+}
+
+.change-password-panel p {
+  margin: 8px 0 16px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .security-tips h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
   margin: 0 0 20px 0;
 }
 
@@ -234,57 +233,22 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 10px 12px;
+  background: var(--bg-secondary);
   border-radius: 8px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-primary);
 }
 
 .tip-icon {
   width: 16px;
   height: 16px;
-  color: #10b981;
+  color: var(--success);
   flex-shrink: 0;
 }
 
 .tip-item span {
   font-size: 14px;
-  color: white;
-}
-
-.form-section {
-  padding: 60px 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #111111;
-}
-
-.form-container {
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.form-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.form-header h2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 8px 0;
-}
-
-.form-header p {
-  font-size: 16px;
-  color: #888888;
-  margin: 0;
+  color: var(--text-primary);
 }
 
 .form-footer {
@@ -297,10 +261,10 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--btn-secondary-border);
   border-radius: 8px;
-  color: #cccccc;
+  color: var(--btn-secondary-text);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -308,9 +272,8 @@ onMounted(async () => {
 }
 
 .back-link:hover {
-  background: #2a2a2a;
-  color: #ffffff;
-  border-color: #3a3a3a;
+  background: var(--btn-secondary-hover);
+  border-color: var(--border-tertiary);
 }
 
 .back-link svg {
@@ -320,22 +283,11 @@ onMounted(async () => {
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
-  .auth-container {
-    grid-template-columns: 1fr;
-    max-width: 500px;
-  }
-
-  .info-section {
-    padding: 40px 30px;
-  }
-
   .form-section {
     padding: 40px 30px;
   }
 
-  .brand-title {
-    font-size: 28px;
-  }
+  .auth-container { max-width: 560px; }
 }
 
 @media (max-width: 768px) {
@@ -348,7 +300,6 @@ onMounted(async () => {
     min-height: auto;
   }
 
-  .info-section,
   .form-section {
     padding: 30px 20px;
   }
