@@ -538,26 +538,26 @@
       >
         <div
           v-if="showRules"
-          class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#1f2a1f]/20 backdrop-blur-sm"
           @click.self="showRules = false"
         >
           <div
-            class="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+            class="bg-[#f8fbf6] border border-[#d2deca] w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col"
           >
             <div class="p-8 pb-4 flex items-center justify-between">
               <div>
-                <h3 class="text-xl font-black text-zinc-100 tracking-tight flex items-center gap-3">
+                <h3 class="text-xl font-black text-[#1f2a1f] tracking-tight flex items-center gap-3">
                   <div
-                    class="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500"
+                    class="w-10 h-10 rounded-2xl bg-[#2f7d4f]/10 flex items-center justify-center text-[#2f7d4f]"
                   >
                     <Icon name="bell" :size="20" />
                   </div>
                   点歌规则
                 </h3>
-                <p class="text-xs text-zinc-500 mt-1 ml-13">投稿前请仔细阅读以下规则</p>
+                <p class="text-xs text-[#5f715f] mt-1 ml-13">投稿前请仔细阅读以下规则</p>
               </div>
               <button
-                class="p-3 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 rounded-2xl transition-all"
+                class="p-3 bg-[#eef4e8] hover:bg-[#e3ecda] text-[#5f715f] hover:text-[#2f7d4f] rounded-2xl transition-all"
                 @click="showRules = false"
               >
                 <Icon name="x" :size="20" />
@@ -567,30 +567,30 @@
             <div class="p-8 pt-4 space-y-8">
               <div class="rules-group space-y-4">
                 <h4
-                  class="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2"
+                  class="text-[10px] font-black text-[#5f715f] uppercase tracking-widest flex items-center gap-2"
                 >
                   <Icon name="message-circle" :size="12" />
                   投稿须知
                 </h4>
                 <div
                   v-if="submissionGuidelines"
-                  class="text-sm text-zinc-400 leading-relaxed font-medium bg-zinc-950/50 p-6 rounded-3xl border border-zinc-800/50"
+                  class="text-sm text-[#3f583f] leading-relaxed font-medium bg-[#f3f8ef] p-6 rounded-3xl border border-[#d2deca]"
                   v-html="submissionGuidelines.replace(/\n/g, '<br>')"
                 />
                 <div
                   v-else
-                  class="space-y-3 bg-zinc-950/50 p-6 rounded-3xl border border-zinc-800/50"
+                  class="space-y-3 bg-[#f3f8ef] p-6 rounded-3xl border border-[#d2deca]"
                 >
-                  <div class="flex gap-3 text-sm text-zinc-400 font-medium">
-                    <span class="text-blue-500 font-black">01</span>
+                  <div class="flex gap-3 text-sm text-[#3f583f] font-medium">
+                    <span class="text-[#2f7d4f] font-black">01</span>
                     <p>投稿时无需加入书名号</p>
                   </div>
-                  <div class="flex gap-3 text-sm text-zinc-400 font-medium">
-                    <span class="text-blue-500 font-black">02</span>
+                  <div class="flex gap-3 text-sm text-[#3f583f] font-medium">
+                    <span class="text-[#2f7d4f] font-black">02</span>
                     <p>除DJ外，其他类型歌曲均接收（包括小语种）</p>
                   </div>
-                  <div class="flex gap-3 text-sm text-zinc-400 font-medium">
-                    <span class="text-blue-500 font-black">03</span>
+                  <div class="flex gap-3 text-sm text-[#3f583f] font-medium">
+                    <span class="text-[#2f7d4f] font-black">03</span>
                     <p>禁止投递含有违规内容的歌曲</p>
                   </div>
                 </div>
@@ -598,22 +598,22 @@
 
               <div class="rules-group space-y-4">
                 <h4
-                  class="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2"
+                  class="text-[10px] font-black text-[#5f715f] uppercase tracking-widest flex items-center gap-2"
                 >
                   <Icon name="calendar" :size="12" />
                   播放时间
                 </h4>
                 <div
-                  class="bg-blue-600/10 border border-blue-500/20 p-6 rounded-3xl flex items-center gap-4"
+                  class="bg-[#e8f4ec] border border-[#b9d8c3] p-6 rounded-3xl flex items-center gap-4"
                 >
                   <div
-                    class="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-900/40"
+                    class="w-12 h-12 rounded-2xl bg-[#2f7d4f] flex items-center justify-center text-white shadow-lg shadow-[#2f7d4f]/25"
                   >
                     <Icon name="clock" :size="24" />
                   </div>
                   <div>
-                    <p class="text-sm font-black text-zinc-100">每天夜自修静班前</p>
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">
+                    <p class="text-sm font-black text-[#1f2a1f]">每天夜自修静班前</p>
+                    <p class="text-[10px] text-[#6f816f] font-bold uppercase tracking-widest mt-0.5">
                       PLAYBACK TIME
                     </p>
                   </div>
@@ -623,7 +623,7 @@
 
             <div class="p-8 pt-0">
               <button
-                class="w-full px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-black rounded-2xl transition-all uppercase tracking-widest shadow-lg active:scale-95"
+                class="w-full px-6 py-4 bg-[#eef4e8] hover:bg-[#e3ecda] text-[#3f583f] text-xs font-black rounded-2xl transition-all uppercase tracking-widest shadow-lg active:scale-95"
                 @click="showRules = false"
               >
                 我知道了

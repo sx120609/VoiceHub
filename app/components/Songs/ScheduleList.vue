@@ -2953,15 +2953,15 @@ const vRipple = {
   .nav-capsule {
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: #f5f9f1;
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #d2deca;
     padding: 4px;
     flex: 1;
     max-width: 400px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 16px rgba(47, 125, 79, 0.12);
   }
 
   .nav-btn {
@@ -2972,13 +2972,13 @@ const vRipple = {
     justify-content: center;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: #5f715f;
     border-radius: 16px;
     transition: all 0.2s ease;
   }
 
   .nav-btn:active:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
+    background: #e7f0e0;
     color: #2f7d4f;
   }
 
@@ -3000,16 +3000,14 @@ const vRipple = {
   .date-text {
     font-size: 15px;
     font-weight: 600;
-    color: #ffffff;
+    color: #1f2a1f;
     white-space: nowrap;
-    text-shadow:
-      0 0 10px rgba(255, 255, 255, 0.2),
-      0 0 20px rgba(11, 90, 254, 0.15);
+    text-shadow: none;
   }
 
   .dropdown-icon {
     opacity: 0.5;
-    color: #ffffff;
+    color: #5f715f;
   }
 
   .mobile-action-btn {
@@ -3086,14 +3084,14 @@ const vRipple = {
   .playtime-header h4 {
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.5);
+    color: #5f715f;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .playtime-time {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.3);
+    color: #7a8a7a;
   }
 
   /* 歌曲卡片 - 无边框卡片设计 */
@@ -3255,12 +3253,12 @@ const vRipple = {
     max-width: 100%;
     max-height: 70vh;
     border: none;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -8px 24px rgba(47, 125, 79, 0.2);
   }
 
   .date-picker-header {
     padding: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid #d2deca;
   }
 
   .date-picker-header h3 {
@@ -3272,7 +3270,7 @@ const vRipple = {
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
+    background: #eef4e8;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3286,13 +3284,14 @@ const vRipple = {
     padding: 14px 16px;
     border-radius: 12px;
     margin-bottom: 6px;
-    background: rgba(255, 255, 255, 0.03);
+    background: #f8fbf6;
     border: none;
     font-size: 14px;
+    color: #1f2a1f;
   }
 
   .date-picker-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: #edf3e7;
     transform: none;
   }
 
@@ -3537,7 +3536,7 @@ const vRipple = {
   background: #f5f9f1;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #d2deca;
   overflow: hidden;
   animation: scale-in 0.2s ease;
   display: flex;
@@ -3549,19 +3548,19 @@ const vRipple = {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #d2deca;
 }
 
 .date-picker-header h3 {
   margin: 0;
   font-size: 16px;
-  color: white;
+  color: #1f2a1f;
 }
 
 .close-btn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   font-size: 22px;
   cursor: pointer;
   padding: 0 5px;
@@ -3580,10 +3579,11 @@ const vRipple = {
   margin-bottom: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: rgba(255, 255, 255, 0.05);
+  background: #f8fbf6;
   position: relative;
   overflow: hidden;
   white-space: pre-line;
+  color: #1f2a1f;
 }
 
 .date-picker-item:hover {

@@ -10,11 +10,11 @@
     >
       <div
         v-if="show"
-        class="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        class="fixed inset-0 z-[2000] bg-[#1f2a1f]/20 backdrop-blur-sm flex items-center justify-center p-4"
         @click="handleOverlayClick"
       >
         <div
-          class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden"
+          class="w-full max-w-md bg-[#f8fbf6] border border-[#d2deca] rounded-3xl shadow-2xl overflow-hidden"
           @click.stop
         >
           <!-- 内容 -->
@@ -29,8 +29,8 @@
 
             <!-- 文字内容 -->
             <div class="space-y-2 mb-8">
-              <h4 class="text-xl font-black text-zinc-100 tracking-tight">{{ title }}</h4>
-              <p class="text-sm text-zinc-500 leading-relaxed font-medium">
+              <h4 class="text-xl font-black text-[#1f2a1f] tracking-tight">{{ title }}</h4>
+              <p class="text-sm text-[#5f715f] leading-relaxed font-medium">
                 {{ message }}
               </p>
               
@@ -40,7 +40,7 @@
                   v-model="inputValue"
                   :type="inputType"
                   :placeholder="inputPlaceholder"
-                  class="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                  class="w-full bg-white border border-[#cfdcc7] rounded-xl px-4 py-3 text-[#1f2a1f] placeholder-[#93a393] focus:outline-none focus:border-[#2f7d4f] focus:ring-1 focus:ring-[#2f7d4f] transition-all text-sm"
                   @keyup.enter="handleConfirm"
                 />
               </div>
@@ -49,7 +49,7 @@
             <!-- 操作按钮 -->
             <div class="flex gap-3 w-full">
               <button
-                class="flex-1 px-6 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-black rounded-2xl transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex-1 px-6 py-4 bg-[#eef4e8] hover:bg-[#e3ecda] text-[#3f583f] text-xs font-black rounded-2xl transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="loading"
                 @click="handleCancel"
               >
