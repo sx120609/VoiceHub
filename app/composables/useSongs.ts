@@ -83,7 +83,17 @@ export const useSongs = () => {
     error.value = ''
 
     try {
-      const requestParams = semester ? { semester } : undefined
+      const requestParams: Record<string, any> = {}
+      if (semester) {
+        requestParams.semester = semester
+      }
+      if (bypassCache) {
+        requestParams.bypassCache = 1
+      }
+      // forceRefresh 需要绕过去重，避免复用旧的 pending 请求导致界面状态滞后
+      if (forceRefresh) {
+        requestParams.refreshKey = Date.now()
+      }
 
       const response = await dedup.dedupedRequest(
         'songs',
@@ -104,7 +114,7 @@ export const useSongs = () => {
             ...getAuthConfig()
           })
         },
-        requestParams
+        Object.keys(requestParams).length > 0 ? requestParams : undefined
       )
 
       // 正确解析API返回的数据结构
@@ -731,9 +741,12 @@ export const useSongs = () => {
       // 更新本地数据状态
       const songIndex = songs.value.findIndex((s) => s.id === songId)
       if (songIndex !== -1) {
-        songs.value[songIndex].replayRequested = true
-        songs.value[songIndex].replayRequestStatus = 'PENDING'
-        songs.value[songIndex].replayRequestCooldownRemaining = 0
+        const targetSong: any = songs.value[songIndex]
+        targetSong.replayRequested = true
+        targetSong.replayRequestStatus = 'PENDING'
+        targetSong.replayRequestCooldownRemaining = 0
+        targetSong.replayRequestCount = (targetSong.replayRequestCount || 0) + 1
+        targetSong.isReplay = targetSong.replayRequestCount > 0
       }
 
       showNotification('申请重播成功', 'success')
@@ -756,7 +769,6 @@ export const useSongs = () => {
    * @param songId 歌曲ID
    */
   const withdrawReplay = async (songId: number) => {
-    const { user } = useAuth()
     if (!user.value) {
       showNotification('需要登录才能取消重播申请', 'error')
       return null
@@ -776,9 +788,18 @@ export const useSongs = () => {
       // 更新本地数据状态
       const songIndex = songs.value.findIndex((s) => s.id === songId)
       if (songIndex !== -1) {
-        songs.value[songIndex].replayRequested = false
-        songs.value[songIndex].replayRequestStatus = undefined
-        songs.value[songIndex].replayRequestCooldownRemaining = 0
+        const targetSong: any = songs.value[songIndex]
+        targetSong.replayRequested = false
+        targetSong.replayRequestStatus = undefined
+        targetSong.replayRequestCooldownRemaining = 0
+        targetSong.replayRequestCount = Math.max(0, (targetSong.replayRequestCount || 0) - 1)
+        targetSong.isReplay = targetSong.replayRequestCount > 0
+
+        if (Array.isArray(targetSong.replayRequesters) && user.value?.id) {
+          targetSong.replayRequesters = targetSong.replayRequesters.filter(
+            (r: any) => r?.id !== user.value?.id
+          )
+        }
       }
 
       showNotification('已取消重播申请', 'success')
