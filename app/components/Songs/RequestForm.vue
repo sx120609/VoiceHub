@@ -542,6 +542,7 @@
                 <div class="search-illustration">
                   <img alt="搜索歌曲" class="search-svg" :src="searchIcon" >
                 </div>
+                <p class="initial-hint">输入歌曲名称以开启搜索</p>
               </div>
             </Transition>
           </div>
@@ -3844,7 +3845,9 @@ defineExpose({
   min-width: 150px;
   height: auto;
   object-fit: contain;
-  opacity: 0.8;
+  opacity: 0.9;
+  /* 原图内含浅色文字，浅色主题下通过滤镜提升可读性 */
+  filter: brightness(0.45) contrast(1.08);
 }
 
 /* 手动输入触发按钮 */

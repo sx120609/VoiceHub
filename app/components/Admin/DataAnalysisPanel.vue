@@ -540,7 +540,7 @@
           class="bg-[#ffffff] border border-[#cfdbc7] rounded-3xl shadow-lg overflow-hidden min-w-[320px] backdrop-blur-xl animate-in fade-in zoom-in duration-200"
         >
           <div
-            class="p-6 border-b border-[#d8e4d3] bg-gradient-to-br from-blue-500/8 to-transparent"
+            class="p-6 border-b border-[#d8e4d3] bg-gradient-to-br from-blue-500/10 to-transparent"
           >
             <div class="flex items-center justify-between mb-4">
               <h4 class="text-sm font-black text-[#1f2a1f] uppercase tracking-widest">活跃用户详情</h4>
