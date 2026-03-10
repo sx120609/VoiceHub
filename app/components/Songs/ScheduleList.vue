@@ -23,7 +23,7 @@
             </button>
           </div>
           <button
-            v-if="isNeteaseLoggedIn"
+            v-if="enableNeteasePlaylistFeature && isNeteaseLoggedIn"
             class="mobile-action-btn"
             type="button"
             title="添加到歌单"
@@ -85,7 +85,7 @@
         <div class="schedule-header">
           <h2 class="current-date" v-html="currentDateFormatted" />
           <button
-            v-if="isNeteaseLoggedIn"
+            v-if="enableNeteasePlaylistFeature && isNeteaseLoggedIn"
             class="add-playlist-btn"
             type="button"
             @click="handleAddToPlaylistClick"
@@ -290,7 +290,7 @@
       leave-to-class="opacity-0 scale-95"
     >
       <div
-        v-if="showPlaylistModal"
+        v-if="enableNeteasePlaylistFeature && showPlaylistModal"
         class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
         @click.self="closePlaylistModal"
       >
@@ -581,7 +581,7 @@
 
   <Teleport to="body">
     <NeteaseLoginModal
-      v-if="showLoginModal"
+      v-if="enableNeteasePlaylistFeature && showLoginModal"
       :show="showLoginModal"
       @close="showLoginModal = false"
       @login-success="handleLoginSuccess"
@@ -633,6 +633,7 @@ const { playTimeEnabled } = useSongs()
 
 // 确保schedules不为null
 const safeSchedules = computed(() => props.schedules || [])
+const enableNeteasePlaylistFeature = false
 
 // 日期选择器状态
 const showDatePicker = ref(false)
@@ -1045,7 +1046,20 @@ onMounted(async () => {
   // 寻找今天的日期并自动选择 - 初始加载时也尝试一次
   findAndSelectTodayOrClosestDate()
 
-  checkNeteaseLoginStatus()
+  if (enableNeteasePlaylistFeature) {
+    checkNeteaseLoginStatus()
+  } else {
+    isNeteaseLoggedIn.value = false
+    neteaseUser.value = null
+    neteaseCookie.value = ''
+    showPlaylistModal.value = false
+    showLoginModal.value = false
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('netease_cookie')
+      localStorage.removeItem('netease_user')
+    }
+    updateGlobalNeteaseStatus()
+  }
 })
 
 // 组件销毁前移除事件监听器
@@ -1112,6 +1126,12 @@ const handleLoginSuccess = (data) => {
 }
 
 const handleAddToPlaylistClick = () => {
+  if (!enableNeteasePlaylistFeature) {
+    if (window.$showNotification) {
+      window.$showNotification('网易云登录与歌单功能已下线', 'info')
+    }
+    return
+  }
   if (!isNeteaseLoggedIn.value) {
     showLoginModal.value = true
     return

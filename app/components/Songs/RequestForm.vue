@@ -229,7 +229,7 @@
             </div>
 
             <!-- 网易云音乐登录状态和选项 -->
-            <div v-if="platform === 'netease'" class="netease-options">
+            <div v-if="platform === 'netease' && enableNeteaseAccountFeatures" class="netease-options">
               <div class="netease-header">
                 <div class="netease-badge">
                   <span class="netease-dot" />
@@ -370,7 +370,7 @@
                     <div class="result-actions">
                       <!-- QQ音乐上传到网易云按钮 -->
                       <button
-                        v-if="platform === 'tencent'"
+                        v-if="platform === 'tencent' && enableNeteaseAccountFeatures"
                         class="cloud-disk-btn"
                         title="上传到网易云音乐云盘"
                         @click.stop.prevent="openUploadDialog(result)"
@@ -701,6 +701,7 @@
 
     <!-- 网易云音乐登录弹窗 -->
     <NeteaseLoginModal
+      v-if="enableNeteaseAccountFeatures"
       :show="showLoginModal"
       @close="showLoginModal = false"
       @login-success="handleLoginSuccess"
@@ -734,6 +735,7 @@
 
     <!-- 上传到网易云音乐弹窗 -->
     <NeteaseUploadDialog
+      v-if="enableNeteaseAccountFeatures"
       :show="showUploadDialog"
       :song="selectedUploadSong"
       @close="showUploadDialog = false"
@@ -742,6 +744,7 @@
 
     <!-- 最近播放歌曲弹窗 -->
     <RecentSongsModal
+      v-if="enableNeteaseAccountFeatures"
       ref="recentSongsModalRef"
       :cookie="neteaseCookie"
       :show="showRecentSongsModal"
@@ -752,6 +755,7 @@
 
     <!-- 歌单选择弹窗 -->
     <PlaylistSelectionModal
+      v-if="enableNeteaseAccountFeatures"
       ref="playlistModalRef"
       :cookie="neteaseCookie"
       :show="showPlaylistModal"
@@ -1014,6 +1018,7 @@ const { fetchCurrentSemester, currentSemester, fetchSemesterOptions, semesters }
 
 // 是否显示“从往期导入”按钮：只有在有多个学期的情况下才显示
 const showImportSemesterBtn = computed(() => semesters.value && semesters.value.length > 1)
+const enableNeteaseAccountFeatures = false
 
 const title = ref('')
 const artist = ref('')
@@ -1338,7 +1343,22 @@ watch(
 )
 
 onMounted(async () => {
-  checkNeteaseLoginStatus()
+  if (enableNeteaseAccountFeatures) {
+    checkNeteaseLoginStatus()
+  } else {
+    isNeteaseLoggedIn.value = false
+    neteaseUser.value = null
+    neteaseCookie.value = ''
+    showLoginModal.value = false
+    showRecentSongsModal.value = false
+    showPlaylistModal.value = false
+    showUploadDialog.value = false
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('netease_cookie')
+      localStorage.removeItem('netease_user')
+    }
+    updateGlobalNeteaseStatus()
+  }
   fetchPlayTimes()
   initSiteConfig()
   fetchSubmissionStatus()
