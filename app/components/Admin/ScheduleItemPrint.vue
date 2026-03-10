@@ -92,8 +92,11 @@ const handleImageError = (event) => {
 .schedule-item-print {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 8px 10px;
+  border: 1px solid #d6e5d4;
+  border-radius: 10px;
+  background: #f7fbf6;
+  margin-bottom: 8px;
   page-break-inside: avoid;
 }
 
@@ -107,14 +110,15 @@ const handleImageError = (event) => {
 .sequence-number {
   width: 30px;
   height: 30px;
-  background: #f0f0f0;
+  background: #eaf4e9;
+  border: 1px solid #b8ceb7;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   font-size: 14px;
-  color: #333;
+  color: #245f3c;
   flex-shrink: 0;
 }
 
@@ -134,12 +138,12 @@ const handleImageError = (event) => {
 .cover-placeholder {
   width: 100%;
   height: 100%;
-  background: #f5f5f5;
+  background: #edf5ec;
   border-radius: 4px;
   display: none;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: #87a088;
 }
 
 .cover-placeholder.show {
@@ -159,7 +163,7 @@ const handleImageError = (event) => {
 .song-title {
   font-weight: bold;
   font-size: 16px;
-  color: #333;
+  color: #1f2f23;
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -173,10 +177,10 @@ const handleImageError = (event) => {
 .replay-badge-print {
   display: inline-block;
   padding: 1px 4px;
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
+  background: #fef4e8;
+  border: 1px solid #e5b063;
   border-radius: 3px;
-  color: #1976d2;
+  color: #9d6512;
   font-size: 10px;
   font-weight: bold;
   flex-shrink: 0;
@@ -184,7 +188,7 @@ const handleImageError = (event) => {
 
 .song-artist {
   font-size: 14px;
-  color: #666;
+  color: #5f725f;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -195,7 +199,7 @@ const handleImageError = (event) => {
   display: flex;
   align-items: center;
   font-size: 12px;
-  color: #666;
+  color: #5f725f;
   white-space: nowrap;
 }
 
@@ -205,14 +209,17 @@ const handleImageError = (event) => {
 }
 
 .value {
-  color: #333;
+  color: #1f2f23;
 }
 
 /* 打印样式 */
 @media print {
   .schedule-item-print {
-    color: #000 !important;
-    background: #fff !important;
+    color: #1f2f23 !important;
+    background: #f7fbf6 !important;
+    border: 1px solid #d6e5d4 !important;
+    border-radius: 10px !important;
+    margin-bottom: 8px !important;
     width: 100% !important;
     max-width: none !important;
     box-sizing: border-box !important;
@@ -227,8 +234,9 @@ const handleImageError = (event) => {
   }
 
   .sequence-number {
-    background: #f0f0f0 !important;
-    color: #000 !important;
+    background: #eaf4e9 !important;
+    color: #245f3c !important;
+    border: 1px solid #b8ceb7 !important;
     width: 30px !important;
     height: 30px !important;
     flex-shrink: 0 !important;
@@ -246,7 +254,7 @@ const handleImageError = (event) => {
   }
 
   .song-title {
-    color: #000 !important;
+    color: #1f2f23 !important;
     font-size: 16px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -256,11 +264,11 @@ const handleImageError = (event) => {
   .song-artist,
   .label,
   .value {
-    color: #333 !important;
+    color: #2f3f32 !important;
   }
 
   .time-range {
-    color: #666 !important;
+    color: #5f725f !important;
   }
 
   .requester-info,

@@ -3,14 +3,14 @@
     class="flex flex-col space-y-8 pb-12 lg:pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500"
   >
     <div class="flex flex-col space-y-2">
-      <h2 class="text-2xl font-bold tracking-tight text-zinc-100">打印排期</h2>
-      <p class="text-sm text-zinc-500">自定义打印设置，预览并导出排期表</p>
+      <h2 class="text-2xl font-bold tracking-tight text-[#1f2f23]">打印排期</h2>
+      <p class="text-sm text-[#6f816f]">自定义打印设置，预览并导出排期表</p>
     </div>
 
     <!-- 权限检查 -->
     <div
       v-if="!canPrintSchedule"
-      class="flex flex-col items-center justify-center py-20 bg-zinc-900/50 rounded-xl border border-zinc-800"
+      class="flex flex-col items-center justify-center py-20 bg-[#f5faf4] rounded-xl border border-[#c8d8c6]"
     >
       <div
         class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4"
@@ -21,24 +21,24 @@
           <path d="m9 9 6 6" />
         </svg>
       </div>
-      <h3 class="text-lg font-bold text-zinc-100">权限不足</h3>
-      <p class="text-zinc-500 mt-2">您没有打印排期的权限，请联系管理员获取相应权限。</p>
+      <h3 class="text-lg font-bold text-[#1f2f23]">权限不足</h3>
+      <p class="text-[#6f816f] mt-2">您没有打印排期的权限，请联系管理员获取相应权限。</p>
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-auto">
       <!-- 设置面板 -->
       <div class="lg:col-span-4 flex flex-col gap-6 h-auto">
         <div
-          class="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 space-y-6 shadow-lg flex flex-col h-auto"
+          class="bg-white border border-[#c8d8c6] rounded-xl p-6 space-y-6 shadow-sm flex flex-col h-auto"
         >
-          <h3 class="text-lg font-bold flex items-center gap-2 text-zinc-100 shrink-0">
-            <Layout class="w-4 h-4 text-blue-500" /> 打印设置
+          <h3 class="text-lg font-bold flex items-center gap-2 text-[#1f2f23] shrink-0">
+            <Layout class="w-4 h-4 text-[#2f7d4f]" /> 打印设置
           </h3>
 
           <div class="space-y-5 pr-2">
             <!-- 纸张大小 -->
             <div class="space-y-2">
-              <label class="text-[11px] font-black uppercase text-zinc-600 tracking-wider"
+              <label class="text-[11px] font-black uppercase text-[#7f917f] tracking-wider"
                 >纸张大小</label
               >
               <CustomSelect
@@ -51,7 +51,7 @@
 
             <!-- 页面方向 -->
             <div class="space-y-2">
-              <label class="text-[11px] font-black uppercase text-zinc-600 tracking-wider"
+              <label class="text-[11px] font-black uppercase text-[#7f917f] tracking-wider"
                 >页面方向</label
               >
               <div class="grid grid-cols-2 gap-2">
@@ -59,8 +59,8 @@
                   :class="[
                     'py-2.5 rounded-lg text-sm font-bold transition-all',
                     settings.orientation === 'portrait'
-                      ? 'border border-blue-500/30 bg-blue-600/10 text-blue-400 shadow-sm'
-                      : 'border border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300'
+                      ? 'border border-[#3f925e] bg-[#ecf5eb] text-[#2f7d4f] shadow-sm'
+                      : 'border border-[#c8d8c6] bg-[#f7fbf6] text-[#6f816f] hover:text-[#2f7d4f]'
                   ]"
                   @click="settings.orientation = 'portrait'"
                 >
@@ -70,8 +70,8 @@
                   :class="[
                     'py-2.5 rounded-lg text-sm font-bold transition-all',
                     settings.orientation === 'landscape'
-                      ? 'border border-blue-500/30 bg-blue-600/10 text-blue-400 shadow-sm'
-                      : 'border border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300'
+                      ? 'border border-[#3f925e] bg-[#ecf5eb] text-[#2f7d4f] shadow-sm'
+                      : 'border border-[#c8d8c6] bg-[#f7fbf6] text-[#6f816f] hover:text-[#2f7d4f]'
                   ]"
                   @click="settings.orientation = 'landscape'"
                 >
@@ -82,20 +82,20 @@
 
             <!-- 日期范围 -->
             <div class="space-y-2">
-              <label class="text-[11px] font-black uppercase text-zinc-600 tracking-wider"
+              <label class="text-[11px] font-black uppercase text-[#7f917f] tracking-wider"
                 >日期范围</label
               >
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   v-model="settings.startDate"
                   type="date"
-                  class="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 transition-colors"
+                  class="bg-[#f7fbf6] border border-[#c8d8c6] rounded-lg px-3 py-2 text-sm text-[#2f3f32] focus:outline-none focus:border-[#3f925e] transition-colors"
                   max="9999-12-31"
                 >
                 <input
                   v-model="settings.endDate"
                   type="date"
-                  class="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 transition-colors"
+                  class="bg-[#f7fbf6] border border-[#c8d8c6] rounded-lg px-3 py-2 text-sm text-[#2f3f32] focus:outline-none focus:border-[#3f925e] transition-colors"
                   max="9999-12-31"
                 >
               </div>
@@ -103,7 +103,7 @@
                 <button
                   v-for="range in dateRanges"
                   :key="range.value"
-                  class="px-2 py-1 bg-zinc-800/50 hover:bg-zinc-800 text-[10px] text-zinc-400 rounded-md transition-colors border border-zinc-800"
+                  class="px-2 py-1 bg-[#eef5ed] hover:bg-[#e2edde] text-[10px] text-[#5f725f] rounded-md transition-colors border border-[#c8d8c6]"
                   @click="setDateRange(range.value)"
                 >
                   {{ range.label }}
@@ -113,7 +113,7 @@
 
             <!-- 显示内容 -->
             <div class="space-y-3">
-              <label class="text-[11px] font-black uppercase text-zinc-600 tracking-wider"
+              <label class="text-[11px] font-black uppercase text-[#7f917f] tracking-wider"
                 >显示内容</label
               >
               <div class="grid grid-cols-1 gap-2.5">
@@ -126,8 +126,8 @@
                     :class="[
                       'w-5 h-5 rounded flex items-center justify-center border transition-all',
                       settings[option.key]
-                        ? 'bg-blue-600 border-blue-600'
-                        : 'bg-zinc-950 border-zinc-800 group-hover:border-zinc-700'
+                        ? 'bg-[#2f7d4f] border-[#2f7d4f]'
+                        : 'bg-[#f7fbf6] border-[#c8d8c6] group-hover:border-[#9db89f]'
                     ]"
                   >
                     <CheckCircle2 v-if="settings[option.key]" class="w-3 h-3 text-white" />
@@ -137,8 +137,8 @@
                     :class="[
                       'text-sm font-medium transition-colors',
                       settings[option.key]
-                        ? 'text-zinc-200'
-                        : 'text-zinc-500 group-hover:text-zinc-400'
+                        ? 'text-[#1f2f23]'
+                        : 'text-[#6f816f] group-hover:text-[#2f7d4f]'
                     ]"
                     >{{ option.label }}</span
                   >
@@ -152,8 +152,8 @@
                     :class="[
                       'w-5 h-5 rounded flex items-center justify-center border transition-all',
                       settings.showSchoolLogo
-                        ? 'bg-blue-600 border-blue-600'
-                        : 'bg-zinc-950 border-zinc-800 group-hover:border-zinc-700'
+                        ? 'bg-[#2f7d4f] border-[#2f7d4f]'
+                        : 'bg-[#f7fbf6] border-[#c8d8c6] group-hover:border-[#9db89f]'
                     ]"
                   >
                     <CheckCircle2 v-if="settings.showSchoolLogo" class="w-3 h-3 text-white" />
@@ -163,8 +163,8 @@
                     :class="[
                       'text-sm font-medium transition-colors',
                       settings.showSchoolLogo
-                        ? 'text-zinc-200'
-                        : 'text-zinc-500 group-hover:text-zinc-400'
+                        ? 'text-[#1f2f23]'
+                        : 'text-[#6f816f] group-hover:text-[#2f7d4f]'
                     ]"
                     >学校Logo</span
                   >
@@ -174,28 +174,28 @@
 
             <!-- 备注 -->
             <div class="space-y-2">
-              <label class="text-[11px] font-black uppercase text-zinc-600 tracking-wider"
+              <label class="text-[11px] font-black uppercase text-[#7f917f] tracking-wider"
                 >备注</label
               >
               <textarea
                 v-model="settings.remark"
                 placeholder="请输入备注信息（可选）"
-                class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-sm focus:outline-none text-zinc-300 min-h-[80px] resize-none focus:border-blue-500/50 transition-colors"
+                class="w-full bg-[#f7fbf6] border border-[#c8d8c6] rounded-lg px-4 py-3 text-sm focus:outline-none text-[#2f3f32] min-h-[80px] resize-none focus:border-[#3f925e] transition-colors"
               />
             </div>
           </div>
 
           <!-- 操作按钮 -->
-          <div class="space-y-2 pt-4 border-t border-zinc-800 shrink-0">
+          <div class="space-y-2 pt-4 border-t border-[#d8e5d7] shrink-0">
             <button
-              class="w-full flex items-center justify-center gap-2 py-3 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 text-sm font-bold rounded-lg border border-zinc-700 transition-all"
+              class="w-full flex items-center justify-center gap-2 py-3 bg-[#eef5ed] hover:bg-[#e2edde] text-[#2f7d4f] text-sm font-bold rounded-lg border border-[#c8d8c6] transition-all"
               @click="refreshPreview"
             >
               <RefreshCw class="w-4 h-4" /> 刷新预览
             </button>
             <button
               :disabled="isPrinting"
-              class="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg shadow-lg shadow-blue-900/20 transition-all"
+              class="w-full flex items-center justify-center gap-2 py-3 bg-[#2f7d4f] hover:bg-[#276a43] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg shadow-sm transition-all"
               @click="printSchedule"
             >
               <Printer class="w-4 h-4" /> {{ isPrinting ? '打印中...' : '打印' }}
@@ -203,14 +203,14 @@
             <div class="grid grid-cols-2 gap-2">
               <button
                 :disabled="isExporting"
-                class="flex items-center justify-center gap-2 py-2.5 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-bold rounded-lg border border-emerald-500/20 transition-all"
+                class="flex items-center justify-center gap-2 py-2.5 bg-[#eef5ed] text-[#2f7d4f] hover:bg-[#e2edde] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-bold rounded-lg border border-[#b7cfba] transition-all"
                 @click="exportPDF"
               >
                 <FileText class="w-3.5 h-3.5" /> {{ isExporting ? '导出中...' : '导出PDF' }}
               </button>
               <button
                 :disabled="isExportingImage"
-                class="flex items-center justify-center gap-2 py-2.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-bold rounded-lg border border-amber-500/20 transition-all"
+                class="flex items-center justify-center gap-2 py-2.5 bg-[#fff6e9] text-[#b37415] hover:bg-[#ffeed2] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-bold rounded-lg border border-[#f2d4a2] transition-all"
                 @click="exportImage"
               >
                 <ImageIcon class="w-3.5 h-3.5" /> {{ isExportingImage ? '导出中...' : '导出长图' }}
@@ -223,14 +223,14 @@
       <!-- 预览区域 -->
       <div class="lg:col-span-8 flex flex-col gap-4 h-[700px] lg:h-0 lg:min-h-full mb-8 lg:mb-0">
         <div
-          class="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full shadow-lg"
+          class="bg-white border border-[#c8d8c6] rounded-xl overflow-hidden flex flex-col h-full shadow-sm"
         >
-          <div class="px-6 py-5 border-b border-zinc-800 flex items-center justify-between">
-            <h3 class="text-lg font-bold flex items-center gap-2 text-zinc-100">
-              <AlignLeft class="w-4.5 h-4.5 text-zinc-500" /> 预览区域
+          <div class="px-6 py-5 border-b border-[#d8e5d7] flex items-center justify-between">
+            <h3 class="text-lg font-bold flex items-center gap-2 text-[#1f2f23]">
+              <AlignLeft class="w-4.5 h-4.5 text-[#6f816f]" /> 预览区域
             </h3>
             <div class="flex items-center gap-2 text-xs font-bold">
-              <span class="text-zinc-400">{{ filteredSchedules.length }} 首歌曲</span>
+              <span class="text-[#6f816f]">{{ filteredSchedules.length }} 首歌曲</span>
               <span
                 v-if="schedules.length === 0"
                 class="px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20"
@@ -245,7 +245,7 @@
           </div>
 
           <div
-            class="flex-1 bg-zinc-950/50 p-6 md:p-12 overflow-auto custom-scrollbar flex items-start"
+            class="flex-1 bg-[#edf4ec] p-6 md:p-12 overflow-auto custom-scrollbar flex items-start"
           >
             <!-- 纸张预览 -->
             <div
@@ -1392,15 +1392,16 @@ watch(
 
 /* 打印页面样式 */
 .print-page {
-  background: #ffffff;
-  color: #000000;
+  background: #fbfefb;
+  color: #1f2f23;
   width: 100%;
   margin: 0 auto;
   padding: 30px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px rgba(47, 125, 79, 0.08);
   box-sizing: border-box;
   overflow: visible;
   position: relative;
+  border: 1px solid #d6e5d4;
 }
 
 .page-header {
@@ -1409,7 +1410,7 @@ watch(
   align-items: flex-start;
   margin-bottom: 32px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #e5e5e5;
+  border-bottom: 2px solid #c8d8c6;
 }
 
 .logo-section {
@@ -1428,7 +1429,7 @@ watch(
 .logo-divider {
   width: 2px;
   height: 60px;
-  background: linear-gradient(to bottom, #ddd, #999, #ddd);
+  background: linear-gradient(to bottom, #cfe0cf, #7fa581, #cfe0cf);
   border-radius: 1px;
   margin: 0 4px;
 }
@@ -1447,19 +1448,19 @@ watch(
   font-size: 24px;
   font-weight: normal;
   margin: 0 0 4px 0;
-  color: #000;
+  color: #1f2f23;
 }
 
 .title-section h2 {
   font-size: 18px;
   font-weight: 500;
   margin: 0;
-  color: #666;
+  color: #5f725f;
 }
 
 .date-info {
   font-size: 14px;
-  color: #666;
+  color: #5f725f;
   text-align: right;
   display: flex;
   align-items: flex-start;
@@ -1468,7 +1469,7 @@ watch(
 .date-range-display {
   white-space: pre-line;
   line-height: 1.4;
-  font-weight: 500;
+  font-weight: 600;
   margin-top: 2px;
 }
 
@@ -1479,14 +1480,17 @@ watch(
 .no-data-message {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: #5f725f;
+  background: #f4faf3;
+  border: 1px dashed #b9cfb8;
+  border-radius: 12px;
 }
 
 .no-data-icon {
   width: 64px;
   height: 64px;
   margin: 0 auto 20px;
-  color: #ccc;
+  color: #9cb29d;
 }
 
 .no-data-icon svg {
@@ -1498,7 +1502,7 @@ watch(
   font-size: 18px;
   font-weight: 500;
   margin: 0 0 12px 0;
-  color: #333;
+  color: #2e3d2f;
 }
 
 .no-data-message p {
@@ -1514,28 +1518,28 @@ watch(
   font-weight: bold;
   margin: 24px 0 12px 0;
   padding: 8px 12px;
-  border-bottom: 2px solid #ddd;
-  background: #f8f9fa;
-  color: #333;
+  border-bottom: 2px solid #b9cfb8;
+  background: #eef5ed;
+  color: #1f2f23;
   border-radius: 4px 4px 0 0;
 }
 
 .playtime-group .group-title {
-  background: #e3f2fd;
-  border-bottom-color: #2196f3;
-  color: #1565c0;
+  background: #eaf4e9;
+  border-bottom-color: #5f9e6f;
+  color: #2f7d4f;
 }
 
 .date-group .group-title {
-  background: #f3e5f5;
-  border-bottom-color: #9c27b0;
-  color: #7b1fa2;
+  background: #e8f3e7;
+  border-bottom-color: #4c8d64;
+  color: #245f3c;
 }
 
 .group-count {
   font-size: 14px;
   font-weight: normal;
-  color: #666;
+  color: #5f725f;
   margin-left: 8px;
 }
 
@@ -1548,16 +1552,16 @@ watch(
   font-weight: bold;
   margin: 16px 0 8px 0;
   padding: 6px 10px;
-  background: #f0f8ff;
-  border-left: 3px solid #2196f3;
-  color: #1565c0;
+  background: #f4faf3;
+  border-left: 3px solid #4c8d64;
+  color: #2f7d4f;
   border-radius: 0 4px 4px 0;
 }
 
 .playtime-count {
   font-size: 12px;
   font-weight: normal;
-  color: #666;
+  color: #5f725f;
   margin-left: 6px;
 }
 
@@ -1570,9 +1574,9 @@ watch(
   justify-content: space-between;
   align-items: flex-start;
   padding-top: 16px;
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid #c8d8c6;
   font-size: 12px;
-  color: #666;
+  color: #5f725f;
 }
 
 .footer-left {
@@ -1587,7 +1591,7 @@ watch(
 
 .remark-text {
   font-size: 11px;
-  color: #555;
+  color: #4e614f;
   max-width: 400px;
   word-wrap: break-word;
   line-height: 1.3;
@@ -1664,6 +1668,7 @@ watch(
 
   .print-page {
     box-shadow: none !important;
+    border: 1px solid #d6e5d4 !important;
     padding: 20mm !important;
     margin: 0 !important;
     width: 100% !important;
