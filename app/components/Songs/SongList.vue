@@ -940,17 +940,16 @@ const isReplayButtonDisabled = (song) => {
 
 // 判断是否应该显示撤回按钮
 const shouldShowCancelButton = (song) => {
-  return song.replayRequested && song.replayRequestStatus === 'PENDING'
+  if (!song) return false
+  // 兼容两种状态来源：
+  // 1) 服务端返回 replayRequestStatus = PENDING
+  // 2) 前端本地刚申请后仅设置 replayRequested = true
+  return song.replayRequested || song.replayRequestStatus === 'PENDING'
 }
 
 // 判断是否应该显示申请按钮
 const shouldShowRequestButton = (song) => {
-  // 如果是 PENDING 状态，显示撤回按钮而不是申请按钮
-  if (song.replayRequested && song.replayRequestStatus === 'PENDING') {
-    return false
-  }
-  // 其他情况显示申请按钮
-  return true
+  return !shouldShowCancelButton(song)
 }
 
 // 处理刷新按钮点击
@@ -3130,9 +3129,30 @@ button:disabled {
     color: #607260 !important;
   }
 
-  .song-list .submission-actions {
+.song-list .submission-actions {
     gap: 8px !important;
   }
+
+.song-list .withdraw-button {
+  background: #d54949 !important;
+  border: 1px solid #b43a3a !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 10px rgba(182, 58, 58, 0.2) !important;
+}
+
+.song-list .withdraw-button:hover:not(:disabled) {
+  background: #bf3434 !important;
+  border-color: #9f2929 !important;
+}
+
+.song-list .withdraw-button.replay-cancel-btn,
+.song-list .withdraw-button.replay-request-btn {
+  background: #2f7d4f !important;
+  border: 1px solid #266942 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(47, 125, 79, 0.22) !important;
+}
 
 .song-list .loading,
 .song-list .empty {

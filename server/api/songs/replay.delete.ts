@@ -7,11 +7,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: '需要登录才能取消重播申请' })
   }
 
-  // 2. 读取请求体
-  const body = await readBody(event)
-  const { songId } = body
+  // 2. 读取请求参数（兼容 DELETE body 被代理剥离的场景）
+  let body: any = {}
+  try {
+    body = await readBody(event)
+  } catch {
+    body = {}
+  }
+  const query = getQuery(event)
+  const songId = Number(body?.songId ?? query?.songId)
 
-  if (!songId) {
+  if (!songId || Number.isNaN(songId)) {
     throw createError({ statusCode: 400, message: '歌曲ID不能为空' })
   }
 

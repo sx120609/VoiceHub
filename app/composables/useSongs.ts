@@ -732,6 +732,8 @@ export const useSongs = () => {
       const songIndex = songs.value.findIndex((s) => s.id === songId)
       if (songIndex !== -1) {
         songs.value[songIndex].replayRequested = true
+        songs.value[songIndex].replayRequestStatus = 'PENDING'
+        songs.value[songIndex].replayRequestCooldownRemaining = 0
       }
 
       showNotification('申请重播成功', 'success')
@@ -767,7 +769,7 @@ export const useSongs = () => {
       const authConfig = getAuthConfig()
       const data = await $fetch('/api/songs/replay', {
         method: 'DELETE',
-        body: { songId },
+        query: { songId },
         ...authConfig
       })
 
@@ -775,6 +777,8 @@ export const useSongs = () => {
       const songIndex = songs.value.findIndex((s) => s.id === songId)
       if (songIndex !== -1) {
         songs.value[songIndex].replayRequested = false
+        songs.value[songIndex].replayRequestStatus = undefined
+        songs.value[songIndex].replayRequestCooldownRemaining = 0
       }
 
       showNotification('已取消重播申请', 'success')
