@@ -220,7 +220,7 @@
           </div>
 
           <div
-            v-for="sem in sortedSemesters"
+            v-for="sem in pagedSemesters"
             :key="sem.id"
             class="group flex items-center justify-between p-6 rounded-[2rem] border transition-all"
             :class="
@@ -345,6 +345,29 @@
             class="text-center py-20 bg-zinc-900/10 border border-zinc-800 border-dashed rounded-[2rem]"
           >
             <p class="text-xs font-bold text-zinc-600">暂无学期数据</p>
+          </div>
+
+          <div
+            v-if="totalPages > 1"
+            class="flex items-center justify-end gap-2 pt-2 px-1"
+          >
+            <button
+              :disabled="currentPage === 1 || loading"
+              class="px-3 py-1.5 text-[10px] font-black rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              @click="currentPage--"
+            >
+              上一页
+            </button>
+            <span class="text-[10px] font-black text-zinc-500">
+              {{ currentPage }} / {{ totalPages }}
+            </span>
+            <button
+              :disabled="currentPage === totalPages || loading"
+              class="px-3 py-1.5 text-[10px] font-black rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              @click="currentPage++"
+            >
+              下一页
+            </button>
           </div>
         </div>
       </div>
@@ -471,7 +494,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 import { useToast } from '~/composables/useToast'
 
@@ -498,12 +521,21 @@ const newSemester = ref({
   name: '',
   isActive: false
 })
+const pageSize = 20
+const currentPage = ref(1)
 
-// 按创建时间排序
+// 学期列表（后端已按创建时间倒序）
 const sortedSemesters = computed(() => {
-  return [...semesters.value].sort((a, b) => {
-    return new Date(b.createdAt) - new Date(a.createdAt)
-  })
+  return semesters.value || []
+})
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(sortedSemesters.value.length / pageSize))
+})
+
+const pagedSemesters = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return sortedSemesters.value.slice(start, start + pageSize)
 })
 
 // 删除确认信息
@@ -628,6 +660,14 @@ const openAddModal = () => {
   newSemester.value.name = getRecommendedName()
   showAddModal.value = true
 }
+
+watch(
+  () => sortedSemesters.value.length,
+  (len) => {
+    const maxPage = Math.max(1, Math.ceil(len / pageSize))
+    if (currentPage.value > maxPage) currentPage.value = maxPage
+  }
+)
 
 // 组件挂载时获取数据
 onMounted(async () => {
