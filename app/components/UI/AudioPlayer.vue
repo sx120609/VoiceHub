@@ -65,15 +65,21 @@
                 color="white"
               />
             </button>
-            <button class="mobile-control-btn" @click.stop="stopPlaying">
-              <Icon name="close" :size="20" color="rgba(255,255,255,0.6)" />
+            <button class="mobile-control-btn close-player-btn" @click.stop="stopPlaying">
+              <Icon name="close" :size="20" class="close-icon" />
             </button>
           </div>
 
           <!-- PC端右上角关闭按钮 -->
-          <div v-if="!isMobile" class="close-button" title="关闭播放器" @click="stopPlaying">
-            <span class="music-icon">×</span>
-          </div>
+          <button
+            v-if="!isMobile"
+            class="close-button"
+            title="关闭播放器"
+            type="button"
+            @click.stop="stopPlaying"
+          >
+            <Icon name="x" :size="18" class="close-icon" />
+          </button>
         </div>
 
         <!-- 媒体控制区域 (PC端显示) -->
@@ -1479,6 +1485,13 @@ const getFirstChar = (text) => {
   opacity: 0.7;
 }
 
+.mobile-control-btn.close-player-btn {
+  background: #edf3e7;
+  border: 1px solid #cfdcc7;
+  border-radius: 999px;
+  color: #2f7d4f;
+}
+
 /* 移动端动画适配 */
 .player-animation-enter-from.mobile-player-bar,
 .player-animation-leave-to.mobile-player-bar {
@@ -1688,25 +1701,27 @@ const getFirstChar = (text) => {
   align-items: center;
   justify-content: center;
   border-radius: 100px;
-  background: #00000042;
+  background: #edf3e7;
   padding: 6px;
   width: 32px;
   height: 32px;
-  backdrop-filter: blur(34px);
-  -webkit-backdrop-filter: blur(34px);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   cursor: pointer;
   transition: all 0.2s ease;
-  border: none;
+  border: 1px solid #cfdcc7;
+  color: #2f7d4f;
 }
 
 .close-button:hover {
-  background: rgba(0, 0, 0, 0.6);
+  background: #e3ecda;
+  color: #1f2a1f;
   transform: scale(1.05);
 }
 
 .close-icon {
-  color: #ffffff;
-  font-size: 15px;
+  color: currentColor;
+  font-size: 16px;
   line-height: 1;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
