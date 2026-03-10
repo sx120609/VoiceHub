@@ -1598,20 +1598,7 @@ if (
 
 /* 添加顶部Ellipse 1效果 */
 .ellipse-effect {
-  position: absolute;
-  top: -165px;
-  left: 50%;
-  transform: translateX(-50%) perspective(500px) rotateX(10deg);
-  width: 1110px;
-  height: 309px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(47, 125, 79, 0.2) 0%,
-    rgba(47, 125, 79, 0.08) 32%,
-    rgba(47, 125, 79, 0) 70%
-  );
-  z-index: 0;
-  pointer-events: none;
+  display: none;
 }
 
 /* 顶部区域样式 */
@@ -1620,7 +1607,7 @@ if (
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  margin-top: -2rem;
+  margin-top: 0;
 }
 
 .logo-section {
@@ -3640,5 +3627,114 @@ if (
 .home :deep([class*='border-zinc-800/']),
 .home :deep([class*='border-zinc-700/']) {
   border-color: #cfdbc7 !important;
+}
+
+/* 首页 request 分区：统一浅色并提升可读性 */
+.home .request-pane :deep(.request-form),
+.home .request-pane :deep(.song-request-form),
+.home .request-pane :deep(.form-container),
+.home .request-pane :deep(.results-content) {
+  color: #1f2a1f !important;
+  background: transparent !important;
+}
+
+.home .request-pane :deep(.rules-section),
+.home .request-pane :deep(.search-results-container),
+.home .request-pane :deep(.manual-input-section),
+.home .request-pane :deep(.submission-status-horizontal),
+.home .request-pane :deep(.search-type-switch),
+.home .request-pane :deep(.netease-options),
+.home .request-pane :deep(.login-entry),
+.home .request-pane :deep(.similar-song-alert),
+.home .request-pane :deep(.readonly),
+.home .request-pane :deep(.platform-selection) {
+  background: #f5f9f1 !important;
+  border-color: #cfdcc7 !important;
+}
+
+.home .request-pane :deep(.section-title),
+.home .request-pane :deep(.rules-content-desktop),
+.home .request-pane :deep(.rules-title),
+.home .request-pane :deep(.rules-content),
+.home .request-pane :deep(.rule-item),
+.home .request-pane :deep(.search-label),
+.home .request-pane :deep(.section-label),
+.home .request-pane :deep(.loading-text),
+.home .request-pane :deep(.empty-text),
+.home .request-pane :deep(.initial-text),
+.home .request-pane :deep(.empty-hint),
+.home .request-pane :deep(.initial-hint),
+.home .request-pane :deep(.form-notice),
+.home .request-pane :deep(.alert-title),
+.home .request-pane :deep(.song-title),
+.home .request-pane :deep(.alert-hint),
+.home .request-pane :deep(.netease-title),
+.home .request-pane :deep(.login-title),
+.home .request-pane :deep(.status-label),
+.home .request-pane :deep(.status-remaining),
+.home .request-pane :deep(.form-group label) {
+  color: #1f2a1f !important;
+}
+
+.home .request-pane :deep(.rule-item span),
+.home .request-pane :deep(.login-hint),
+.home .request-pane :deep(.loading-text),
+.home .request-pane :deep(.empty-hint),
+.home .request-pane :deep(.initial-hint),
+.home .request-pane :deep(.status-remaining),
+.home .request-pane :deep(.form-notice) {
+  color: #5f715f !important;
+}
+
+.home .request-pane :deep(input[type='text']),
+.home .request-pane :deep(input[type='url']),
+.home .request-pane :deep(input[type='number']),
+.home .request-pane :deep(select),
+.home .request-pane :deep(textarea),
+.home .request-pane :deep(.search-input),
+.home .request-pane :deep(.form-input),
+.home .request-pane :deep(.form-select) {
+  background: #fff !important;
+  color: #1f2a1f !important;
+  border-color: #cfdcc7 !important;
+}
+
+.home .request-pane :deep(input::placeholder),
+.home .request-pane :deep(textarea::placeholder) {
+  color: #7a8a7a !important;
+}
+
+/* schedule / songs 分区白字可读性兜底 */
+.home :deep(.song-list .tab-button),
+.home :deep(.song-list .mobile-tab-btn),
+.home :deep(.song-list .song-title),
+.home :deep(.song-list .requester),
+.home :deep(.song-list .loading),
+.home :deep(.song-list .empty),
+.home :deep(.song-list .search-icon),
+.home :deep(.song-list .search-icon-box),
+.home :deep(.song-list .semester-option),
+.home :deep(.schedule-list .current-date),
+.home :deep(.schedule-list .date-item),
+.home :deep(.schedule-list .playtime-header h4),
+.home :deep(.schedule-list .playtime-time),
+.home :deep(.schedule-list .song-title),
+.home :deep(.schedule-list .requester),
+.home :deep(.schedule-list .loading),
+.home :deep(.schedule-list .empty),
+.home :deep(.schedule-list .empty-dates) {
+  color: #1f2a1f !important;
+}
+
+.home :deep(.song-list .requester),
+.home :deep(.song-list .loading),
+.home :deep(.song-list .empty),
+.home :deep(.song-list .semester-option),
+.home :deep(.schedule-list .playtime-time),
+.home :deep(.schedule-list .requester),
+.home :deep(.schedule-list .loading),
+.home :deep(.schedule-list .empty),
+.home :deep(.schedule-list .empty-dates) {
+  color: #5f715f !important;
 }
 </style>
