@@ -10,7 +10,7 @@ import {
   users,
   votes
 } from '~/drizzle/schema'
-import { and, eq, gte, inArray } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import { sendBatchMeowNotifications, sendMeowNotificationToUser } from './meowNotificationService'
 import { sendBatchEmailNotifications, sendEmailNotificationToUser } from './smtpService'
 import { formatDateTime, getBeijingTime } from '~/utils/timeUtils'
@@ -402,6 +402,34 @@ export async function createSongVotedNotification(
 
     const message = `您投稿的歌曲《${song.title}》获得了一个新的投票，当前共有 ${songVotes.length} 个投票。`
 
+    const extractVotesCountFromMessage = (text: string) => {
+      const match = text.match(/当前共有\s*(\d+)\s*个投票/)
+      if (!match) return null
+      const parsed = Number.parseInt(match[1], 10)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+
+    // 全局去重：如果最新一条通知的票数与当前一致，说明只是重复点赞/取消回摆，直接跳过
+    const latestNotificationResult = await db
+      .select()
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, song.requesterId),
+          eq(notifications.type, 'SONG_VOTED'),
+          eq(notifications.songId, songId)
+        )
+      )
+      .orderBy(desc(notifications.createdAt))
+      .limit(1)
+    const latestNotification = latestNotificationResult[0]
+    const latestVotesCount = latestNotification
+      ? extractVotesCountFromMessage(latestNotification.message)
+      : null
+    if (latestVotesCount === songVotes.length) {
+      return latestNotification
+    }
+
     // 防重复通知：检查最近5分钟内是否有相同歌曲的投票通知
     const fiveMinutesAgo = new Date(getBeijingTime().getTime() - 5 * 60 * 1000)
 
@@ -417,7 +445,7 @@ export async function createSongVotedNotification(
           gte(notifications.createdAt, fiveMinutesAgo)
         )
       )
-      .orderBy(notifications.createdAt)
+      .orderBy(desc(notifications.createdAt))
       .limit(1)
     const existingNotification = existingNotificationResult[0]
 
@@ -444,27 +472,25 @@ export async function createSongVotedNotification(
         })
         .returning()
       notification = createResult[0]
-    }
+      // 仅在新建通知时发送外部通知，避免短时间反复点赞/取消导致推送轰炸
+      try {
+        await sendMeowNotificationToUser(song.requesterId, '收到新投票', message)
+      } catch (error) {
+        console.error('发送 MeoW 通知失败:', error)
+      }
 
-    // 同步发送 MeoW 通知
-    try {
-      await sendMeowNotificationToUser(song.requesterId, '收到新投票', message)
-    } catch (error) {
-      console.error('发送 MeoW 通知失败:', error)
-    }
-
-    // 同步发送 邮件通知
-    try {
-      await sendEmailNotificationToUser(
-        song.requesterId,
-        '收到新投票',
-        message,
-        ipAddress,
-        'notification.songVoted',
-        { songTitle: song.title, votesCount: songVotes.length }
-      )
-    } catch (error) {
-      console.error('发送邮件通知失败:', error)
+      try {
+        await sendEmailNotificationToUser(
+          song.requesterId,
+          '收到新投票',
+          message,
+          ipAddress,
+          'notification.songVoted',
+          { songTitle: song.title, votesCount: songVotes.length }
+        )
+      } catch (error) {
+        console.error('发送邮件通知失败:', error)
+      }
     }
 
     return notification
