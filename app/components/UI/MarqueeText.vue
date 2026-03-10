@@ -30,46 +30,55 @@ const contentEl = ref(null)
 const scrolling = ref(false)
 let intersectionObserver = null
 let resizeObserver = null
+let rafId = 0
+
+const queueOverflowCheck = () => {
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+  }
+  rafId = requestAnimationFrame(() => {
+    rafId = 0
+    checkOverflow()
+  })
+}
 
 const checkOverflow = async () => {
   if (!containerEl.value || !contentEl.value) return
-
-  // Reset scrolling to measure a single item's width.
-  scrolling.value = false
-  await nextTick()
-
-  if (!props.activated) {
-    return
-  }
 
   const containerWidth = containerEl.value.offsetWidth
   if (!containerWidth) {
     return
   }
 
-  const contentWidth = contentEl.value.scrollWidth
+  const firstTextItem = contentEl.value.firstElementChild
+  if (!firstTextItem) {
+    return
+  }
 
-  if (contentWidth > containerWidth) {
-    scrolling.value = true
-    await nextTick() // Wait for the second span to render.
+  const singleTextWidth = firstTextItem.offsetWidth
+  const shouldScroll = props.activated && singleTextWidth > containerWidth
 
-    // The animation scrolls by 50% of the total width.
-    // This distance is equivalent to the width of the first span (including its padding).
-    const scrollDistance = contentEl.value.firstElementChild.offsetWidth
-    const animationDuration = scrollDistance / props.speed
+  if (scrolling.value !== shouldScroll) {
+    scrolling.value = shouldScroll
+    await nextTick()
+  }
+
+  if (shouldScroll) {
+    const scrollDistance = firstTextItem.offsetWidth
+    const animationDuration = Math.max(scrollDistance / props.speed, 4)
     contentEl.value.style.setProperty('--duration', `${animationDuration}s`)
   }
 }
 
 const handleResize = () => {
-  checkOverflow()
+  queueOverflowCheck()
 }
 
 onMounted(() => {
   intersectionObserver = new IntersectionObserver(
     (entries) => {
       if (entries[0].isIntersecting) {
-        checkOverflow()
+        queueOverflowCheck()
       }
     },
     { threshold: 0.01 }
@@ -81,14 +90,13 @@ onMounted(() => {
 
   if (typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver(() => {
-      checkOverflow()
+      queueOverflowCheck()
     })
     if (containerEl.value) resizeObserver.observe(containerEl.value)
-    if (contentEl.value) resizeObserver.observe(contentEl.value)
   }
 
   window.addEventListener('resize', handleResize)
-  checkOverflow()
+  queueOverflowCheck()
 })
 
 onUnmounted(() => {
@@ -100,20 +108,24 @@ onUnmounted(() => {
     resizeObserver.disconnect()
     resizeObserver = null
   }
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+    rafId = 0
+  }
   window.removeEventListener('resize', handleResize)
 })
 
 watch(
   () => props.text,
   () => {
-    checkOverflow()
+    queueOverflowCheck()
   }
 )
 
 watch(
   () => props.activated,
   () => {
-    checkOverflow()
+    queueOverflowCheck()
   }
 )
 </script>
