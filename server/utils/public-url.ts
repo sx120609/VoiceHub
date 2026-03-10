@@ -33,6 +33,15 @@ export const getPublicOrigin = (event: H3Event): string => {
     }
   }
 
+  const refererHeader = getFirstHeaderValue(getRequestHeader(event, 'referer'))
+  if (refererHeader) {
+    try {
+      return new URL(refererHeader).origin
+    } catch {
+      // ignore
+    }
+  }
+
   const forwardedHost = getFirstHeaderValue(getRequestHeader(event, 'x-forwarded-host'))
   const forwardedProto = getFirstHeaderValue(getRequestHeader(event, 'x-forwarded-proto'))
   const forwardedPort = getFirstHeaderValue(getRequestHeader(event, 'x-forwarded-port'))
