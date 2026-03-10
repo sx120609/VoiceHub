@@ -141,6 +141,13 @@ export class SmtpService {
       <p style="color:#888; word-break: break-all;">若按钮无法点击，请复制此链接到浏览器打开：{{activationUrl}}</p>
       <p style="color:#888">若非本人操作，请忽略本邮件。</p>
     `,
+    passwordResetLink: `
+      <p>您好，{{name}}！</p>
+      <p>您正在重置账号密码：<strong>{{email}}</strong></p>
+      <p>请点击下方按钮设置新密码，链接有效期 <strong>{{expiresInMinutes}} 分钟</strong>。</p>
+      <p style="color:#888; word-break: break-all;">若按钮无法点击，请复制此链接到浏览器打开：{{resetUrl}}</p>
+      <p style="color:#888">若非本人操作，请忽略本邮件。</p>
+    `,
     generic: `
       <div style="white-space: pre-wrap;">{{message}}</div>
     `,
@@ -192,6 +199,13 @@ export class SmtpService {
       contentType: 'verificationLink',
       headerSubtitle: '账号激活',
       actionText: '立即激活账号'
+    },
+    'password.reset.link': {
+      name: '密码重置链接',
+      subject: '密码重置链接 | {{siteTitle}}',
+      contentType: 'passwordResetLink',
+      headerSubtitle: '找回密码',
+      actionText: '重置密码'
     },
     'notification.generic': {
       name: '通用通知',

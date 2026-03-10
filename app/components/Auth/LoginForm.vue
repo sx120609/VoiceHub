@@ -167,6 +167,9 @@
     <div class="form-footer">
       <p class="help-text">不同VoiceHub平台的账号不互通</p>
       <p v-if="!isBindMode" class="help-text register-link">
+        <NuxtLink to="/forgot-password">忘记密码？</NuxtLink>
+      </p>
+      <p v-if="!isBindMode" class="help-text register-link">
         没有账号？<NuxtLink to="/register">立即注册</NuxtLink>
       </p>
     </div>
