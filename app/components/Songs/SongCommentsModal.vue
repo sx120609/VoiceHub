@@ -42,6 +42,14 @@
                 <p class="comment-content">{{ comment.content }}</p>
                 <div class="comment-actions-row">
                   <button
+                    v-if="canDelete(comment)"
+                    :disabled="deleting"
+                    class="delete-btn"
+                    @click="handleDelete(comment)"
+                  >
+                    {{ deleting ? '删除中...' : '删除' }}
+                  </button>
+                  <button
                     v-if="isAuthenticated"
                     class="reply-btn"
                     @click="startReply(comment)"
@@ -66,6 +74,14 @@
                       {{ reply.content }}
                     </p>
                     <div class="comment-actions-row">
+                      <button
+                        v-if="canDelete(reply)"
+                        :disabled="deleting"
+                        class="delete-btn"
+                        @click="handleDelete(reply)"
+                      >
+                        {{ deleting ? '删除中...' : '删除' }}
+                      </button>
                       <button
                         v-if="isAuthenticated"
                         class="reply-btn"
@@ -141,13 +157,25 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  deleting: {
+    type: Boolean,
+    default: false
+  },
   isAuthenticated: {
+    type: Boolean,
+    default: false
+  },
+  currentUserId: {
+    type: Number,
+    default: null
+  },
+  isAdminUser: {
     type: Boolean,
     default: false
   }
 })
 
-const emit = defineEmits(['close', 'submit', 'refresh'])
+const emit = defineEmits(['close', 'submit', 'delete', 'refresh'])
 
 const draftComment = ref('')
 const replyTarget = ref(null)
@@ -186,6 +214,12 @@ const clearReplyTarget = () => {
   replyTarget.value = null
 }
 
+const canDelete = (comment) => {
+  if (!props.isAuthenticated || !comment) return false
+  if (props.isAdminUser) return true
+  return Number(comment.userId) === Number(props.currentUserId)
+}
+
 const startReply = async (comment) => {
   if (!props.isAuthenticated) {
     return
@@ -211,6 +245,11 @@ const handleSubmit = () => {
 
   draftComment.value = ''
   replyTarget.value = null
+}
+
+const handleDelete = (comment) => {
+  if (!comment || props.deleting) return
+  emit('delete', comment)
 }
 
 const formatTime = (time) => {
@@ -370,6 +409,8 @@ const formatTime = (time) => {
 .comment-actions-row {
   margin-top: 8px;
   display: flex;
+  align-items: center;
+  gap: 8px;
   justify-content: flex-end;
 }
 
@@ -383,6 +424,23 @@ const formatTime = (time) => {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.delete-btn {
+  height: 28px;
+  border: 1px solid #e0b7b7;
+  background: #fff4f4;
+  color: #b23f3f;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .replies-list {

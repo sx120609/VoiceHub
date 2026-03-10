@@ -385,9 +385,13 @@
           :loading="songCommentsDialog.loading"
           :error="songCommentsDialog.error"
           :submitting="songCommentsDialog.submitting"
+          :deleting="songCommentsDialog.deleting"
           :is-authenticated="isAuthenticated"
+          :current-user-id="currentUserId"
+          :is-admin-user="isAdminUser"
           @close="closeSongCommentsDialog"
           @submit="submitSongComment"
+          @delete="deleteSongComment"
           @refresh="refreshSongComments"
         />
       </div>
@@ -453,6 +457,11 @@ const activeTab = ref('all') // 默认显示全部投稿
 const auth = useAuth()
 const { enableReplayRequests } = useSiteConfig()
 const isAuthenticated = computed(() => auth && auth.isAuthenticated && auth.isAuthenticated.value)
+const currentUserId = computed(() => auth?.user?.value?.id || null)
+const isAdminUser = computed(() => {
+  const role = auth?.user?.value?.role
+  return props.isAdmin || ['SUPER_ADMIN', 'ADMIN', 'SONG_ADMIN'].includes(role)
+})
 
 // 焦点状态管理
 const focusedSongId = ref(null)
@@ -646,6 +655,7 @@ const songCommentsDialog = ref({
   comments: [],
   loading: false,
   submitting: false,
+  deleting: false,
   error: ''
 })
 
@@ -1130,6 +1140,7 @@ const closeSongCommentsDialog = () => {
   songCommentsDialog.value.error = ''
   songCommentsDialog.value.loading = false
   songCommentsDialog.value.submitting = false
+  songCommentsDialog.value.deleting = false
   stopCommentsDialogPolling()
 }
 
@@ -1200,6 +1211,53 @@ const submitSongComment = async (payload) => {
     showToast(message, 'error')
   } finally {
     songCommentsDialog.value.submitting = false
+  }
+}
+
+const deleteSongComment = async (comment) => {
+  if (!isAuthenticated.value) {
+    showToast('请先登录后再操作', 'error')
+    return
+  }
+
+  const commentId = Number(comment?.id)
+  if (!Number.isInteger(commentId) || commentId <= 0) {
+    return
+  }
+
+  const isOwner = Number(comment?.userId) === Number(currentUserId.value)
+  if (!isOwner && !isAdminUser.value) {
+    showToast('仅能删除自己的评论', 'error')
+    return
+  }
+
+  const confirmed = window.confirm('确认删除这条评论吗？删除后无法恢复。')
+  if (!confirmed) {
+    return
+  }
+
+  const currentSongId = songCommentsDialog.value.song?.id
+  if (!currentSongId) return
+
+  songCommentsDialog.value.deleting = true
+  try {
+    const response = await $fetch(`/api/songs/comments/${commentId}`, {
+      method: 'DELETE'
+    })
+
+    const latestCount = normalizeCommentCount(response?.data?.commentCount)
+    if (songCommentsDialog.value.song) {
+      songCommentsDialog.value.song.commentCount = latestCount
+    }
+
+    showToast('评论删除成功', 'success')
+    await loadSongComments(currentSongId, true)
+    await fetchSongCommentCounts([currentSongId])
+  } catch (error) {
+    const message = error?.data?.message || error?.message || '删除评论失败，请稍后重试'
+    showToast(message, 'error')
+  } finally {
+    songCommentsDialog.value.deleting = false
   }
 }
 
