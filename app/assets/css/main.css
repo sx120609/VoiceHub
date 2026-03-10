@@ -73,6 +73,15 @@ body {
   color: var(--text-primary);
 }
 
+html,
+body,
+#__nuxt,
+.app,
+.main-content {
+  background: #f6f8f2 !important;
+  color: #1f2a1f;
+}
+
 /* 可选的微妙纹理效果 */
 body::before {
   content: '';
@@ -200,6 +209,32 @@ body::before {
 .app[data-theme='light'] [class*='schedule-list'],
 .app[data-theme='light'] [class*='request-form'] {
   color: #1f2a1f;
+}
+
+/* 首页核心业务区统一浅色高对比 */
+.app[data-theme='light'] .song-list,
+.app[data-theme='light'] .schedule-list,
+.app[data-theme='light'] .request-form {
+  background: #ffffff !important;
+  border-color: #d1ddc9 !important;
+}
+
+.app[data-theme='light'] .song-card,
+.app[data-theme='light'] .schedule-item,
+.app[data-theme='light'] .request-item,
+.app[data-theme='light'] .playlist-item {
+  background: #f5faef !important;
+  border: 1px solid #d0dcc8 !important;
+  color: #203020 !important;
+}
+
+.app[data-theme='light'] .song-title,
+.app[data-theme='light'] .song-artist,
+.app[data-theme='light'] .song-meta,
+.app[data-theme='light'] .current-date,
+.app[data-theme='light'] .date-item,
+.app[data-theme='light'] .section-title {
+  color: #233523 !important;
 }
 
 /* 容器 */

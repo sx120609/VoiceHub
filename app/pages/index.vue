@@ -3805,4 +3805,57 @@ if (
 .login-button:hover {
   box-shadow: 0 5px 15px rgba(47, 125, 79, 0.25);
 }
+
+/* 首页子组件深度覆盖，解决点歌区仍偏暗与对比不足 */
+.home :deep(.song-list),
+.home :deep(.schedule-list),
+.home :deep(.request-form) {
+  background: #ffffff !important;
+  color: #1f2a1f !important;
+}
+
+.home :deep(.song-list-header),
+.home :deep(.schedule-header),
+.home :deep(.rules-section),
+.home :deep(.form-container),
+.home :deep(.date-selector),
+.home :deep(.schedule-content) {
+  background: #f8fbf5 !important;
+  border-color: #d2deca !important;
+}
+
+.home :deep(.song-card),
+.home :deep(.date-item),
+.home :deep(.search-box),
+.home :deep(.tab-button),
+.home :deep(.mobile-tab-btn),
+.home :deep(.search-input),
+.home :deep(.search-button),
+.home :deep(.add-playlist-btn),
+.home :deep(.import-semester-btn) {
+  background: #eef4e8 !important;
+  border-color: #cfdcc7 !important;
+  color: #233523 !important;
+}
+
+.home :deep(.song-title),
+.home :deep(.song-artist),
+.home :deep(.requester),
+.home :deep(.play-time),
+.home :deep(.date-text),
+.home :deep(.section-title),
+.home :deep(.rules-title) {
+  color: #233523 !important;
+}
+
+.home :deep(.tab-button.active),
+.home :deep(.mobile-tab-btn.active),
+.home :deep(.date-item.active),
+.home :deep(.song-card.playing),
+.home :deep(.search-button),
+.home :deep(.add-playlist-btn) {
+  background: #2f7d4f !important;
+  border-color: #2f7d4f !important;
+  color: #ffffff !important;
+}
 </style>

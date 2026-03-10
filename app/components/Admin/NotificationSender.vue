@@ -316,34 +316,34 @@
       <!-- 右侧：预览区 -->
       <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
         <div
-          class="bg-zinc-900/30 border border-zinc-800 rounded-[2rem] p-8 shadow-xl flex flex-col h-full"
+          class="bg-[#ffffff] border border-[#d4dfcc] rounded-[2rem] p-8 shadow-xl flex flex-col h-full"
         >
           <h3
-            class="text-sm font-black text-zinc-100 uppercase tracking-widest mb-6 flex items-center gap-2"
+            class="text-sm font-black text-[#1f2a1f] uppercase tracking-widest mb-6 flex items-center gap-2"
           >
-            <Eye :size="16" class="text-blue-500" /> 通知预览
+            <Eye :size="16" class="text-[#2f7d4f]" /> 通知预览
           </h3>
 
           <div class="flex-1 flex flex-col items-center justify-center p-4">
             <div
-              class="w-full max-w-[320px] bg-[#0c0c0e] border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl relative"
+              class="w-full max-w-[320px] bg-[#f8fbf5] border border-[#d0dcc8] rounded-3xl overflow-hidden shadow-2xl relative"
             >
               <!-- 顶部装饰 -->
-              <div class="h-1.5 bg-blue-600 w-full" />
+              <div class="h-1.5 bg-[#2f7d4f] w-full" />
 
               <div class="p-6 space-y-4">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <div
-                      class="w-8 h-8 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center border border-blue-500/20"
+                      class="w-8 h-8 rounded-xl bg-[#2f7d4f]/12 text-[#2f7d4f] flex items-center justify-center border border-[#2f7d4f]/25"
                     >
                       <Bell :size="14" />
                     </div>
-                    <span class="text-[10px] font-black text-zinc-600 uppercase tracking-widest"
+                    <span class="text-[10px] font-black text-[#5f6f5f] uppercase tracking-widest"
                       >VoiceHub 系统</span
                     >
                   </div>
-                  <span class="text-[9px] text-zinc-700 font-bold uppercase tracking-wider"
+                  <span class="text-[9px] text-[#7b887b] font-bold uppercase tracking-wider"
                     >刚刚</span
                   >
                 </div>
@@ -352,7 +352,7 @@
                   <h4
                     :class="[
                       'text-sm font-black transition-colors',
-                      form.title ? 'text-zinc-100' : 'text-zinc-800 italic'
+                      form.title ? 'text-[#1f2a1f]' : 'text-[#8b968b] italic'
                     ]"
                   >
                     {{ form.title || '通知标题' }}
@@ -360,22 +360,22 @@
                   <p
                     :class="[
                       'text-[11px] leading-relaxed transition-colors',
-                      form.content ? 'text-zinc-400' : 'text-zinc-800 italic line-clamp-3'
+                      form.content ? 'text-[#4f624f]' : 'text-[#94a094] italic line-clamp-3'
                     ]"
                   >
                     {{ form.content || '这里将显示通知的详细内容预览...' }}
                   </p>
                 </div>
 
-                <div class="pt-4 border-t border-zinc-800/50 flex items-center justify-between">
+                <div class="pt-4 border-t border-[#d5e0ce] flex items-center justify-between">
                   <div class="flex items-center gap-1.5">
-                    <Users :size="12" class="text-zinc-700" />
-                    <span class="text-[9px] font-black text-zinc-600 uppercase tracking-wider">
+                    <Users :size="12" class="text-[#6f7f6f]" />
+                    <span class="text-[9px] font-black text-[#5f6f5f] uppercase tracking-wider">
                       发送范围: {{ scopeDescription }}
                     </span>
                   </div>
                   <button
-                    class="p-1.5 text-blue-500 hover:bg-blue-600/10 rounded-lg transition-all"
+                    class="p-1.5 text-[#2f7d4f] hover:bg-[#2f7d4f]/10 rounded-lg transition-all"
                   >
                     <MessageSquare :size="14" />
                   </button>
@@ -384,7 +384,7 @@
 
               <!-- 背景光晕 -->
               <div
-                class="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-[50px] -z-10 rounded-full"
+                class="absolute top-0 right-0 w-32 h-32 bg-[#2f7d4f]/10 blur-[50px] -z-10 rounded-full"
               />
             </div>
 
