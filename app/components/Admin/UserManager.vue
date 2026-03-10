@@ -1385,6 +1385,7 @@ import Pagination from '~/components/UI/Common/Pagination.vue'
 import UserSongsModal from '~/components/Admin/UserSongsModal.vue'
 import BatchUpdateModal from '~/components/Admin/BatchUpdateModal.vue'
 import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
+import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 
 // 响应式数据
 const loading = ref(false)
@@ -1514,6 +1515,74 @@ const passwordForm = ref({
 // 服务
 const auth = useAuth()
 const permissions = usePermissions()
+const runtimeConfig = useRuntimeConfig()
+const apiBase = normalizeApiBase(runtimeConfig.public.apiBase, runtimeConfig.app.baseURL)
+const apiPath = (path) => withApiBase(path, apiBase)
+
+const isObjectResponse = (value) => typeof value === 'object' && value !== null && !Array.isArray(value)
+const isMethodLikelyBlocked = (error) => [404, 405, 501].includes(error?.statusCode || error?.status)
+
+const ensureMutationResponse = (response, actionName) => {
+  if (!isObjectResponse(response)) {
+    throw new Error(`${actionName}失败：接口返回异常，请检查反向代理与 API 路径配置`)
+  }
+  if (response.success === false) {
+    throw new Error(response.message || `${actionName}失败`)
+  }
+  return response
+}
+
+const updateUserWithFallback = async (id, userData) => {
+  const primaryEndpoint = apiPath(`/api/admin/users/${id}`)
+  const fallbackEndpoint = apiPath(`/api/admin/users/${id}/update`)
+
+  try {
+    const primaryResponse = await $fetch(primaryEndpoint, {
+      method: 'PUT',
+      body: userData,
+      ...auth.getAuthConfig()
+    })
+    if (isObjectResponse(primaryResponse)) {
+      return ensureMutationResponse(primaryResponse, '更新用户')
+    }
+  } catch (error) {
+    if (!isMethodLikelyBlocked(error)) {
+      throw error
+    }
+  }
+
+  const fallbackResponse = await $fetch(fallbackEndpoint, {
+    method: 'POST',
+    body: userData,
+    ...auth.getAuthConfig()
+  })
+  return ensureMutationResponse(fallbackResponse, '更新用户')
+}
+
+const deleteUserWithFallback = async (id) => {
+  const primaryEndpoint = apiPath(`/api/admin/users/${id}`)
+  const fallbackEndpoint = apiPath(`/api/admin/users/${id}/delete`)
+
+  try {
+    const primaryResponse = await $fetch(primaryEndpoint, {
+      method: 'DELETE',
+      ...auth.getAuthConfig()
+    })
+    if (isObjectResponse(primaryResponse)) {
+      return ensureMutationResponse(primaryResponse, '删除用户')
+    }
+  } catch (error) {
+    if (!isMethodLikelyBlocked(error)) {
+      throw error
+    }
+  }
+
+  const fallbackResponse = await $fetch(fallbackEndpoint, {
+    method: 'POST',
+    ...auth.getAuthConfig()
+  })
+  return ensureMutationResponse(fallbackResponse, '删除用户')
+}
 
 // 判断是否为当前登录用户
 const isSelf = (user) => {
@@ -1704,7 +1773,7 @@ const closeBatchUpdateModal = () => {
 }
 
 const handleBatchUpdateSuccess = async () => {
-  await loadUsers()
+  await loadUsers(currentPage.value, pageSize.value, { throwOnError: true })
   if (window.$showNotification) {
     window.$showNotification('批量更新成功', 'success')
   }
@@ -1722,12 +1791,9 @@ const confirmDelete = async () => {
   deleting.value = true
 
   try {
-    await $fetch(`/api/admin/users/${deletingUser.value.id}`, {
-      method: 'DELETE',
-      ...auth.getAuthConfig()
-    })
+    await deleteUserWithFallback(deletingUser.value.id)
 
-    await loadUsers()
+    await loadUsers(currentPage.value, pageSize.value, { throwOnError: true })
     closeDeleteModal()
 
     if (window.$showNotification) {
@@ -1837,17 +1903,14 @@ const saveUser = async () => {
     const isRoleUpdate = editingUser.value && oldRole !== newRole
 
     if (editingUser.value) {
-      await $fetch(`/api/admin/users/${editingUser.value.id}`, {
-        method: 'PUT',
-        body: userData,
-        ...auth.getAuthConfig()
-      })
+      await updateUserWithFallback(editingUser.value.id, userData)
     } else {
-      await $fetch('/api/admin/users', {
+      const createResponse = await $fetch(apiPath('/api/admin/users'), {
         method: 'POST',
         body: userData,
         ...auth.getAuthConfig()
       })
+      ensureMutationResponse(createResponse, '创建用户')
     }
 
     // 如果是权限更新且当前用户是超级管理员，发送通知
@@ -1862,7 +1925,7 @@ const saveUser = async () => {
 
         const notificationMessage = `您的账户权限已由超级管理员更新：${roleNames[oldRole]} → ${roleNames[newRole]}`
 
-        await $fetch('/api/admin/notifications/send', {
+        await $fetch(apiPath('/api/admin/notifications/send'), {
           method: 'POST',
           body: {
             userId: editingUser.value.id,
@@ -1878,7 +1941,7 @@ const saveUser = async () => {
       }
     }
 
-    await loadUsers()
+    await loadUsers(currentPage.value, pageSize.value, { throwOnError: true })
     closeModal()
 
     if (window.$showNotification) {
@@ -1912,7 +1975,7 @@ const confirmResetPassword = async () => {
   passwordError.value = ''
 
   try {
-    await $fetch(`/api/admin/users/${resetPasswordUser.value.id}/reset-password`, {
+    await $fetch(apiPath(`/api/admin/users/${resetPasswordUser.value.id}/reset-password`), {
       method: 'POST',
       body: {
         newPassword: passwordForm.value.password
@@ -1933,10 +1996,11 @@ const confirmResetPassword = async () => {
   }
 }
 
-const loadUsers = async (page = 1, limit = 100) => {
+const loadUsers = async (page = 1, limit = 100, options = {}) => {
+  const { throwOnError = false } = options
   loading.value = true
   try {
-    const response = await $fetch('/api/admin/users', {
+    const response = await $fetch(apiPath('/api/admin/users'), {
       query: {
         page: page.toString(),
         limit: limit.toString(),
@@ -1950,6 +2014,10 @@ const loadUsers = async (page = 1, limit = 100) => {
     })
 
     // 处理分页响应数据
+    if (!isObjectResponse(response) || !Array.isArray(response.users)) {
+      throw new Error('用户列表接口返回异常，请检查反向代理或 API 路径配置')
+    }
+
     if (response.users) {
       users.value = response.users.map((u) => ({
         ...u,
@@ -1969,7 +2037,10 @@ const loadUsers = async (page = 1, limit = 100) => {
   } catch (error) {
     console.error('加载用户失败:', error)
     if (window.$showNotification) {
-      window.$showNotification('加载用户失败: ' + error.message, 'error')
+      window.$showNotification('加载用户失败: ' + getErrorMessage(error, '请稍后重试'), 'error')
+    }
+    if (throwOnError) {
+      throw error
     }
   } finally {
     loading.value = false
@@ -2174,7 +2245,7 @@ const importUsers = async () => {
 
   try {
     // 调用API批量导入用户
-    const result = await $fetch('/api/admin/users/batch', {
+    const result = await $fetch(apiPath('/api/admin/users/batch'), {
       method: 'POST',
       body: {
         users: previewData.value
@@ -2183,7 +2254,7 @@ const importUsers = async () => {
     })
 
     // 更新用户列表
-    await loadUsers()
+    await loadUsers(currentPage.value, pageSize.value, { throwOnError: true })
 
     importSuccess.value = `成功导入 ${result.created} 个用户，${result.failed} 个用户导入失败`
 
@@ -2213,7 +2284,7 @@ const loadStatusLogsPage = async (page) => {
   statusLogsError.value = ''
 
   try {
-    const response = await $fetch(`/api/admin/users/${selectedUserDetail.value.id}/status-logs`, {
+    const response = await $fetch(apiPath(`/api/admin/users/${selectedUserDetail.value.id}/status-logs`), {
       query: {
         page: page.toString(),
         limit: '10'
