@@ -256,7 +256,7 @@ const saveDisplayName = async () => {
     displayNameError.value = ''
 
     const response = await $fetch('/api/user/profile', {
-      method: 'PUT',
+      method: 'POST',
       body: {
         displayName: normalizedDisplayName
       }
@@ -270,8 +270,12 @@ const saveDisplayName = async () => {
       auth.user.value.name = normalizedDisplayName
     }
     originalDisplayName.value = normalizedDisplayName
-    showToast('显示昵称保存成功', 'success')
-    await auth.refreshUser()
+    showToast(response?.message || '显示昵称保存成功', 'success')
+
+    // 刷新失败不影响保存结果，避免前端误报“保存失败”
+    auth.refreshUser().catch((refreshError) => {
+      console.warn('刷新用户信息失败（已忽略）:', refreshError)
+    })
   } catch (error) {
     const message = error?.data?.message || error?.message || '保存昵称失败'
     displayNameError.value = message
