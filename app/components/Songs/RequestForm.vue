@@ -5305,4 +5305,37 @@ defineExpose({
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
 }
+
+/* Final light-theme readability overrides (keep at end) */
+.results-content,
+.results-list,
+.results-grid,
+.result-item,
+.result-info {
+  color: #1f2a1f !important;
+}
+
+.result-title {
+  color: #1f2a1f !important;
+}
+
+.result-artist {
+  color: #5f715f !important;
+}
+
+.result-album,
+.result-quality,
+.result-pay {
+  color: #6f816f !important;
+}
+
+.similar-text {
+  color: #5f715f !important;
+}
+
+.loading-text,
+.initial-hint,
+.empty-hint {
+  color: #5f715f !important;
+}
 </style>

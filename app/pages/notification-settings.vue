@@ -544,12 +544,12 @@ const loadSettings = async () => {
 
     if (response.success) {
       localSettings.value = {
-        songSelectedNotify: response.data.songSelectedNotify || false,
-        songPlayedNotify: response.data.songPlayedNotify || false,
-        songVotedNotify: response.data.songVotedNotify || false,
-        songVotedThreshold: response.data.songVotedThreshold || 5,
-        systemNotify: response.data.systemNotify || true,
-        refreshInterval: response.data.refreshInterval || 60,
+        songSelectedNotify: response.data.songSelectedNotify ?? false,
+        songPlayedNotify: response.data.songPlayedNotify ?? false,
+        songVotedNotify: response.data.songVotedNotify ?? false,
+        songVotedThreshold: response.data.songVotedThreshold ?? 5,
+        systemNotify: response.data.systemNotify ?? true,
+        refreshInterval: response.data.refreshInterval ?? 60,
         meowUserId: response.data.meowUserId || ''
       }
 
@@ -832,6 +832,18 @@ const saveSettings = async () => {
       body: localSettings.value
     })
     if (response.success) {
+      if (response.data) {
+        localSettings.value = {
+          ...localSettings.value,
+          songSelectedNotify: response.data.songSelectedNotify ?? localSettings.value.songSelectedNotify,
+          songPlayedNotify: response.data.songPlayedNotify ?? localSettings.value.songPlayedNotify,
+          songVotedNotify: response.data.songVotedNotify ?? localSettings.value.songVotedNotify,
+          songVotedThreshold:
+            response.data.songVotedThreshold ?? localSettings.value.songVotedThreshold,
+          systemNotify: response.data.systemNotify ?? localSettings.value.systemNotify,
+          refreshInterval: response.data.refreshInterval ?? localSettings.value.refreshInterval
+        }
+      }
       showNotification('设置保存成功', 'success')
     } else {
       showNotification(response.message || '保存失败', 'error')

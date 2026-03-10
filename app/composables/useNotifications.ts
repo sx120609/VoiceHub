@@ -139,12 +139,13 @@ export const useNotifications = () => {
     try {
       const authConfig = getAuthConfig()
 
-      const data = await $fetch('/api/notifications/settings', {
+      const response = await $fetch('/api/notifications/settings', {
         ...authConfig
       })
 
-      if (data) {
-        settings.value = data
+      const normalizedSettings: any = response?.data ?? response
+      if (normalizedSettings) {
+        settings.value = normalizedSettings
       }
     } catch (err: any) {
       const errorHandler = useErrorHandler()
@@ -170,15 +171,16 @@ export const useNotifications = () => {
     try {
       const authConfig = getAuthConfig()
 
-      const data = await $fetch('/api/notifications/settings', {
+      const response = await $fetch('/api/notifications/settings', {
         method: 'POST',
         body: newSettings,
         ...authConfig
       })
 
-      if (data) {
-        settings.value = data
-        return data
+      const normalizedSettings: any = response?.data ?? response
+      if (normalizedSettings) {
+        settings.value = normalizedSettings
+        return normalizedSettings
       }
       return null
     } catch (err: any) {
