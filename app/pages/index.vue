@@ -274,7 +274,7 @@
                             <Icon
                               v-else-if="notification.type === 'COLLABORATION_INVITE'"
                               :size="20"
-                              color="#0B5AFE"
+                              color="#2f7d4f"
                               name="users"
                             />
                             <Icon
@@ -1609,7 +1609,7 @@ if (
 .home {
   width: 100%;
   flex: 1;
-  background-color: #121318;
+  background-color: #f6f8f2;
   padding: 1.5rem;
   color: #ffffff;
   display: flex;
@@ -1767,7 +1767,7 @@ if (
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
-  background: #1a1a1f;
+  background: #f3f8ef;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 8px;
@@ -1896,7 +1896,7 @@ if (
 .title-divider {
   width: 40px;
   height: 4px;
-  background: #0b5afe;
+  background: #2f7d4f;
   border-radius: 2px;
   box-shadow: 0 0 15px rgba(11, 90, 254, 0.6);
 }
@@ -1937,7 +1937,7 @@ if (
 }
 
 .section-tab {
-  background: #1a1b24;
+  background: #f5f9f1;
   border-radius: 15px 15px 0 0;
   padding: 15px 24px;
   font-family: 'MiSans', sans-serif;
@@ -1951,7 +1951,7 @@ if (
 }
 
 .section-tab.active {
-  background: #21242d;
+  background: #edf3e7;
   color: #ffffff;
   position: relative;
   z-index: 1;
@@ -2052,7 +2052,7 @@ if (
   right: -8px;
   width: 6px;
   height: 6px;
-  background: #0b5afe;
+  background: #2f7d4f;
   border-radius: 50%;
   box-shadow: 0 0 5px rgba(11, 90, 254, 0.5);
 }
@@ -2064,7 +2064,7 @@ if (
   left: 50%;
   width: 0;
   height: 2px;
-  background: #0b5afe;
+  background: #2f7d4f;
   transition: all 0.3s ease;
   transform: translateX(-50%);
 }
@@ -2093,7 +2093,7 @@ if (
 
 /* 内容容器 */
 .tab-content-container {
-  background: #1a1b24;
+  background: #f5f9f1;
   border: 2px solid #282830;
   border-radius: 0 15px 15px 15px;
   padding: 1.5rem;
@@ -2694,7 +2694,7 @@ if (
 @media (max-width: 768px) {
   .home {
     padding: 0;
-    background-color: #0a0a0f;
+    background-color: #f6f8f2;
   }
 
   .main-content {
@@ -2941,9 +2941,9 @@ if (
     right: 0;
     width: 8px;
     height: 8px;
-    background: #0b5afe;
+    background: #2f7d4f;
     border-radius: 50%;
-    border: 1.5px solid #0a0a0f;
+    border: 1.5px solid #f6f8f2;
     box-shadow: 0 0 5px rgba(11, 90, 254, 0.4);
     z-index: 2;
   }
@@ -3090,7 +3090,7 @@ if (
 
 /* 弹窗内容 */
 .modal-content {
-  background: linear-gradient(135deg, #1a1b24 0%, #121318 100%);
+  background: linear-gradient(135deg, #f5f9f1 0%, #f6f8f2 100%);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -3511,7 +3511,7 @@ if (
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #0b5afe;
+  background-color: #2f7d4f;
   display: inline-block;
   z-index: 2;
 }
@@ -3574,7 +3574,7 @@ if (
 }
 
 .login-button {
-  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
   border: none;
   color: white;
   padding: 10px 20px;

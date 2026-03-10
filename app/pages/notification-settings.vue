@@ -1,20 +1,20 @@
 <template>
-  <div class="min-h-screen bg-zinc-950 text-zinc-200 pb-24">
+  <div class="min-h-screen bg-[#f6f8f2] text-[#1f2a1f] pb-24">
     <!-- 顶部导航栏 -->
     <div
-      class="sticky top-0 z-30 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-900/50 px-4 py-4 mb-8"
+      class="sticky top-0 z-30 bg-[#fbfdf8]/90 backdrop-blur-xl border-b border-[#d6e1ce] px-4 py-4 mb-8"
     >
       <div class="max-w-[1000px] mx-auto flex items-center justify-between">
         <div class="flex items-center gap-4">
           <button
-            class="p-2 hover:bg-zinc-900 rounded-xl transition-all text-zinc-400 hover:text-zinc-100"
+            class="p-2 hover:bg-[#e9f0e2] rounded-xl transition-all text-[#5c6c5c] hover:text-[#1f2a1f]"
             @click="goBack"
           >
             <ArrowLeft :size="20" />
           </button>
           <div>
-            <h1 class="text-xl font-black text-zinc-100 tracking-tight">消息设置</h1>
-            <p class="text-[10px] text-zinc-500 font-medium uppercase tracking-widest mt-0.5">
+            <h1 class="text-xl font-black text-[#1f2a1f] tracking-tight">消息设置</h1>
+            <p class="text-[10px] text-[#6b7b6b] font-medium uppercase tracking-widest mt-0.5">
               Notification Settings
             </p>
           </div>
@@ -22,7 +22,7 @@
 
         <button
           :disabled="loading || saving"
-          class="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-95 disabled:opacity-50"
+          class="flex items-center gap-2 px-6 py-2 bg-[#2f7d4f] hover:bg-[#246a41] text-white text-xs font-black rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50"
           @click="saveSettings"
         >
           <template v-if="saving"> <Loader2 :size="14" class="animate-spin" /> 保存中... </template>
@@ -447,11 +447,11 @@ const { siteTitle, smtpEnabled, initSiteConfig } = useSiteConfig()
 const { showToast } = useToast()
 
 // 样式类常量
-const sectionClass = 'bg-zinc-900/40 border border-zinc-900 rounded-3xl p-6 md:p-8 shadow-2xl'
+const sectionClass = 'bg-[#ffffff] border border-[#d6e1ce] rounded-3xl p-6 md:p-8 shadow-2xl'
 const cardClass =
-  'bg-zinc-950/40 border border-zinc-800/50 rounded-2xl p-5 transition-all hover:border-zinc-700/50'
+  'bg-[#f7fbf4] border border-[#d1ddc9] rounded-2xl p-5 transition-all hover:border-[#b8c9ae]'
 const itemClass =
-  'flex items-center justify-between p-4 bg-zinc-950/30 border border-zinc-900 rounded-2xl hover:bg-zinc-900/50 transition-all group'
+  'flex items-center justify-between p-4 bg-[#f8fbf5] border border-[#d1ddc9] rounded-2xl hover:bg-[#eef4e8] transition-all group'
 
 // 页面状态
 const loading = ref(true)

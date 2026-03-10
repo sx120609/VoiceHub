@@ -1721,7 +1721,7 @@ const vRipple = {
 
 .semester-select:focus {
   outline: none;
-  border-color: #0b5afe;
+  border-color: #2f7d4f;
   box-shadow:
     0 0 0 3px rgba(11, 90, 254, 0.3),
     0 4px 12px rgba(11, 90, 254, 0.2);
@@ -1729,7 +1729,7 @@ const vRipple = {
 }
 
 .semester-select option {
-  background: #1a1d24;
+  background: #f5f9f1;
   color: #ffffff;
   padding: 0.5rem;
 }
@@ -1784,18 +1784,18 @@ const vRipple = {
 }
 
 .date-item:hover {
-  background: #21242d;
+  background: #edf3e7;
   transform: translateY(-2px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .date-item.active {
-  background: #21242d;
+  background: #edf3e7;
   color: #ffffff;
   font-weight: 600;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(11, 90, 254, 0.2);
-  border-left: 3px solid #0b5afe;
+  border-left: 3px solid #2f7d4f;
 }
 
 .empty-dates {
@@ -1865,7 +1865,7 @@ const vRipple = {
   padding: 3rem;
   text-align: center;
   border-radius: 10px;
-  background: #21242d;
+  background: #edf3e7;
   margin: 1rem 0;
   color: rgba(255, 255, 255, 0.6);
   display: flex;
@@ -1882,7 +1882,7 @@ const vRipple = {
   margin-bottom: 1rem;
   border-radius: 50%;
   border: 3px solid rgba(11, 90, 254, 0.2);
-  border-top-color: #0b5afe;
+  border-top-color: #2f7d4f;
   animation: spin 1s linear infinite;
 }
 
@@ -1900,7 +1900,7 @@ const vRipple = {
   padding: 2rem;
   text-align: center;
   border-radius: 10px;
-  background: #21242d;
+  background: #edf3e7;
   margin: 1rem 0;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -1950,7 +1950,7 @@ const vRipple = {
 .song-card {
   width: 320px;
   flex-shrink: 0;
-  background: #21242d;
+  background: #edf3e7;
   border-radius: 10px;
   overflow: hidden;
   position: relative;
@@ -2011,7 +2011,7 @@ const vRipple = {
   width: 100%;
   max-width: 580px;
   max-height: 85vh;
-  background: #1e1e24;
+  background: #f3f8ef;
   border-radius: 20px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2074,7 +2074,7 @@ const vRipple = {
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  background: #1e1e24;
+  background: #f3f8ef;
 }
 
 /* 滚动条美化 */
@@ -2242,7 +2242,7 @@ const vRipple = {
 .custom-select,
 .custom-input {
   width: 100%;
-  background: #141418;
+  background: #eef4e8;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #ffffff;
   padding: 0.75rem 1rem;
@@ -2742,7 +2742,7 @@ const vRipple = {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(135deg, #2f7d4f 0%, #3f9a65 100%);
   color: #ffffff;
   font-size: 28px;
   font-weight: bold;
@@ -2832,7 +2832,7 @@ const vRipple = {
   background: rgba(11, 90, 254, 0.15);
   border: 1px solid rgba(11, 90, 254, 0.3);
   border-radius: 4px;
-  color: #0b5afe;
+  color: #2f7d4f;
   font-size: 12px;
   font-weight: 500;
   flex-shrink: 0;
@@ -2891,7 +2891,7 @@ const vRipple = {
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 20px;
-  color: #0b5afe;
+  color: #2f7d4f;
   text-shadow:
     0px 20px 30px rgba(0, 114, 248, 0.5),
     0px 8px 15px rgba(0, 114, 248, 0.5),
@@ -2979,7 +2979,7 @@ const vRipple = {
 
   .nav-btn:active:not(:disabled) {
     background: rgba(255, 255, 255, 0.1);
-    color: #0b5afe;
+    color: #2f7d4f;
   }
 
   .nav-btn:disabled {
@@ -3018,7 +3018,7 @@ const vRipple = {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0b5afe 0%, #0043f8 100%);
+    background: linear-gradient(135deg, #2f7d4f 0%, #2f7d4f 100%);
     border: none;
     border-radius: 16px;
     box-shadow: 0 4px 15px rgba(11, 90, 254, 0.4);
@@ -3122,7 +3122,7 @@ const vRipple = {
   }
 
   .song-card.playing .song-title {
-    color: #0b5afe;
+    color: #2f7d4f;
     text-shadow: 0 0 10px rgba(11, 90, 254, 0.4);
   }
 
@@ -3213,7 +3213,7 @@ const vRipple = {
   .vote-count .count {
     font-size: 22px;
     font-weight: 800;
-    color: #0b5afe;
+    color: #2f7d4f;
     font-family: 'MiSans-Bold', sans-serif;
     line-height: 1;
   }
@@ -3249,7 +3249,7 @@ const vRipple = {
 
   /* 日期选择弹窗 */
   .date-picker-content {
-    background: #1a1a1f;
+    background: #f3f8ef;
     border-radius: 20px 20px 0 0;
     width: 100%;
     max-width: 100%;
@@ -3299,7 +3299,7 @@ const vRipple = {
   .date-picker-item.active {
     background: rgba(11, 90, 254, 0.15);
     border-left: none;
-    color: #0b5afe;
+    color: #2f7d4f;
   }
 }
 
@@ -3447,7 +3447,7 @@ const vRipple = {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  background: #21242d;
+  background: #edf3e7;
   border-radius: 10px;
   padding: 0.75rem 1rem;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
@@ -3503,7 +3503,7 @@ const vRipple = {
 }
 
 .current-date-mobile:hover {
-  color: #0b5afe;
+  color: #2f7d4f;
 }
 
 /* 日期选择器弹窗样式 */
@@ -3534,7 +3534,7 @@ const vRipple = {
   width: 85%;
   max-width: 350px;
   max-height: 70vh;
-  background: #1a1d24;
+  background: #f5f9f1;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -3593,7 +3593,7 @@ const vRipple = {
 
 .date-picker-item.active {
   background: rgba(11, 90, 254, 0.2);
-  border-left: 3px solid #0b5afe;
+  border-left: 3px solid #2f7d4f;
 }
 
 /* 过渡动画 */

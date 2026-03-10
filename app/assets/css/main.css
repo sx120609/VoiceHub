@@ -89,6 +89,12 @@ body::before {
   pointer-events: none;
 }
 
+.app[data-theme='light'] input[type='checkbox'],
+.app[data-theme='light'] input[type='radio'],
+.app[data-theme='light'] input[type='range'] {
+  accent-color: #2f7d4f;
+}
+
 /* 浅色校园风：覆盖常见深色 Tailwind 工具类 */
 .app[data-theme='light'] .bg-zinc-950,
 .app[data-theme='light'] [class*='bg-zinc-950/'] {
@@ -144,6 +150,56 @@ body::before {
 .app[data-theme='light'] .shadow-2xl,
 .app[data-theme='light'] .shadow-xl {
   box-shadow: 0 20px 34px rgba(43, 61, 43, 0.12) !important;
+}
+
+/* 统一主色：将常见蓝色 Tailwind 工具类映射为校园绿色 */
+.app[data-theme='light'] [class~='bg-blue-600'],
+.app[data-theme='light'] [class~='bg-blue-500'],
+.app[data-theme='light'] [class~='bg-blue-700'],
+.app[data-theme='light'] [class~='bg-[#0b5afe]'],
+.app[data-theme='light'] [class~='bg-[#0B5AFE]'] {
+  background-color: #2f7d4f !important;
+}
+
+.app[data-theme='light'] [class~='hover:bg-blue-600']:hover,
+.app[data-theme='light'] [class~='hover:bg-blue-500']:hover,
+.app[data-theme='light'] [class~='hover:bg-blue-700']:hover {
+  background-color: #246a41 !important;
+}
+
+.app[data-theme='light'] [class~='bg-blue-600/10'],
+.app[data-theme='light'] [class~='bg-blue-500/10'],
+.app[data-theme='light'] [class~='bg-blue-600/5'],
+.app[data-theme='light'] [class~='bg-blue-500/5'] {
+  background-color: rgba(47, 125, 79, 0.12) !important;
+}
+
+.app[data-theme='light'] [class*='text-blue-'] {
+  color: #2f7d4f !important;
+}
+
+.app[data-theme='light'] [class*='border-blue-'] {
+  border-color: rgba(47, 125, 79, 0.28) !important;
+}
+
+.app[data-theme='light'] [class*='shadow-blue-'] {
+  box-shadow: 0 12px 24px rgba(47, 125, 79, 0.18) !important;
+}
+
+.app[data-theme='light'] [class*='from-blue-'] {
+  --tw-gradient-from: #2f7d4f var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(47, 125, 79, 0) var(--tw-gradient-to-position) !important;
+}
+
+.app[data-theme='light'] [class*='to-blue-'] {
+  --tw-gradient-to: #246a41 var(--tw-gradient-to-position) !important;
+}
+
+/* 常见深色背景色值兜底，处理 scoped CSS 中的硬编码 */
+.app[data-theme='light'] [class*='song-list'],
+.app[data-theme='light'] [class*='schedule-list'],
+.app[data-theme='light'] [class*='request-form'] {
+  color: #1f2a1f;
 }
 
 /* 容器 */

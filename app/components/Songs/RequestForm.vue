@@ -2969,7 +2969,7 @@ defineExpose({
 }
 
 .search-input {
-  background: #040e15;
+  background: #f7fbf4;
   border: 1px solid #242f38;
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
@@ -2983,11 +2983,11 @@ defineExpose({
 
 .search-input:focus {
   outline: none;
-  border-color: #0b5afe;
+  border-color: #2f7d4f;
 }
 
 .search-button {
-  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
@@ -3152,7 +3152,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 13px;
-  color: #0b5afe;
+  color: #2f7d4f;
 }
 
 .status-item-horizontal .status-remaining {
@@ -3201,7 +3201,7 @@ defineExpose({
 
 .form-input,
 .form-select {
-  background: #040e15;
+  background: #f7fbf4;
   border: 1px solid #242f38;
   border-radius: 8px;
   padding: 0.75rem 1rem;
@@ -3215,7 +3215,7 @@ defineExpose({
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: #0b5afe;
+  border-color: #2f7d4f;
 }
 
 /* 平台选择按钮样式 */
@@ -3530,7 +3530,7 @@ defineExpose({
 }
 
 .platform-btn.active {
-  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
   border-color: rgba(255, 255, 255, 0.16);
   color: #ffffff;
 }
@@ -3703,7 +3703,7 @@ defineExpose({
   width: 40px;
   height: 40px;
   border: 3px solid rgba(11, 90, 254, 0.2);
-  border-top-color: #0b5afe;
+  border-top-color: #2f7d4f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -3858,7 +3858,7 @@ defineExpose({
 }
 
 .submit-button {
-  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   padding: 0.5rem 1.5rem;
@@ -3880,7 +3880,7 @@ defineExpose({
   transform: none;
 }
 .similar-song-alert {
-  background: #21242d;
+  background: #edf3e7;
   border-radius: 10px;
   padding: 0.75rem 1rem;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
@@ -3999,7 +3999,7 @@ defineExpose({
 }
 
 .vote-btn {
-  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -4216,7 +4216,7 @@ defineExpose({
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(135deg, #2f7d4f 0%, #3f9a65 100%);
   border-color: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 67, 248, 0.3);
@@ -4480,7 +4480,7 @@ defineExpose({
 }
 
 .select-btn {
-  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -4598,7 +4598,7 @@ defineExpose({
 }
 
 .manual-confirm-btn {
-  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -4873,7 +4873,7 @@ defineExpose({
   }
 
   .platform-btn.active {
-    background: #0b5afe;
+    background: #2f7d4f;
     color: #ffffff;
     box-shadow: 0 2px 8px rgba(11, 90, 254, 0.3);
   }
