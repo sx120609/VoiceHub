@@ -1306,7 +1306,9 @@ const handleCancelReplay = async (song) => {
 
   try {
     if (!songs) return
-    await songs.withdrawReplay(song.id)
+    const result = await songs.withdrawReplay(song.id)
+    if (!result) return
+    await songs.fetchSongs(true, undefined, false, true)
     updateSongCounts()
   } catch (err) {
     console.log('API错误已在useSongs中处理')
@@ -1321,7 +1323,9 @@ const handleRequestReplay = async (song) => {
 
   try {
     if (!songs) return
-    await songs.requestReplay(song.id)
+    const result = await songs.requestReplay(song.id)
+    if (!result) return
+    await songs.fetchSongs(true, undefined, false, true)
     updateSongCounts()
   } catch (err) {
     console.log('API错误已在useSongs中处理')

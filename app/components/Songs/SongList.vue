@@ -3125,13 +3125,13 @@ button:disabled {
   padding: 0.5rem 1rem !important;
 }
 
-  .song-list .submission-time {
-    color: #607260 !important;
-  }
+.song-list .submission-time {
+  color: #607260 !important;
+}
 
 .song-list .submission-actions {
-    gap: 8px !important;
-  }
+  gap: 8px !important;
+}
 
 .song-list .withdraw-button {
   background: #d54949 !important;
