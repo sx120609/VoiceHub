@@ -7,10 +7,19 @@ import { getClientIP } from '~~/server/utils/ip-utils'
 import { SmtpService } from '~~/server/services/smtpService'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import {
+  createRegistrationActivationToken,
   extractQQNumberFromEmail,
+  getRegistrationActivationExpiresDays,
   isRegistrationEmailVerificationEnabled,
-  setPendingRegistrationCode
 } from '~~/server/utils/registration-verification'
+
+const buildActivationUrl = (event: any, token: string) => {
+  const requestUrl = getRequestURL(event)
+  const runtimeConfig = useRuntimeConfig()
+  const rawBaseURL = (runtimeConfig.app?.baseURL || '/').toString()
+  const normalizedBaseURL = rawBaseURL === '/' ? '' : rawBaseURL.replace(/\/$/, '')
+  return `${requestUrl.origin}${normalizedBaseURL}/api/auth/register/activate?token=${encodeURIComponent(token)}`
+}
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -33,9 +42,37 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const requireEmailVerification = await isRegistrationEmailVerificationEnabled()
+    const clientIp = getClientIP(event)
+    const activationExpiresDays = getRegistrationActivationExpiresDays()
+
+    const sendActivationLink = async (email: string, userId: number, name: string, username: string) => {
+      const token = createRegistrationActivationToken(email, userId)
+      const activationUrl = buildActivationUrl(event, token)
+      const smtp = SmtpService.getInstance()
+      await smtp.initializeSmtpConfig()
+
+      return await smtp.renderAndSend(
+        email,
+        'verification.link',
+        {
+          name: name || username,
+          email,
+          action: '账号激活',
+          actionUrl: activationUrl,
+          activationUrl,
+          expiresInDays: activationExpiresDays
+        },
+        clientIp
+      )
+    }
+
     const existingUserByEmail = await db
       .select({
         id: users.id,
+        name: users.name,
+        username: users.username,
+        status: users.status,
         emailVerified: users.emailVerified
       })
       .from(users)
@@ -43,12 +80,51 @@ export default defineEventHandler(async (event) => {
       .limit(1)
 
     if (existingUserByEmail[0]) {
-      throw createError({
-        statusCode: 400,
-        message: existingUserByEmail[0].emailVerified
-          ? '该QQ邮箱已被绑定'
-          : '该QQ邮箱已注册但尚未激活，请先完成邮箱验证'
-      })
+      const existingUser = existingUserByEmail[0]
+
+      if (existingUser.emailVerified) {
+        throw createError({
+          statusCode: 400,
+          message: '该QQ邮箱已被绑定'
+        })
+      }
+
+      if (existingUser.status !== 'active') {
+        throw createError({
+          statusCode: 403,
+          message: '账号当前不可用，请联系管理员处理'
+        })
+      }
+
+      if (!requireEmailVerification) {
+        await db.update(users).set({ emailVerified: true }).where(eq(users.id, existingUser.id))
+        throw createError({
+          statusCode: 400,
+          message: '该QQ邮箱已注册，请直接登录'
+        })
+      }
+
+      let verificationSent = false
+      try {
+        verificationSent = await sendActivationLink(
+          qqEmail,
+          existingUser.id,
+          existingUser.name || '',
+          existingUser.username || username
+        )
+      } catch (mailError) {
+        console.error('重发注册激活链接失败:', mailError)
+      }
+
+      return {
+        success: true,
+        requiresEmailVerification: true,
+        verificationSent,
+        email: qqEmail,
+        message: verificationSent
+          ? `该QQ邮箱已注册但尚未激活，激活链接已发送（${activationExpiresDays}天内有效）`
+          : '该QQ邮箱已注册但尚未激活，发送激活链接失败，请稍后重试'
+      }
     }
 
     const existingUserByUsername = await db
@@ -64,10 +140,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const requireEmailVerification = await isRegistrationEmailVerificationEnabled()
     const hashedPassword = await bcrypt.hash(password, 10)
     const now = getBeijingTime()
-    const clientIp = getClientIP(event)
 
     const newUserResult = await db
       .insert(users)
@@ -100,26 +174,17 @@ export default defineEventHandler(async (event) => {
     const newUser = newUserResult[0]
 
     if (requireEmailVerification) {
-      const pendingCode = setPendingRegistrationCode(qqEmail, newUser.id)
       let verificationSent = false
 
       try {
-        const smtp = SmtpService.getInstance()
-        await smtp.initializeSmtpConfig()
-        verificationSent = await smtp.renderAndSend(
+        verificationSent = await sendActivationLink(
           qqEmail,
-          'verification.code',
-          {
-            name: newUser.name || newUser.username,
-            email: qqEmail,
-            code: pendingCode.code,
-            expiresInMinutes: 10,
-            action: '账号激活'
-          },
-          clientIp
+          newUser.id,
+          newUser.name || '',
+          newUser.username || username
         )
       } catch (mailError) {
-        console.error('发送注册验证码失败:', mailError)
+        console.error('发送注册激活链接失败:', mailError)
       }
 
       return {
@@ -128,8 +193,8 @@ export default defineEventHandler(async (event) => {
         verificationSent,
         email: qqEmail,
         message: verificationSent
-          ? '注册成功，请输入邮箱验证码完成激活'
-          : '注册成功，但验证码发送失败，请重发验证码或联系管理员手动激活'
+          ? `注册成功，请点击邮箱中的激活链接完成激活（${activationExpiresDays}天内有效）`
+          : '注册成功，但激活链接发送失败，请重发激活链接或联系管理员手动激活'
       }
     }
 

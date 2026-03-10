@@ -175,11 +175,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import { getProviderDisplayName } from '~/utils/oauth'
 
 const route = useRoute()
+const router = useRouter()
 const isBindMode = computed(() => route.query.action === 'bind')
 const providerUsername = computed(() => route.query.username || '')
 const providerName = computed(() => {
@@ -214,6 +215,36 @@ const clearMessages = () => {
   error.value = ''
   info.value = ''
 }
+
+onMounted(async () => {
+  const activation = typeof route.query.activation === 'string' ? route.query.activation : ''
+  if (!activation) {
+    return
+  }
+
+  const activationMessageMap: Record<string, { type: 'info' | 'error'; message: string }> = {
+    success: { type: 'info', message: '邮箱激活成功，请登录' },
+    already: { type: 'info', message: '账号已激活，请直接登录' },
+    expired: { type: 'error', message: '激活链接已过期，请重新发送激活链接' },
+    invalid: { type: 'error', message: '激活链接无效，请重新获取' },
+    blocked: { type: 'error', message: '账号当前不可用，请联系管理员处理' }
+  }
+
+  const payload = activationMessageMap[activation]
+  if (payload) {
+    if (payload.type === 'info') {
+      info.value = payload.message
+      error.value = ''
+    } else {
+      error.value = payload.message
+      info.value = ''
+    }
+  }
+
+  const nextQuery = { ...route.query }
+  delete nextQuery.activation
+  await router.replace({ path: route.path, query: nextQuery })
+})
 
 const switchLoginMode = (mode: 'password' | 'code') => {
   loginMode.value = mode

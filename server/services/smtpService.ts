@@ -134,6 +134,13 @@ export class SmtpService {
       </div>
       <p style="color:#888">若非本人操作，请忽略本邮件。</p>
     `,
+    verificationLink: `
+      <p>您好，{{name}}！</p>
+      <p>您正在激活账号：<strong>{{email}}</strong></p>
+      <p>请点击下方按钮完成账号激活，链接有效期 <strong>{{expiresInDays}} 天</strong>。</p>
+      <p style="color:#888; word-break: break-all;">若按钮无法点击，请复制此链接到浏览器打开：{{activationUrl}}</p>
+      <p style="color:#888">若非本人操作，请忽略本邮件。</p>
+    `,
     generic: `
       <div style="white-space: pre-wrap;">{{message}}</div>
     `,
@@ -178,6 +185,13 @@ export class SmtpService {
       subject: '邮箱验证码 | {{siteTitle}}',
       contentType: 'verification',
       headerSubtitle: '邮箱验证'
+    },
+    'verification.link': {
+      name: '账号激活链接',
+      subject: '账号激活链接 | {{siteTitle}}',
+      contentType: 'verificationLink',
+      headerSubtitle: '账号激活',
+      actionText: '立即激活账号'
     },
     'notification.generic': {
       name: '通用通知',

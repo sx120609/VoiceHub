@@ -1724,7 +1724,7 @@ const confirmDelete = async () => {
   } catch (error) {
     console.error('删除用户失败:', error)
     if (window.$showNotification) {
-      window.$showNotification('删除用户失败: ' + error.message, 'error')
+      window.$showNotification(`删除用户失败: ${getErrorMessage(error, '请稍后重试')}`, 'error')
     }
   } finally {
     deleting.value = false
@@ -1758,6 +1758,9 @@ const closeResetPassword = () => {
 }
 
 const qqEmailRegex = /^[1-9]\d{4,10}@qq\.com$/i
+const getErrorMessage = (error, fallback) => {
+  return error?.data?.message || error?.data?.statusMessage || error?.message || fallback
+}
 
 const saveUser = async () => {
   // 保护：禁止保存针对自身的更改
@@ -1765,18 +1768,34 @@ const saveUser = async () => {
     formError.value = '禁止在用户管理中修改自己的账户'
     return
   }
-  if (!userForm.value.name || !userForm.value.username || !userForm.value.email) {
-    formError.value = '请填写姓名、用户名和QQ邮箱'
+  if (!editingUser.value && !userForm.value.password) {
+    formError.value = '请输入密码'
     return
   }
 
-  if (!qqEmailRegex.test(userForm.value.email.trim().toLowerCase())) {
+  const normalizedUsername = (userForm.value.username || '').trim()
+  const normalizedName = (userForm.value.name || '').trim()
+  const normalizedEmail = (userForm.value.email || '').trim().toLowerCase()
+  const targetUserRole = editingUser.value?.role || userForm.value.role
+  const shouldRequireQQEmail = targetUserRole === 'USER' || userForm.value.role === 'USER'
+
+  if (!normalizedUsername) {
+    formError.value = '用户名不能为空'
+    return
+  }
+
+  if (!editingUser.value && !normalizedEmail) {
+    formError.value = '请填写QQ邮箱'
+    return
+  }
+
+  if (shouldRequireQQEmail && normalizedEmail && !qqEmailRegex.test(normalizedEmail)) {
     formError.value = 'QQ邮箱格式无效，仅支持 @qq.com'
     return
   }
 
-  if (!editingUser.value && !userForm.value.password) {
-    formError.value = '请输入密码'
+  if (shouldRequireQQEmail && !normalizedEmail) {
+    formError.value = '普通用户必须绑定QQ邮箱'
     return
   }
 
@@ -1785,9 +1804,9 @@ const saveUser = async () => {
 
   try {
     const userData = {
-      name: userForm.value.name,
-      username: userForm.value.username,
-      email: userForm.value.email.trim().toLowerCase(),
+      name: normalizedName || normalizedUsername,
+      username: normalizedUsername,
+      ...(normalizedEmail ? { email: normalizedEmail } : {}),
       emailVerified: userForm.value.emailVerified,
       role: userForm.value.role,
       status: userForm.value.status,
@@ -1854,7 +1873,7 @@ const saveUser = async () => {
     }
   } catch (error) {
     console.error('保存用户失败:', error)
-    formError.value = error.message || '保存失败'
+    formError.value = getErrorMessage(error, '保存失败')
   } finally {
     saving.value = false
   }

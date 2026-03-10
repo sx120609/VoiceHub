@@ -1,33 +1,8 @@
-import { randomInt } from 'crypto'
+import jwt from 'jsonwebtoken'
 import { db, systemSettings } from '~/drizzle/db'
 
-type PendingRegistrationCode = {
-  userId: number
-  code: string
-  expiresAt: number
-  attempts: number
-  lastSentAt: number
-}
-
-const CODE_EXPIRES_MS = 10 * 60 * 1000
-const RESEND_COOLDOWN_MS = 60 * 1000
-const MAX_VERIFY_ATTEMPTS = 5
-const pendingRegistrationCodes = new Map<string, PendingRegistrationCode>()
-
-const now = () => Date.now()
-
-const cleanupExpiredCode = (email: string, record?: PendingRegistrationCode | null) => {
-  if (!record) {
-    return null
-  }
-
-  if (record.expiresAt <= now()) {
-    pendingRegistrationCodes.delete(email)
-    return null
-  }
-
-  return record
-}
+const REGISTRATION_ACTIVATION_EXPIRES_DAYS = 3
+const REGISTRATION_ACTIVATION_EXPIRES_SECONDS = REGISTRATION_ACTIVATION_EXPIRES_DAYS * 24 * 60 * 60
 
 export const extractQQNumberFromEmail = (email: string): string => email.split('@')[0]
 
@@ -42,62 +17,59 @@ export const isRegistrationEmailVerificationEnabled = async (): Promise<boolean>
   return !!settingsResult[0]?.enableRegistrationEmailVerification
 }
 
-export const setPendingRegistrationCode = (email: string, userId: number): PendingRegistrationCode => {
-  const record: PendingRegistrationCode = {
-    userId,
-    code: randomInt(100000, 999999).toString(),
-    expiresAt: now() + CODE_EXPIRES_MS,
-    attempts: 0,
-    lastSentAt: now()
+const getJwtSecret = (): string => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is required for registration activation links')
   }
-
-  pendingRegistrationCodes.set(email, record)
-  return record
+  return process.env.JWT_SECRET
 }
 
-export const getPendingRegistrationCode = (email: string): PendingRegistrationCode | null => {
-  const record = pendingRegistrationCodes.get(email)
-  return cleanupExpiredCode(email, record)
+export const getRegistrationActivationExpiresDays = (): number => {
+  return REGISTRATION_ACTIVATION_EXPIRES_DAYS
 }
 
-export const getRegistrationCodeResendRemainingSeconds = (email: string): number => {
-  const record = getPendingRegistrationCode(email)
-  if (!record) {
-    return 0
-  }
-
-  const remaining = Math.ceil((record.lastSentAt + RESEND_COOLDOWN_MS - now()) / 1000)
-  return remaining > 0 ? remaining : 0
-}
-
-export const verifyPendingRegistrationCode = (
-  email: string,
-  code: string
-): { ok: true; userId: number } | { ok: false; message: string } => {
-  const record = getPendingRegistrationCode(email)
-
-  if (!record) {
-    return { ok: false, message: '验证码已过期或不存在，请重新发送' }
-  }
-
-  if (record.attempts >= MAX_VERIFY_ATTEMPTS) {
-    pendingRegistrationCodes.delete(email)
-    return { ok: false, message: '验证码尝试次数过多，请重新发送' }
-  }
-
-  if (record.code !== code) {
-    record.attempts += 1
-    pendingRegistrationCodes.set(email, record)
-    return {
-      ok: false,
-      message: `验证码错误，剩余尝试次数：${Math.max(0, MAX_VERIFY_ATTEMPTS - record.attempts)}`
+export const createRegistrationActivationToken = (email: string, userId: number): string => {
+  return jwt.sign(
+    {
+      type: 'register_activation',
+      userId,
+      email: email.toLowerCase()
+    },
+    getJwtSecret(),
+    {
+      expiresIn: REGISTRATION_ACTIVATION_EXPIRES_SECONDS
     }
-  }
-
-  pendingRegistrationCodes.delete(email)
-  return { ok: true, userId: record.userId }
+  )
 }
 
-export const clearPendingRegistrationCode = (email: string) => {
-  pendingRegistrationCodes.delete(email)
+export const verifyRegistrationActivationToken = (
+  token: string
+): { ok: true; payload: { userId: number; email: string } } | { ok: false; message: string } => {
+  try {
+    const decoded = jwt.verify(token, getJwtSecret()) as {
+      type?: string
+      userId?: number
+      email?: string
+    }
+
+    if (decoded?.type !== 'register_activation') {
+      return { ok: false, message: '激活链接无效，请重新发送' }
+    }
+
+    const userId = Number(decoded.userId)
+    const email = typeof decoded.email === 'string' ? decoded.email.toLowerCase() : ''
+    if (!userId || !email) {
+      return { ok: false, message: '激活链接无效，请重新发送' }
+    }
+
+    return {
+      ok: true,
+      payload: { userId, email }
+    }
+  } catch (error: any) {
+    if (error?.name === 'TokenExpiredError') {
+      return { ok: false, message: '激活链接已过期，请重新发送' }
+    }
+    return { ok: false, message: '激活链接无效，请重新发送' }
+  }
 }

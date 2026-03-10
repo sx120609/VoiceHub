@@ -3,21 +3,28 @@ import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
-import { verifyPendingRegistrationCode } from '~~/server/utils/registration-verification'
+import { verifyRegistrationActivationToken } from '~~/server/utils/registration-verification'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const qqEmail = requireQQEmailOrNumber(body?.email ?? body?.qqNumber ?? body?.qq)
-  const code = (body?.code || '').toString().trim()
-
-  if (!/^\d{6}$/.test(code)) {
+  const token = (body?.token || '').toString().trim()
+  if (!token) {
     throw createError({
       statusCode: 400,
-      message: '请输入 6 位数字验证码'
+      message: '缺少激活令牌，请通过邮件中的激活链接完成验证'
     })
   }
 
+  const verifyResult = verifyRegistrationActivationToken(token)
+  if (!verifyResult.ok) {
+    throw createError({
+      statusCode: 400,
+      message: verifyResult.message
+    })
+  }
+
+  const qqEmail = requireQQEmailOrNumber(verifyResult.payload.email)
   const userResult = await db
     .select({
       id: users.id,
@@ -49,18 +56,10 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!user.emailVerified) {
-    const verifyResult = verifyPendingRegistrationCode(qqEmail, code)
-    if (!verifyResult.ok) {
+    if (verifyResult.payload.userId !== user.id) {
       throw createError({
         statusCode: 400,
-        message: verifyResult.message
-      })
-    }
-
-    if (verifyResult.userId !== user.id) {
-      throw createError({
-        statusCode: 400,
-        message: '验证码与账号不匹配，请重新获取'
+        message: '激活链接与账号不匹配，请重新获取'
       })
     }
 

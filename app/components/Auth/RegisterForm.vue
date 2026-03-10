@@ -1,9 +1,9 @@
 <template>
   <div class="register-form">
     <div class="form-header">
-      <h2>{{ pendingVerification ? '验证邮箱激活账号' : '创建账号' }}</h2>
+      <h2>{{ pendingVerification ? '邮箱激活账号' : '创建账号' }}</h2>
       <p v-if="pendingVerification">
-        验证码已发送至 {{ pendingEmail }}，输入验证码后即可激活并登录
+        激活链接已发送至 {{ pendingEmail }}，点击邮件中的链接即可激活（3天内有效）
       </p>
       <p v-else>使用 QQ 邮箱注册，系统会自动使用 QQ 号作为用户名</p>
     </div>
@@ -85,25 +85,9 @@
       </button>
     </form>
 
-    <form v-else :class="['auth-form', { 'has-error': !!error }]" @submit.prevent="handleVerify">
+    <div v-else :class="['auth-form', { 'has-error': !!error }]">
       <div v-if="!verificationSent" class="pending-tip">
-        验证码发送失败，请点击下方“重发验证码”，或联系管理员手动激活账号。
-      </div>
-
-      <div class="form-group">
-        <label for="verificationCode">邮箱验证码</label>
-        <div class="input-wrapper">
-          <input
-            id="verificationCode"
-            v-model="form.verificationCode"
-            :class="{ 'input-error': error }"
-            maxlength="6"
-            placeholder="请输入6位数字验证码"
-            required
-            type="text"
-            @input="error = ''"
-          >
-        </div>
+        激活链接发送失败，请点击下方“重发激活链接”，或联系管理员手动激活账号。
       </div>
 
       <div v-if="info" class="info-container">
@@ -114,22 +98,16 @@
         <span class="error-message">{{ error }}</span>
       </div>
 
-      <button :disabled="verifying" class="submit-btn" type="submit">
-        <span v-if="verifying">验证中...</span>
-        <span v-else>验证并登录</span>
-      </button>
-
       <button
-        :disabled="resending || resendCooldown > 0"
+        :disabled="resending"
         class="resend-btn"
         type="button"
         @click="handleResend"
       >
         <span v-if="resending">发送中...</span>
-        <span v-else-if="resendCooldown > 0">{{ resendCooldown }} 秒后可重发</span>
-        <span v-else>重发验证码</span>
+        <span v-else>重发激活链接</span>
       </button>
-    </form>
+    </div>
 
     <div class="form-footer">
       <p class="help-text">已有账号？<NuxtLink to="/login">去登录</NuxtLink></p>
@@ -138,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { ref } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 
 const auth = useAuth()
@@ -147,12 +125,10 @@ const route = useRoute()
 const form = ref({
   emailPrefix: '',
   password: '',
-  confirmPassword: '',
-  verificationCode: ''
+  confirmPassword: ''
 })
 
 const loading = ref(false)
-const verifying = ref(false)
 const resending = ref(false)
 const error = ref('')
 const info = ref('')
@@ -161,39 +137,12 @@ const showConfirmPassword = ref(false)
 const pendingVerification = ref(false)
 const pendingEmail = ref('')
 const verificationSent = ref(false)
-const resendCooldown = ref(0)
-
-let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
 const qqNumberRegex = /^[1-9]\d{4,10}$/
 
 const normalizeQQPrefixInput = (value: string): string => value.trim().toLowerCase()
 
 const toQQEmail = (value: string): string => `${normalizeQQPrefixInput(value)}@qq.com`
-
-const stopCooldownTimer = () => {
-  if (cooldownTimer) {
-    clearInterval(cooldownTimer)
-    cooldownTimer = null
-  }
-}
-
-const startCooldown = (seconds: number) => {
-  stopCooldownTimer()
-  resendCooldown.value = seconds
-  cooldownTimer = setInterval(() => {
-    if (resendCooldown.value <= 1) {
-      resendCooldown.value = 0
-      stopCooldownTimer()
-      return
-    }
-    resendCooldown.value -= 1
-  }, 1000)
-}
-
-onBeforeUnmount(() => {
-  stopCooldownTimer()
-})
 
 const goAfterLogin = async () => {
   await auth.initAuth()
@@ -240,11 +189,7 @@ const handleRegister = async () => {
       pendingVerification.value = true
       pendingEmail.value = response.email || toQQEmail(form.value.emailPrefix)
       verificationSent.value = !!response.verificationSent
-      form.value.verificationCode = ''
-      if (verificationSent.value) {
-        startCooldown(60)
-      }
-      info.value = response.message || '请完成邮箱验证码验证后登录'
+      info.value = response.message || '请点击邮箱中的激活链接完成账号激活'
       return
     }
 
@@ -256,35 +201,8 @@ const handleRegister = async () => {
   }
 }
 
-const handleVerify = async () => {
-  if (!/^\d{6}$/.test(form.value.verificationCode.trim())) {
-    error.value = '请输入6位数字验证码'
-    return
-  }
-
-  verifying.value = true
-  error.value = ''
-  info.value = ''
-
-  try {
-    await $fetch('/api/auth/register/verify', {
-      method: 'POST',
-      body: {
-        email: pendingEmail.value,
-        code: form.value.verificationCode.trim()
-      }
-    })
-
-    await goAfterLogin()
-  } catch (err: any) {
-    error.value = err?.data?.message || err?.message || '验证失败，请重试'
-  } finally {
-    verifying.value = false
-  }
-}
-
 const handleResend = async () => {
-  if (!pendingEmail.value || resendCooldown.value > 0) {
+  if (!pendingEmail.value) {
     return
   }
 
@@ -301,10 +219,9 @@ const handleResend = async () => {
     })
 
     verificationSent.value = true
-    startCooldown(60)
-    info.value = '验证码已发送，请查收邮箱'
+    info.value = '激活链接已发送，请查收邮箱'
   } catch (err: any) {
-    error.value = err?.data?.message || err?.message || '重发验证码失败，请稍后重试'
+    error.value = err?.data?.message || err?.message || '重发激活链接失败，请稍后重试'
   } finally {
     resending.value = false
   }
