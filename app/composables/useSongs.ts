@@ -4,7 +4,7 @@ import { getGlobalDedup } from './useRequestDedup'
 import type { PlayTime, Schedule, Song } from '~/types'
 
 export const useSongs = () => {
-  const { isAuthenticated, user, getAuthConfig, isAdmin } = useAuth()
+  const { isAuthenticated, user, getAuthConfig, isAdmin, initAuth } = useAuth()
   const dedup = getGlobalDedup()
 
   const songs = ref<Song[]>([])
@@ -463,6 +463,10 @@ export const useSongs = () => {
 
   // 投票
   const voteSong = async (songId: number | { id: number; unvote?: boolean }) => {
+    if (!isAuthenticated.value) {
+      await initAuth()
+    }
+
     if (!isAuthenticated.value) {
       showNotification('需要登录才能投票', 'error')
       return null

@@ -716,24 +716,8 @@ const paginatedSongs = computed(() => {
 // 处理投票
 // 检查点赞按钮是否应该禁用
 const isVoteButtonDisabled = (song) => {
-  if (voteInProgress.value || !song) return true
-
-  // 检查学期
-  if (!currentSemester.value || song.semester !== currentSemester.value.name) {
-    return true
-  }
-
-  // 检查状态
-  if (song.played || song.scheduled) {
-    return true
-  }
-
-  // 检查是否是自己的歌曲
-  if (isMySong(song)) {
-    return true
-  }
-
-  return false
+  // 仅在请求处理中禁用，其他情况允许点击后给出明确提示
+  return voteInProgress.value || !song
 }
 
 // 获取点赞按钮标题（tooltip）
@@ -771,16 +755,26 @@ const handleVote = async (song) => {
   }
 
   // 检查学期
-  if (!currentSemester.value || song.semester !== currentSemester.value.name) {
+  if (!currentSemester.value || !currentSemester.value.name) {
     if (window.$showNotification) {
-      window.$showNotification('非活跃学期', 'error')
+      window.$showNotification('当前未设置活跃学期，暂不可点赞', 'error')
+    }
+    return
+  }
+
+  if (song.semester !== currentSemester.value.name) {
+    if (window.$showNotification) {
+      window.$showNotification(`仅可点赞当前学期歌曲（${currentSemester.value.name}）`, 'error')
     }
     return
   }
 
   // 检查歌曲状态
   if (song.played || song.scheduled) {
-    return // 已播放或已排期的歌曲不能点赞
+    if (window.$showNotification) {
+      window.$showNotification(song.played ? '已播放的歌曲不能点赞' : '已排期的歌曲不能点赞', 'error')
+    }
+    return
   }
 
   // 检查是否是自己的歌曲
