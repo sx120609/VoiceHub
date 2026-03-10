@@ -1,5 +1,3 @@
-import { maskStudentName } from './siteUtils'
-
 /**
  * 可脱敏的用户/参与者接口
  */
@@ -29,8 +27,7 @@ export interface MaskableSong {
  * @param user 参与者对象
  */
 export function maskUserInfo(user: MaskableUser) {
-  if (user.name) user.name = maskStudentName(user.name)
-  if (user.displayName) user.displayName = maskStudentName(user.displayName)
+  // 按新需求保留昵称展示，仅隐藏班级信息
   user.grade = null
   user.class = null
 }
@@ -40,12 +37,7 @@ export function maskUserInfo(user: MaskableUser) {
  * @param song 歌曲对象
  */
 export function maskSongInfo(song: MaskableSong) {
-  // 脱敏主投稿人姓名
-  if (song.requester) {
-    song.requester = maskStudentName(song.requester)
-  }
-  
-  // 隐藏主投稿人年级和班级
+  // 保留主投稿人昵称，仅隐藏年级和班级
   if (song.requesterGrade !== undefined) song.requesterGrade = null
   if (song.requesterClass !== undefined) song.requesterClass = null
   

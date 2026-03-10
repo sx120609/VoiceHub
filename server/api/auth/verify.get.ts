@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
         return {
           user: {
             ...userWithDetails,
-            name: qqProfile?.name || userWithDetails.name,
+            name: userWithDetails.name || qqProfile?.name || userWithDetails.username,
             avatar: qqProfile?.avatar || userWithDetails.avatar
           },
           valid: true
@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
     const user = {
       id: dbUser.id,
       username: dbUser.username,
-      name: qqProfile?.name || dbUser.name,
+      name: dbUser.name || qqProfile?.name || dbUser.username,
       grade: dbUser.grade,
       class: dbUser.class,
       role: dbUser.role,

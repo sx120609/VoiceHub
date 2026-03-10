@@ -79,6 +79,39 @@
 
         <!-- 右侧：详细设置 (PC端占据 8/12) -->
         <div class="lg:col-span-8 space-y-8">
+          <section :class="sectionClass">
+            <div class="flex items-center gap-3 border-b border-[#d6e1ce] pb-5 mb-6">
+              <div class="p-2.5 bg-[#2f7d4f]/12 rounded-xl">
+                <Pencil :size="20" class="text-[#2f7d4f]" />
+              </div>
+              <div>
+                <h2 class="text-base font-black text-[#1f2a1f]">显示昵称</h2>
+                <p class="text-xs text-[#6b7b6b] mt-0.5">该昵称将用于首页投稿人等公开展示位置</p>
+              </div>
+            </div>
+
+            <div class="max-w-md space-y-3">
+              <input
+                v-model="displayName"
+                :disabled="savingDisplayName"
+                maxlength="30"
+                type="text"
+                class="w-full bg-[#f7fbf4] border border-[#d1ddc9] rounded-xl px-4 py-3 text-sm text-[#1f2a1f] focus:outline-none focus:border-[#9eb996] transition-all disabled:opacity-60"
+                placeholder="请输入显示昵称"
+              >
+              <p v-if="displayNameError" class="text-xs text-rose-600">
+                {{ displayNameError }}
+              </p>
+              <button
+                :disabled="savingDisplayName || !hasDisplayNameChanged"
+                class="px-4 py-2.5 bg-[#2f7d4f] hover:bg-[#246a41] text-white text-xs font-black rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                @click="saveDisplayName"
+              >
+                {{ savingDisplayName ? '保存中...' : '保存昵称' }}
+              </button>
+            </div>
+          </section>
+
           <!-- 第三方登录绑定 -->
           <section v-if="hasOAuthProviders" :class="sectionClass">
             <div class="flex items-center gap-3 border-b border-[#d6e1ce] pb-5 mb-6">
@@ -116,8 +149,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
-import { ArrowLeft, User, Link as LinkIcon, Lock } from 'lucide-vue-next'
+import { computed, onMounted, watch } from 'vue'
+import { ArrowLeft, User, Link as LinkIcon, Lock, Pencil } from 'lucide-vue-next'
 import { useAuth } from '~/composables/useAuth'
 import { useToast } from '~/composables/useToast'
 
@@ -132,6 +165,10 @@ const hasOAuthProviders = computed(() => {
 })
 
 const avatarError = ref(false)
+const displayName = ref('')
+const originalDisplayName = ref('')
+const savingDisplayName = ref(false)
+const displayNameError = ref('')
 
 // 监听用户头像变化，重置错误状态
 watch(
@@ -141,8 +178,33 @@ watch(
   }
 )
 
+const syncDisplayNameFromAuth = () => {
+  const fallbackName = auth.user.value?.name || auth.user.value?.username || ''
+  displayName.value = fallbackName
+  originalDisplayName.value = fallbackName
+}
+
+watch(
+  () => auth.user.value?.name,
+  () => {
+    if (!savingDisplayName.value) {
+      syncDisplayNameFromAuth()
+    }
+  },
+  { immediate: true }
+)
+
+const hasDisplayNameChanged = computed(() => {
+  return displayName.value.trim() !== originalDisplayName.value.trim()
+})
+
 // 处理来自 OAuth 回调的消息
-onMounted(() => {
+onMounted(async () => {
+  if (!auth.user.value) {
+    await auth.initAuth()
+  }
+  syncDisplayNameFromAuth()
+
   if (route.query.message) {
     showToast(route.query.message, 'success')
     router.replace({ query: { ...route.query, message: undefined, error: undefined } })
@@ -174,5 +236,48 @@ const roleName = computed(() => {
 
 const goBack = () => {
   router.back()
+}
+
+const saveDisplayName = async () => {
+  const normalizedDisplayName = displayName.value.trim()
+
+  if (!normalizedDisplayName) {
+    displayNameError.value = '显示昵称不能为空'
+    return
+  }
+
+  if (normalizedDisplayName.length > 30) {
+    displayNameError.value = '显示昵称不能超过30个字符'
+    return
+  }
+
+  try {
+    savingDisplayName.value = true
+    displayNameError.value = ''
+
+    const response = await $fetch('/api/user/profile', {
+      method: 'PUT',
+      body: {
+        displayName: normalizedDisplayName
+      }
+    })
+
+    if (!response?.success) {
+      throw new Error(response?.message || '保存昵称失败')
+    }
+
+    if (auth.user.value) {
+      auth.user.value.name = normalizedDisplayName
+    }
+    originalDisplayName.value = normalizedDisplayName
+    showToast('显示昵称保存成功', 'success')
+    await auth.refreshUser()
+  } catch (error: any) {
+    const message = error?.data?.message || error?.message || '保存昵称失败'
+    displayNameError.value = message
+    showToast(message, 'error')
+  } finally {
+    savingDisplayName.value = false
+  }
 }
 </script>

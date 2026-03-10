@@ -25,12 +25,32 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const password = (body?.password || '').toString()
   const qqEmail = requireQQEmailOrNumber(body?.email ?? body?.qqNumber ?? body?.qq)
+  const displayName =
+    typeof body?.displayName === 'string'
+      ? body.displayName.trim()
+      : typeof body?.name === 'string'
+        ? body.name.trim()
+        : ''
   const username = extractQQNumberFromEmail(qqEmail)
 
   if (!password) {
     throw createError({
       statusCode: 400,
       message: 'QQ邮箱和密码不能为空'
+    })
+  }
+
+  if (!displayName) {
+    throw createError({
+      statusCode: 400,
+      message: '显示昵称不能为空'
+    })
+  }
+
+  if (displayName.length > 30) {
+    throw createError({
+      statusCode: 400,
+      message: '显示昵称不能超过30个字符'
     })
   }
 
@@ -104,12 +124,22 @@ export default defineEventHandler(async (event) => {
         })
       }
 
+      if (displayName && displayName !== (existingUser.name || '').trim()) {
+        await db
+          .update(users)
+          .set({
+            name: displayName,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, existingUser.id))
+      }
+
       let verificationSent = false
       try {
         verificationSent = await sendActivationLink(
           qqEmail,
           existingUser.id,
-          existingUser.name || '',
+          displayName || existingUser.name || '',
           existingUser.username || username
         )
       } catch (mailError) {
@@ -146,7 +176,7 @@ export default defineEventHandler(async (event) => {
     const newUserResult = await db
       .insert(users)
       .values({
-        name: username,
+        name: displayName,
         username,
         password: hashedPassword,
         role: 'USER',
@@ -180,7 +210,7 @@ export default defineEventHandler(async (event) => {
         verificationSent = await sendActivationLink(
           qqEmail,
           newUser.id,
-          newUser.name || '',
+          displayName || newUser.name || '',
           newUser.username || username
         )
       } catch (mailError) {
@@ -218,7 +248,7 @@ export default defineEventHandler(async (event) => {
       message: '注册成功',
       user: {
         ...newUser,
-        name: qqProfile?.name || newUser.name,
+        name: newUser.name || qqProfile?.name || newUser.username,
         avatar: qqProfile?.avatar || null,
         needsPasswordChange: false
       }

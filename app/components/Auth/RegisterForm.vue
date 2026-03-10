@@ -32,6 +32,22 @@
       </div>
 
       <div class="form-group">
+        <label for="displayName">显示昵称</label>
+        <div class="input-wrapper">
+          <input
+            id="displayName"
+            v-model="form.displayName"
+            :class="{ 'input-error': error }"
+            maxlength="30"
+            placeholder="请输入公开显示的昵称"
+            required
+            type="text"
+            @input="error = ''"
+          >
+        </div>
+      </div>
+
+      <div class="form-group">
         <label for="password">密码</label>
         <div class="input-wrapper">
           <input
@@ -124,6 +140,7 @@ const route = useRoute()
 
 const form = ref({
   emailPrefix: '',
+  displayName: '',
   password: '',
   confirmPassword: ''
 })
@@ -162,6 +179,17 @@ const handleRegister = async () => {
     return
   }
 
+  const displayName = form.value.displayName.trim()
+  if (!displayName) {
+    error.value = '请填写显示昵称'
+    return
+  }
+
+  if (displayName.length > 30) {
+    error.value = '显示昵称不能超过30个字符'
+    return
+  }
+
   if (form.value.password.length < 6) {
     error.value = '密码长度不能少于6位'
     return
@@ -181,6 +209,7 @@ const handleRegister = async () => {
       method: 'POST',
       body: {
         qqNumber,
+        displayName,
         password: form.value.password
       }
     })

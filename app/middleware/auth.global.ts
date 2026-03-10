@@ -2,7 +2,7 @@ import { useAuth } from '~/composables/useAuth'
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   const { isAuthenticated, initAuth } = useAuth()
-  const publicRoutes = ['/login', '/register', '/', '/auth/error']
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/', '/auth/error']
 
   // 客户端初始化认证状态
   if (import.meta.client && !isAuthenticated.value) {

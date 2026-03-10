@@ -43,7 +43,7 @@
         <input
           v-model="searchQuery"
           class="w-full bg-zinc-950 border border-zinc-800/80 rounded-lg pl-11 pr-4 py-2.5 text-xs focus:outline-none focus:border-blue-500/30 transition-all text-zinc-200"
-          placeholder="通过姓名或学号搜索..."
+          placeholder="通过昵称或账号搜索..."
           type="text"
         >
       </div>
@@ -452,7 +452,7 @@
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1"
-                    >姓名</label
+                    >显示昵称</label
                   >
                   <div class="relative group">
                     <User
@@ -462,7 +462,7 @@
                     <input
                       v-model="userForm.name"
                       class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-11 pr-4 py-3 text-xs focus:outline-none focus:border-blue-500/30 transition-all text-zinc-200"
-                      placeholder="请输入真实姓名"
+                      placeholder="请输入显示昵称"
                       type="text"
                     >
                   </div>

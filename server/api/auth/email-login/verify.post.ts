@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
       user: {
         id: user.id,
         username: user.username,
-        name: qqProfile?.name || user.name,
+        name: user.name || qqProfile?.name || user.username,
         grade: user.grade,
         class: user.class,
         role: user.role,
