@@ -4872,9 +4872,19 @@ defineExpose({
     border-radius: 12px;
     padding: 0.75rem 1rem;
     font-size: 15px;
+    font-family: 'MiSans-Demibold', sans-serif;
+    font-weight: 600;
+    color: #1f2a1f;
+    line-height: 1.35;
     flex: 1;
     min-width: 0; /* 允许输入框在必要时缩小 */
     max-width: 100%; /* 防止超出 */
+  }
+
+  .search-input::placeholder {
+    color: #809180;
+    font-family: 'MiSans', sans-serif;
+    font-weight: 500;
   }
 
   .search-button {
