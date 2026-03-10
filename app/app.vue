@@ -1,5 +1,5 @@
 <template>
-  <div class="app" data-theme="dark" data-color-scheme="custom">
+  <div class="app" data-theme="light" data-color-scheme="campus">
     <!-- 全局通知容器组件 -->
     <UINotificationContainer ref="notificationContainer" />
 

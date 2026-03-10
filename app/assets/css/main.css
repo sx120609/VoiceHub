@@ -7,7 +7,7 @@
 
 /* 防止浏览器自动应用深色主题 */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 /* 流体背景与全局样式 */
@@ -82,11 +82,68 @@ body::before {
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(120, 119, 198, 0.02) 0%, transparent 50%);
+    radial-gradient(circle at 14% 18%, rgba(47, 125, 79, 0.12) 0%, transparent 35%),
+    radial-gradient(circle at 84% 14%, rgba(194, 138, 38, 0.1) 0%, transparent 34%),
+    radial-gradient(circle at 50% 85%, rgba(46, 111, 174, 0.08) 0%, transparent 38%);
   z-index: -1;
   pointer-events: none;
+}
+
+/* 浅色校园风：覆盖常见深色 Tailwind 工具类 */
+.app[data-theme='light'] .bg-zinc-950,
+.app[data-theme='light'] [class*='bg-zinc-950/'] {
+  background-color: #f4f8ef !important;
+}
+
+.app[data-theme='light'] .bg-zinc-900,
+.app[data-theme='light'] [class*='bg-zinc-900/'] {
+  background-color: #ffffff !important;
+}
+
+.app[data-theme='light'] .bg-zinc-800,
+.app[data-theme='light'] [class*='bg-zinc-800/'] {
+  background-color: #eaf1e4 !important;
+}
+
+.app[data-theme='light'] .text-zinc-100,
+.app[data-theme='light'] .text-zinc-200 {
+  color: #1f2a1f !important;
+}
+
+.app[data-theme='light'] .text-zinc-300 {
+  color: #334233 !important;
+}
+
+.app[data-theme='light'] .text-zinc-400 {
+  color: #4c5d4c !important;
+}
+
+.app[data-theme='light'] .text-zinc-500 {
+  color: #627262 !important;
+}
+
+.app[data-theme='light'] .text-zinc-600 {
+  color: #7a887a !important;
+}
+
+.app[data-theme='light'] .border-zinc-900,
+.app[data-theme='light'] [class*='border-zinc-900/'] {
+  border-color: #d8e3d1 !important;
+}
+
+.app[data-theme='light'] .border-zinc-800,
+.app[data-theme='light'] [class*='border-zinc-800/'] {
+  border-color: #cfdbc7 !important;
+}
+
+.app[data-theme='light'] .border-zinc-700,
+.app[data-theme='light'] [class*='border-zinc-700/'] {
+  border-color: #c1d0b9 !important;
+}
+
+.app[data-theme='light'] .shadow-2xl,
+.app[data-theme='light'] .shadow-xl {
+  box-shadow: 0 20px 34px rgba(43, 61, 43, 0.12) !important;
 }
 
 /* 容器 */

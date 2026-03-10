@@ -3,7 +3,7 @@
 
 /* 全局颜色方案声明 */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 /* 只保护表单元素的外观 */
@@ -38,12 +38,12 @@ button {
 
 /* 保护选中文本颜色 */
 ::selection {
-  background-color: rgba(79, 70, 229, 0.3);
+  background-color: rgba(47, 125, 79, 0.25);
   color: inherit;
 }
 
 ::-moz-selection {
-  background-color: rgba(79, 70, 229, 0.3);
+  background-color: rgba(47, 125, 79, 0.25);
   color: inherit;
 }
 

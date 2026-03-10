@@ -1,60 +1,60 @@
 /* 全局CSS变量 - 统一配色方案 */
 :root {
   /* 主色调 */
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-light: rgba(59, 130, 246, 0.1);
-  --primary-border: rgba(59, 130, 246, 0.2);
+  --primary: #2f7d4f;
+  --primary-hover: #246a41;
+  --primary-light: rgba(47, 125, 79, 0.12);
+  --primary-border: rgba(47, 125, 79, 0.26);
 
   /* 成功色 */
-  --success: #10b981;
-  --success-hover: #059669;
-  --success-light: rgba(16, 185, 129, 0.1);
-  --success-border: rgba(16, 185, 129, 0.2);
+  --success: #2e8b57;
+  --success-hover: #267548;
+  --success-light: rgba(46, 139, 87, 0.12);
+  --success-border: rgba(46, 139, 87, 0.22);
 
   /* 警告色 */
-  --warning: #f59e0b;
-  --warning-hover: #d97706;
-  --warning-light: rgba(245, 158, 11, 0.1);
-  --warning-border: rgba(245, 158, 11, 0.2);
+  --warning: #c28a26;
+  --warning-hover: #a5741f;
+  --warning-light: rgba(194, 138, 38, 0.14);
+  --warning-border: rgba(194, 138, 38, 0.26);
 
   /* 错误色 */
-  --error: #ef4444;
-  --error-hover: #dc2626;
-  --error-light: rgba(239, 68, 68, 0.1);
-  --error-border: rgba(239, 68, 68, 0.2);
+  --error: #d1495b;
+  --error-hover: #b93c4e;
+  --error-light: rgba(209, 73, 91, 0.12);
+  --error-border: rgba(209, 73, 91, 0.24);
 
   /* 信息色 */
-  --info: #3b82f6;
-  --info-hover: #2563eb;
-  --info-light: rgba(59, 130, 246, 0.1);
-  --info-border: rgba(59, 130, 246, 0.2);
+  --info: #2e6fae;
+  --info-hover: #275e93;
+  --info-light: rgba(46, 111, 174, 0.12);
+  --info-border: rgba(46, 111, 174, 0.22);
 
   /* 背景色 */
-  --bg-primary: #111111;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #2a2a2a;
-  --bg-quaternary: #3a3a3a;
-  --bg-hover: #1f1f1f;
+  --bg-primary: #f6f8f2;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eef3e9;
+  --bg-quaternary: #e3eadb;
+  --bg-hover: #f2f6ee;
 
   /* 文字颜色 */
-  --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --text-tertiary: #888888;
-  --text-quaternary: #666666;
-  --text-disabled: #444444;
+  --text-primary: #1f2a1f;
+  --text-secondary: #334233;
+  --text-tertiary: #5f6d5f;
+  --text-quaternary: #7a887a;
+  --text-disabled: #98a698;
 
   /* 边框颜色 */
-  --border-primary: #1f1f1f;
-  --border-secondary: #2a2a2a;
-  --border-tertiary: #3a3a3a;
-  --border-quaternary: #4a4a4a;
+  --border-primary: #d8e2d1;
+  --border-secondary: #cfdac8;
+  --border-tertiary: #c4d1bc;
+  --border-quaternary: #b7c7b0;
 
   /* 阴影 */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px rgba(43, 61, 43, 0.08);
+  --shadow-md: 0 6px 14px rgba(43, 61, 43, 0.12);
+  --shadow-lg: 0 14px 24px rgba(43, 61, 43, 0.14);
+  --shadow-xl: 0 24px 38px rgba(43, 61, 43, 0.16);
 
   /* 圆角 */
   --radius-sm: 4px;
@@ -138,10 +138,10 @@
   --btn-primary-text: var(--text-primary);
   --btn-primary-border: var(--primary-border);
 
-  --btn-secondary-bg: #3a3a3a;
-  --btn-secondary-hover: #4a4a4a;
-  --btn-secondary-text: var(--text-primary);
-  --btn-secondary-border: #555555;
+  --btn-secondary-bg: #e6eee0;
+  --btn-secondary-hover: #dbe6d3;
+  --btn-secondary-text: #243424;
+  --btn-secondary-border: #c8d6bf;
 
   --btn-success-bg: var(--success);
   --btn-success-hover: var(--success-hover);
@@ -158,19 +158,19 @@
   --btn-error-text: var(--text-primary);
   --btn-error-border: var(--error-border);
 
-  --btn-disabled-bg: var(--bg-tertiary);
+  --btn-disabled-bg: #e5ebdf;
   --btn-disabled-text: var(--text-disabled);
 
   /* 输入框颜色 */
-  --input-bg: var(--bg-tertiary);
-  --input-border: var(--border-tertiary);
+  --input-bg: #f8fbf5;
+  --input-border: #c8d5c0;
   --input-border-focus: var(--primary);
-  --input-text: var(--text-primary);
-  --input-placeholder: var(--text-quaternary);
+  --input-text: #1f2a1f;
+  --input-placeholder: #829082;
   --input-shadow-focus: 0 0 0 3px var(--primary-light);
 
   /* 模态框颜色 */
-  --modal-backdrop: rgba(0, 0, 0, 0.7);
+  --modal-backdrop: rgba(31, 42, 31, 0.34);
   --modal-bg: var(--bg-secondary);
   --modal-border: var(--border-secondary);
   --modal-header-border: var(--border-secondary);
@@ -198,9 +198,9 @@
   --spinner-secondary: var(--bg-tertiary);
 
   /* 滚动条颜色 */
-  --scrollbar-track: var(--bg-tertiary);
-  --scrollbar-thumb: var(--bg-quaternary);
-  --scrollbar-thumb-hover: #4a4a4a;
+  --scrollbar-track: #edf2e7;
+  --scrollbar-thumb: #c6d4be;
+  --scrollbar-thumb-hover: #b5c6ad;
 }
 
 /* 深色主题特定调整 */
@@ -213,11 +213,11 @@
 /* 高对比度模式支持 */
 @media (prefers-contrast: high) {
   :root {
-    --border-primary: #444444;
-    --border-secondary: #555555;
-    --border-tertiary: #666666;
-    --text-tertiary: #aaaaaa;
-    --text-quaternary: #888888;
+    --border-primary: #7a8d7a;
+    --border-secondary: #6c826c;
+    --border-tertiary: #5d735d;
+    --text-tertiary: #3a4a3a;
+    --text-quaternary: #2e3e2e;
   }
 }
 
