@@ -6,6 +6,22 @@ import { eq, and, inArray } from 'drizzle-orm'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP } from '~~/server/utils/ip-utils'
 
+const isMissingColumnError = (error: any, columnName: string) => {
+  return (
+    error?.code === '42703' ||
+    (typeof error?.message === 'string' && error.message.toLowerCase().includes(columnName.toLowerCase()))
+  )
+}
+
+const isMissingReplayTableError = (error: any) => {
+  const message = typeof error?.message === 'string' ? error.message.toLowerCase() : ''
+  return (
+    error?.code === '42P01' ||
+    message.includes('song_replay_requests') ||
+    message.includes('replay_request_status')
+  )
+}
+
 export default defineEventHandler(async (event) => {
   // 检查用户认证
   const user = event.context.user
@@ -29,10 +45,15 @@ export default defineEventHandler(async (event) => {
 
   let songIds: number[] = []
 
-  if (body.songId) {
-    songIds = [body.songId]
+  if (body.songId !== undefined && body.songId !== null) {
+    const parsedSongId = Number.parseInt(String(body.songId), 10)
+    if (!Number.isNaN(parsedSongId) && parsedSongId > 0) {
+      songIds = [parsedSongId]
+    }
   } else if (body.songIds && Array.isArray(body.songIds)) {
     songIds = body.songIds
+      .map((id: unknown) => Number.parseInt(String(id), 10))
+      .filter((id: number) => !Number.isNaN(id) && id > 0)
   }
 
   if (songIds.length === 0) {
@@ -52,10 +73,10 @@ export default defineEventHandler(async (event) => {
     ? and(inArray(songs.id, songIds), eq(songs.played, false))
     : and(inArray(songs.id, songIds), eq(songs.played, true))
 
-  // 使用事务确保数据一致性
-  const { updatedSongsResult, updatedSongIds } = await db.transaction(async (tx) => {
-    // 更新歌曲状态
-    const updatedSongsResult = await tx
+  // 先更新歌曲状态（兼容旧数据库可能缺少 playedAt 字段）
+  let updatedSongsResult: any[] = []
+  try {
+    updatedSongsResult = await db
       .update(songs)
       .set({
         played: !isUnmark,
@@ -63,16 +84,30 @@ export default defineEventHandler(async (event) => {
       })
       .where(condition)
       .returning()
+  } catch (error: any) {
+    if (isMissingColumnError(error, 'playedAt')) {
+      console.warn('[Songs API] playedAt 字段不存在，回退为仅更新 played 字段')
+      updatedSongsResult = await db
+        .update(songs)
+        .set({
+          played: !isUnmark
+        })
+        .where(condition)
+        .returning()
+    } else {
+      throw error
+    }
+  }
 
-    // 获取实际更新的歌曲ID列表
-    const updatedSongIds = updatedSongsResult.map(s => s.id)
+  const updatedSongIds = updatedSongsResult.map((s) => s.id)
 
-    if (updatedSongIds.length > 0) {
-      // 根据操作类型更新重播申请状态
-      const targetStatus = !isUnmark ? 'PENDING' : 'FULFILLED'
-      const newStatus = !isUnmark ? 'FULFILLED' : 'PENDING'
+  // 重播申请状态更新为非关键路径：失败不影响“已播放”主流程
+  if (updatedSongIds.length > 0) {
+    const targetStatus = !isUnmark ? 'PENDING' : 'FULFILLED'
+    const newStatus = !isUnmark ? 'FULFILLED' : 'PENDING'
 
-      const updatedRequests = await tx
+    try {
+      const updatedRequests = await db
         .update(songReplayRequests)
         .set({
           status: newStatus,
@@ -89,10 +124,14 @@ export default defineEventHandler(async (event) => {
           : `将 ${updatedRequests.length} 个重播申请状态恢复为 PENDING（撤回已播放）`
         console.log(logMessage)
       }
+    } catch (error: any) {
+      if (isMissingReplayTableError(error)) {
+        console.warn('[Songs API] song_replay_requests 表/状态字段不存在，跳过重播申请联动更新')
+      } else {
+        throw error
+      }
     }
-
-    return { updatedSongsResult, updatedSongIds }
-  })
+  }
 
   // 清除歌曲和排期相关缓存
   try {
@@ -109,13 +148,21 @@ export default defineEventHandler(async (event) => {
     const clientIP = getClientIP(event)
 
     // 异步发送通知，不等待完成
-    setImmediate(() => {
-      Promise.allSettled(updatedSongIds.map(songId => 
-        createSongPlayedNotification(songId, clientIP).catch((err) => {
+    const notifyTask = () => {
+      Promise.allSettled(
+        updatedSongIds.map((songId) =>
+          createSongPlayedNotification(songId, clientIP).catch((err) => {
           console.error(`发送歌曲(${songId})已播放通知失败:`, err)
         })
-      ))
-    })
+        )
+      )
+    }
+
+    if (typeof setImmediate === 'function') {
+      setImmediate(notifyTask)
+    } else {
+      setTimeout(notifyTask, 0)
+    }
   }
 
   return {
