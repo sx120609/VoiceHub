@@ -780,8 +780,8 @@ export const useSongs = () => {
     try {
       const authConfig = getAuthConfig()
       const data = await $fetch('/api/songs/replay', {
-        method: 'DELETE',
-        query: { songId },
+        method: 'POST',
+        body: { songId, cancel: true },
         ...authConfig
       })
 

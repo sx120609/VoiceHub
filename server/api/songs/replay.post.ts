@@ -9,10 +9,29 @@ export default defineEventHandler(async (event) => {
 
   // 2. 读取请求体
   const body = await readBody(event)
-  const { songId } = body
+  const { songId, cancel, action } = body
 
   if (!songId) {
     throw createError({ statusCode: 400, message: '歌曲ID不能为空' })
+  }
+
+  // 兼容某些代理环境不支持 DELETE：支持通过 POST cancel 撤回重播申请
+  if (cancel === true || action === 'cancel' || action === 'withdraw') {
+    const existing = await db
+      .select()
+      .from(songReplayRequests)
+      .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
+      .limit(1)
+
+    if (existing.length === 0) {
+      throw createError({ statusCode: 404, message: '重播申请不存在或无权取消' })
+    }
+
+    await db
+      .delete(songReplayRequests)
+      .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
+
+    return { success: true, message: '已取消重播申请' }
   }
 
   // 3. 检查系统设置
