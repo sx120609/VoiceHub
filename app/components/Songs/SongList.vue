@@ -391,7 +391,7 @@
           :is-admin-user="isAdminUser"
           @close="closeSongCommentsDialog"
           @submit="submitSongComment"
-          @delete="deleteSongComment"
+          @delete="requestDeleteSongComment"
           @refresh="refreshSongComments"
         />
       </div>
@@ -1214,7 +1214,7 @@ const submitSongComment = async (payload) => {
   }
 }
 
-const deleteSongComment = async (comment) => {
+const requestDeleteSongComment = (comment) => {
   if (!isAuthenticated.value) {
     showToast('请先登录后再操作', 'error')
     return
@@ -1231,18 +1231,30 @@ const deleteSongComment = async (comment) => {
     return
   }
 
-  const confirmed = window.confirm('确认删除这条评论吗？删除后无法恢复。')
-  if (!confirmed) {
-    return
+  confirmDialog.value = {
+    show: true,
+    title: '删除评论',
+    message: '确认删除这条评论吗？删除后不可恢复。',
+    type: 'danger',
+    action: 'deleteComment',
+    data: comment
   }
+}
+
+const performDeleteSongComment = async (comment) => {
+  const commentId = Number(comment?.id)
+  if (!Number.isInteger(commentId) || commentId <= 0) return
 
   const currentSongId = songCommentsDialog.value.song?.id
   if (!currentSongId) return
 
   songCommentsDialog.value.deleting = true
   try {
-    const response = await $fetch(`/api/songs/comments/${commentId}`, {
-      method: 'DELETE'
+    const response = await $fetch('/api/songs/comments/delete', {
+      method: 'POST',
+      body: {
+        commentId
+      }
     })
 
     const latestCount = normalizeCommentCount(response?.data?.commentCount)
@@ -1281,7 +1293,11 @@ const confirmAction = async () => {
 
   actionInProgress.value = true
   try {
-    emit(action, data)
+    if (action === 'deleteComment') {
+      await performDeleteSongComment(data)
+    } else {
+      emit(action, data)
+    }
   } catch (err) {
     // 操作执行失败
   } finally {
