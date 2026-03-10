@@ -694,11 +694,14 @@ const handleLogin = async () => {
 .activation-resend {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding-top: 2px;
 }
 
 .resend-activation-btn {
-  align-self: flex-start;
+  align-self: center;
   height: 36px;
   padding: 0 14px;
   border: 1px solid var(--btn-secondary-border);
