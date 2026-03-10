@@ -5,7 +5,7 @@
       <div class="top-bar">
         <div class="logo-section">
           <NuxtLink class="logo-link" to="/">
-            <img alt="VoiceHub Logo" class="logo-image" :src="proxiedSiteLogoUrl" >
+            <img alt="VoiceHub Logo" class="logo-image" :src="logo" >
           </NuxtLink>
           <!-- 横线和学校logo -->
           <div v-if="schoolLogoHomeUrl && schoolLogoHomeUrl.trim()" class="logo-divider-container">
@@ -19,7 +19,7 @@
           <ClientOnly>
             <div v-if="isClientAuthenticated" class="user-info">
               <div class="user-details-desktop">
-                <span class="user-name">{{ displayUserName }}</span>
+                <span class="user-name">{{ user?.name || '用户' }}</span>
                 <span v-if="isAdmin" class="user-badge admin">{{ roleName }}</span>
                 <span v-else class="user-badge">{{ userClassInfo }}</span>
               </div>
@@ -32,7 +32,7 @@
                   @error="avatarError = true"
                 >
                 <div v-else class="user-avatar-placeholder">
-                  {{ displayUserName[0] || 'U' }}
+                  {{ user?.name?.[0] || 'U' }}
                 </div>
               </div>
 
@@ -274,7 +274,7 @@
                             <Icon
                               v-else-if="notification.type === 'COLLABORATION_INVITE'"
                               :size="20"
-                              color="#2f7d4f"
+                              color="#0B5AFE"
                               name="users"
                             />
                             <Icon
@@ -640,23 +640,21 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import logo from '~~/public/images/logo.svg'
 import Icon from '~/components/UI/Icon.vue'
 import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 
 import { useNotifications } from '~/composables/useNotifications'
 import { useSiteConfig } from '~/composables/useSiteConfig'
 import CustomSelect from '~/components/UI/Common/CustomSelect.vue'
-import { normalizeApiBase, withApiBase } from '~/utils/baseUrl'
 
 // 获取运行时配置
 const config = useRuntimeConfig()
-const apiBase = computed(() => normalizeApiBase(config.public.apiBase, config.app.baseURL))
 const router = useRouter()
 
 // 站点配置
 const {
   siteTitle,
-  logoUrl: siteLogoUrl,
   description: siteDescription,
   guidelines: submissionGuidelines,
   icp: icpNumber,
@@ -669,7 +667,6 @@ const auth = useAuth()
 const isClientAuthenticated = computed(() => auth?.isAuthenticated?.value || false)
 const isAdmin = computed(() => auth?.isAdmin?.value || false)
 const user = computed(() => auth?.user?.value || null)
-const displayUserName = computed(() => user.value?.name || user.value?.username || '用户')
 
 const roleName = computed(() => {
   const role = user.value?.role
@@ -1228,35 +1225,6 @@ const filteredSongs = computed(() => {
 const loading = computed(() => songs?.loading?.value || false)
 const error = computed(() => songs?.error?.value || '')
 
-const defaultSiteLogoUrl = '/images/logo.svg'
-
-const firstSiteLogoUrl = computed(() => {
-  const rawValue = String(siteLogoUrl.value || '').trim()
-  if (!rawValue) {
-    return defaultSiteLogoUrl
-  }
-
-  const firstUrl = rawValue
-    .split(/[\n,，;；]+/)
-    .map((item) => item.trim())
-    .find(Boolean)
-
-  return firstUrl || defaultSiteLogoUrl
-})
-
-const proxiedSiteLogoUrl = computed(() => {
-  const currentLogo = firstSiteLogoUrl.value
-  if (!currentLogo) {
-    return defaultSiteLogoUrl
-  }
-
-  if (currentLogo.startsWith('http://')) {
-    return `${withApiBase('/api/proxy/image', apiBase.value)}?url=${encodeURIComponent(currentLogo)}`
-  }
-
-  return currentLogo
-})
-
 // 处理学校logo的HTTP/HTTPS代理
 const proxiedSchoolLogoUrl = computed(() => {
   if (!schoolLogoHomeUrl.value || !schoolLogoHomeUrl.value.trim()) {
@@ -1267,7 +1235,7 @@ const proxiedSchoolLogoUrl = computed(() => {
 
   // 如果是HTTP链接，通过代理访问
   if (logoUrl.startsWith('http://')) {
-    return `${withApiBase('/api/proxy/image', apiBase.value)}?url=${encodeURIComponent(logoUrl)}`
+    return `/api/proxy/image?url=${encodeURIComponent(logoUrl)}`
   }
 
   // HTTPS链接或相对路径直接返回
@@ -1609,9 +1577,9 @@ if (
 .home {
   width: 100%;
   flex: 1;
-  background-color: #f6f8f2;
+  background-color: #121318;
   padding: 1.5rem;
-  color: #1f2a1f;
+  color: #ffffff;
   display: flex;
   flex-direction: column;
   min-height: 100vh; /* 确保至少占满视口 */
@@ -1685,9 +1653,9 @@ if (
   height: 100px;
   background: linear-gradient(
     to bottom,
-    rgba(47, 125, 79, 0.18),
-    #334633,
-    rgba(47, 125, 79, 0.18)
+    rgba(255, 255, 255, 0.3),
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.3)
   );
   border-radius: 1px;
 }
@@ -1722,14 +1690,14 @@ if (
 .user-name {
   font-size: 14px;
   font-weight: 600;
-  color: #263726;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .user-badge {
   font-size: 10px;
   padding: 1px 6px;
-  background: #f2f6ee;
-  color: #6f806f;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
   border-radius: 4px;
   margin-top: 2px;
 }
@@ -1744,8 +1712,8 @@ if (
   height: 36px;
   border-radius: 50%;
   overflow: hidden;
-  background: #e8efe1;
-  border: 1px solid #f2f6ee;
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1767,8 +1735,8 @@ if (
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
-  background: #f3f8ef;
-  border: 1px solid #f2f6ee;
+  background: #1a1a1f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 8px;
   min-width: 160px;
@@ -1784,7 +1752,7 @@ if (
   gap: 10px;
   padding: 10px 12px;
   border-radius: 8px;
-  color: #526452;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
   transition: all 0.2s;
   text-decoration: none;
@@ -1794,8 +1762,8 @@ if (
 }
 
 .action-item:hover {
-  background: #f8fbf6;
-  color: #243424;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
 }
 
 .action-item.logout:hover {
@@ -1829,11 +1797,11 @@ if (
   border-radius: 14px;
   font-size: 14px;
   font-weight: 600;
-  background: #f9fcf8;
+  background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: #243424;
-  border: 1px solid #f2f6ee;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   text-decoration: none;
@@ -1842,11 +1810,11 @@ if (
 }
 
 .login-options .login-btn:hover {
-  background: #f4f8f1;
+  background: rgba(255, 255, 255, 0.08);
   border-color: rgba(59, 130, 246, 0.5);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
-  color: #1f2a1f;
+  color: white;
 }
 
 .login-options .login-btn :deep(.icon),
@@ -1885,7 +1853,7 @@ if (
   font-weight: 800;
   font-size: 42px;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #1f2a1f 0%, #526452 100%);
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -1896,7 +1864,7 @@ if (
 .title-divider {
   width: 40px;
   height: 4px;
-  background: #2f7d4f;
+  background: #0b5afe;
   border-radius: 2px;
   box-shadow: 0 0 15px rgba(11, 90, 254, 0.6);
 }
@@ -1905,7 +1873,7 @@ if (
   font-family: 'MiSans', sans-serif;
   font-weight: 500;
   font-size: 14px;
-  color: #6a7a6a;
+  color: rgba(255, 255, 255, 0.4);
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
@@ -1937,22 +1905,22 @@ if (
 }
 
 .section-tab {
-  background: #f5f9f1;
+  background: #1a1b24;
   border-radius: 15px 15px 0 0;
   padding: 15px 24px;
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 16px;
-  color: #334633;
-  border: 2px solid #cfdcc7;
+  color: rgba(255, 255, 255, 0.8);
+  border: 2px solid #282830;
   border-bottom: none;
   cursor: pointer;
   flex: 0 0 auto;
 }
 
 .section-tab.active {
-  background: #edf3e7;
-  color: #1f2a1f;
+  background: #21242d;
+  color: #ffffff;
   position: relative;
   z-index: 1;
 }
@@ -2052,7 +2020,7 @@ if (
   right: -8px;
   width: 6px;
   height: 6px;
-  background: #2f7d4f;
+  background: #0b5afe;
   border-radius: 50%;
   box-shadow: 0 0 5px rgba(11, 90, 254, 0.5);
 }
@@ -2064,7 +2032,7 @@ if (
   left: 50%;
   width: 0;
   height: 2px;
-  background: #2f7d4f;
+  background: #0b5afe;
   transition: all 0.3s ease;
   transform: translateX(-50%);
 }
@@ -2082,19 +2050,19 @@ if (
   transform: none; /* 移除上浮效果 */
   background-color: transparent; /* 移除背景色 */
   box-shadow: none; /* 移除内阴影 */
-  color: #263726;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .section-tab.active:hover {
   background-color: transparent;
   box-shadow: none;
-  color: #1f2a1f;
+  color: #ffffff;
 }
 
 /* 内容容器 */
 .tab-content-container {
-  background: #f5f9f1;
-  border: 2px solid #cfdcc7;
+  background: #1a1b24;
+  border: 2px solid #282830;
   border-radius: 0 15px 15px 15px;
   padding: 1.5rem;
   margin-top: -2px; /* 使内容容器与标签连接 */
@@ -2189,7 +2157,7 @@ if (
   font-weight: 400;
   font-size: 16px;
   letter-spacing: 4%;
-  color: #5f715f;
+  color: rgba(255, 255, 255, 0.6);
   margin: 1.5rem 0 1rem;
 }
 
@@ -2209,7 +2177,7 @@ if (
 .empty-state {
   text-align: center;
   padding: 2rem;
-  color: #5f715f;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* 下拉菜单动画 */
@@ -2246,13 +2214,13 @@ if (
   align-items: center;
   padding: 1.25rem 0;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid #f4f8f1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .notification-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1f2a1f;
+  color: #ffffff;
   margin: 0;
   display: flex;
   align-items: center;
@@ -2260,9 +2228,9 @@ if (
 }
 
 .settings-icon {
-  background: #f8fbf6;
-  border: 1px solid #f2f6ee;
-  color: #5f715f;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
   width: 36px;
   height: 36px;
   border-radius: 10px;
@@ -2274,8 +2242,8 @@ if (
 }
 
 .settings-icon:hover {
-  background-color: #f2f6ee;
-  color: #2f7d4f;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
   transform: rotate(30deg);
 }
 
@@ -2298,7 +2266,7 @@ if (
   align-items: center;
   justify-content: center;
   padding: 3rem 0;
-  color: rgba(47, 125, 79, 0.18);
+  color: rgba(255, 255, 255, 0.4);
   gap: 1.25rem;
 }
 
@@ -2316,7 +2284,7 @@ if (
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #f2f6ee;
+  border: 3px solid rgba(255, 255, 255, 0.1);
   border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -2337,7 +2305,7 @@ if (
 .notification-card {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
-  border: 1px solid #f6faf3;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 20px;
   padding: 1.25rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2346,7 +2314,7 @@ if (
 }
 
 .notification-card:hover {
-  background: #f6faf3;
+  background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.12);
   transform: translateY(-2px);
 }
@@ -2384,13 +2352,13 @@ if (
 .notification-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1f2a1f;
+  color: #ffffff;
   margin-bottom: 0.25rem;
 }
 
 .notification-time {
   font-size: 0.75rem;
-  color: rgba(47, 125, 79, 0.18);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .notification-card-body {
@@ -2398,7 +2366,7 @@ if (
 }
 
 .notification-text {
-  color: #526452;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
   line-height: 1.6;
 }
@@ -2432,14 +2400,14 @@ if (
   display: flex;
   gap: 1rem;
   padding: 1rem 0;
-  border-top: 1px solid #f4f8f1;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .action-button-large {
   flex: 1;
-  background: #f8fbf6;
-  border: 1px solid #f2f6ee;
-  color: #355035;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
   padding: 0.75rem;
   border-radius: 12px;
   font-size: 0.875rem;
@@ -2449,7 +2417,7 @@ if (
 }
 
 .action-button-large:hover:not(.disabled) {
-  background: #f2f6ee;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .action-button-large.danger {
@@ -2468,8 +2436,8 @@ if (
 /* 分页控件样式 */
 .notification-pagination {
   padding: 15px 0;
-  border-top: 1px solid #f2f6ee;
-  border-bottom: 1px solid #f2f6ee;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .pagination-info {
@@ -2478,7 +2446,7 @@ if (
 }
 
 .pagination-text {
-  color: #526452;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
 }
 
@@ -2496,7 +2464,7 @@ if (
 }
 
 .page-size-selector label {
-  color: #526452;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
   white-space: nowrap;
 }
@@ -2512,9 +2480,9 @@ if (
 }
 
 .page-nav-button {
-  background-color: #f2f6ee;
-  border: 1px solid #e6eee0;
-  color: #355035;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--light);
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -2527,8 +2495,8 @@ if (
 }
 
 .page-nav-button:hover:not(:disabled) {
-  background-color: #e6eee0;
-  border-color: rgba(47, 125, 79, 0.18);
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
 }
 
@@ -2538,9 +2506,9 @@ if (
 }
 
 .page-nav-button:disabled {
-  background-color: #f8fbf6;
-  border-color: #f2f6ee;
-  color: rgba(47, 125, 79, 0.18);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
   cursor: not-allowed;
 }
 
@@ -2551,9 +2519,9 @@ if (
 }
 
 .page-number-button {
-  background-color: #f2f6ee;
-  border: 1px solid #e6eee0;
-  color: #355035;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--light);
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -2569,8 +2537,8 @@ if (
 }
 
 .page-number-button:hover:not(:disabled) {
-  background-color: #e6eee0;
-  border-color: rgba(47, 125, 79, 0.18);
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
 }
 
@@ -2591,14 +2559,14 @@ if (
 }
 
 .page-number-button:disabled {
-  background-color: #f8fbf6;
-  border-color: #f2f6ee;
-  color: rgba(47, 125, 79, 0.18);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
   cursor: not-allowed;
 }
 
 .page-ellipsis {
-  color: #6f806f;
+  color: rgba(255, 255, 255, 0.5);
   padding: 0 4px;
   font-size: 0.85rem;
 }
@@ -2610,7 +2578,7 @@ if (
   justify-content: center;
   gap: 8px;
   padding: 10px 0;
-  color: #526452;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
   animation: fade-in 0.3s ease;
 }
@@ -2618,7 +2586,7 @@ if (
 .loading-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid #e6eee0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-top: 2px solid var(--primary);
   border-radius: 50%;
   animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -2651,11 +2619,11 @@ if (
   justify-content: center;
   gap: 10px;
   padding: 15px 0;
-  border-top: 1px solid #f2f6ee;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .action-button-large {
-  background-color: #f2f6ee;
+  background-color: rgba(255, 255, 255, 0.1);
   border: none;
   color: var(--light);
   padding: 8px 16px;
@@ -2666,7 +2634,7 @@ if (
 }
 
 .action-button-large:hover {
-  background-color: #e6eee0;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .action-button-large.danger {
@@ -2678,14 +2646,14 @@ if (
 }
 
 .action-button-large.disabled {
-  background-color: #f8fbf6;
-  color: rgba(47, 125, 79, 0.18);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 .action-button-large.disabled:hover {
-  background-color: #f8fbf6;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 /* ==================== 移动端设计 ==================== */
@@ -2694,7 +2662,7 @@ if (
 @media (max-width: 768px) {
   .home {
     padding: 0;
-    background-color: #f6f8f2;
+    background-color: #0a0a0f;
   }
 
   .main-content {
@@ -2714,7 +2682,7 @@ if (
     padding: 10px 12px;
     margin: 0;
     background: linear-gradient(180deg, rgba(11, 90, 254, 0.08) 0%, transparent 100%);
-    border-bottom: 1px solid #f8fbf6;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .logo-section {
@@ -2734,7 +2702,7 @@ if (
   .logo-divider {
     height: 28px;
     width: 1px;
-    background: #edf3e8;
+    background: rgba(255, 255, 255, 0.15);
   }
 
   /* 移动端的主页面里不需要写学校名，保持简洁 */
@@ -2759,8 +2727,8 @@ if (
   .user-avatar-wrapper {
     width: 32px;
     height: 32px;
-    background: #f8fbf6;
-    border-color: #f2f6ee;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .user-avatar-placeholder {
@@ -2787,11 +2755,11 @@ if (
     border-radius: 12px;
     font-size: 14px;
     font-weight: 600;
-    background: #f4f8f1;
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    color: #243424;
-    border: 1px solid #f2f6ee;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -2802,7 +2770,7 @@ if (
 
   .login-options .login-btn:active {
     transform: scale(0.95);
-    background: #edf3e8;
+    background: rgba(255, 255, 255, 0.15);
     border-color: rgba(59, 130, 246, 0.4);
   }
 
@@ -2832,13 +2800,13 @@ if (
     gap: 0;
     padding: 0 0.5rem;
     height: 64px;
-    background: rgba(251, 253, 248, 0.96);
+    background: rgba(28, 28, 30, 0.9);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid #d2deca;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 9999px;
     z-index: 1000;
-    box-shadow: 0 12px 30px rgba(43, 61, 43, 0.16);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   }
 
   .section-tab {
@@ -2850,7 +2818,7 @@ if (
     padding: 0; /* 移除固定内边距，改用 flex 居中 */
     font-size: 10px;
     font-weight: 500;
-    color: #667666;
+    color: #71717a; /* text-zinc-500 */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2875,15 +2843,15 @@ if (
   }
 
   .section-tab.active {
-    color: #2f7d4f !important;
+    color: #3b82f6 !important; /* text-blue-500 - Force blue */
     background: transparent !important;
     transform: none !important;
-    text-shadow: none;
+    text-shadow: 0 0 12px rgba(59, 130, 246, 0.6); /* Text Glow */
   }
 
   /* Prevent hover from turning it white on mobile */
   .section-tab.active:hover {
-    color: #2f7d4f !important;
+    color: #3b82f6 !important;
     background: transparent !important;
     box-shadow: none !important;
   }
@@ -2892,7 +2860,7 @@ if (
     opacity: 1;
     color: currentColor;
     transform: none;
-    filter: none;
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)); /* Icon Glow */
   }
 
   .section-tab.active .tab-text {
@@ -2941,9 +2909,9 @@ if (
     right: 0;
     width: 8px;
     height: 8px;
-    background: #2f7d4f;
+    background: #0b5afe;
     border-radius: 50%;
-    border: 1.5px solid #f6f8f2;
+    border: 1.5px solid #0a0a0f;
     box-shadow: 0 0 5px rgba(11, 90, 254, 0.4);
     z-index: 2;
   }
@@ -3070,7 +3038,7 @@ if (
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(31, 42, 31, 0.34);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -3090,9 +3058,9 @@ if (
 
 /* 弹窗内容 */
 .modal-content {
-  background: linear-gradient(135deg, #f5f9f1 0%, #f6f8f2 100%);
+  background: linear-gradient(135deg, #1a1b24 0%, #121318 100%);
   border-radius: 20px;
-  border: 1px solid #f2f6ee;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   max-width: 420px;
   width: 90%;
@@ -3117,7 +3085,7 @@ if (
   justify-content: space-between;
   align-items: center;
   padding: 24px 28px 16px;
-  border-bottom: 1px solid #f4f8f1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .modal-header h2 {
@@ -3128,7 +3096,7 @@ if (
     sans-serif;
   font-size: 20px;
   font-weight: 700;
-  color: #1f2a1f;
+  color: #ffffff;
   margin: 0;
   letter-spacing: 0.02em;
 }
@@ -3138,9 +3106,9 @@ if (
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #f4f8f1;
+  background: rgba(255, 255, 255, 0.08);
   border: none;
-  color: #5f715f;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
@@ -3151,8 +3119,8 @@ if (
 }
 
 .close-button:hover {
-  background: #edf3e8;
-  color: #2f7d4f;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
   transform: rotate(90deg);
 }
 
@@ -3179,7 +3147,7 @@ if (
   gap: 0.5rem;
   font-size: 16px;
   font-weight: 700;
-  color: #1f2a1f;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -3189,14 +3157,14 @@ if (
 
 .rules-text {
   font-size: 14px;
-  color: #5f715f;
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.6;
   margin: 0;
 }
 
 .guidelines-content {
   font-size: 14px;
-  color: #5f715f;
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.6;
 }
 
@@ -3209,30 +3177,30 @@ if (
 .rule-item {
   display: flex;
   font-size: 14px;
-  color: #5f715f;
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.5;
 }
 
 .rule-item span {
   margin-right: 0.5rem;
-  color: rgba(47, 125, 79, 0.18);
+  color: rgba(255, 255, 255, 0.3);
   font-weight: 600;
 }
 
 /* 年度报告弹窗 */
 .year-review-overlay {
   backdrop-filter: blur(8px);
-  background: rgba(31, 42, 31, 0.24);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .year-review-card {
   position: relative;
   width: 90%;
   max-width: 400px;
-  background: #f6faef;
+  background: #12121a;
   border-radius: 32px;
   overflow: hidden;
-  border: 1px solid #f2f6ee;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   animation: card-appear 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -3250,7 +3218,7 @@ if (
 .card-pattern {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(#f8fbf6 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 20px 20px;
   opacity: 0.5;
 }
@@ -3262,9 +3230,9 @@ if (
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: #f8fbf6;
-  border: 1px solid #f2f6ee;
-  color: rgba(47, 125, 79, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3274,8 +3242,8 @@ if (
 }
 
 .card-close:hover {
-  background: #f2f6ee;
-  color: #2f7d4f;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
   transform: translateY(2px);
 }
 
@@ -3372,14 +3340,14 @@ if (
 .card-title {
   font-size: 24px;
   font-weight: 800;
-  color: #1f2a1f;
+  color: #fff;
   margin-bottom: 12px;
   letter-spacing: -0.01em;
 }
 
 .card-description {
   font-size: 15px;
-  color: #6f806f;
+  color: rgba(255, 255, 255, 0.5);
   line-height: 1.6;
   margin-bottom: 32px;
 }
@@ -3409,7 +3377,7 @@ if (
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px #f2f6ee;
+  box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
   background: #f4f4f4;
 }
 
@@ -3421,9 +3389,9 @@ if (
   width: 100%;
   padding: 14px;
   background: transparent;
-  border: 1px solid #f2f6ee;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  color: #5f715f;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -3431,9 +3399,9 @@ if (
 }
 
 .btn-secondary:hover {
-  background: #f8fbf6;
-  color: #2f7d4f;
-  border-color: #e6eee0;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 @keyframes card-appear {
@@ -3475,7 +3443,7 @@ if (
 .ripple-effect {
   position: absolute;
   border-radius: 50%;
-  background-color: rgba(47, 125, 79, 0.18);
+  background-color: rgba(255, 255, 255, 0.3);
   transform: scale(0);
   animation: ripple 0.6s linear;
   pointer-events: none;
@@ -3511,7 +3479,7 @@ if (
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #2f7d4f;
+  background-color: #0b5afe;
   display: inline-block;
   z-index: 2;
 }
@@ -3551,10 +3519,10 @@ if (
   text-align: center;
   max-width: 400px;
   padding: 30px;
-  background-color: #f5faef;
+  background-color: rgba(30, 41, 59, 0.5);
   border-radius: 12px;
-  border: 1px solid #f2f6ee;
-  box-shadow: 0 5px 20px rgba(31, 42, 31, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
 
 .login-icon {
@@ -3565,16 +3533,16 @@ if (
 .login-required-content h3 {
   font-size: 1.5rem;
   margin-bottom: 10px;
-  color: #1f2a1f;
+  color: var(--light);
 }
 
 .login-required-content p {
   margin-bottom: 20px;
-  color: #526452;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .login-button {
-  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
+  background: linear-gradient(180deg, #0043f8 0%, #0075f8 100%);
   border: none;
   color: white;
   padding: 10px 20px;
@@ -3586,6 +3554,6 @@ if (
 
 .login-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(47, 125, 79, 0.25);
+  box-shadow: 0 5px 15px rgba(0, 67, 248, 0.3);
 }
 </style>
