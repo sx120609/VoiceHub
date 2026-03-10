@@ -4355,7 +4355,7 @@ defineExpose({
   font-family: 'MiSans', sans-serif;
   font-weight: 600;
   font-size: 15px;
-  color: #ffffff;
+  color: #1f2a1f;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -4366,7 +4366,7 @@ defineExpose({
 }
 
 .result-artist {
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   font-size: 13px;
   margin: 0.25rem 0;
   white-space: nowrap;
@@ -4377,7 +4377,7 @@ defineExpose({
 .result-album,
 .result-quality,
 .result-pay {
-  color: rgba(255, 255, 255, 0.4);
+  color: #7a8a7a;
   font-size: 11px;
   margin: 0.15rem 0;
 }
@@ -4434,7 +4434,7 @@ defineExpose({
 
 .similar-text {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #5f715f;
   font-family: 'MiSans', sans-serif;
   font-weight: 500;
 }
@@ -4988,9 +4988,9 @@ defineExpose({
 
   /* 移动端搜索结果优化 */
   .result-item {
-    background: rgba(255, 255, 255, 0.03);
+    background: #f5f9f1;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid #d2deca;
     margin-bottom: 0.5rem;
     padding: 10px;
     flex-direction: row;
