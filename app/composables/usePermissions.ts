@@ -48,8 +48,6 @@ export const usePermissions = () => {
           'users',
           'notifications',
           'smtp-config',
-          'playtimes',
-          'request-times',
           'semesters',
           'site-config'
         ]

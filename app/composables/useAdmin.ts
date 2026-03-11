@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useAuth } from './useAuth'
-import type { PlayTime, SystemSettings } from '~/types'
+import type { SystemSettings } from '~/types'
 
 export const useAdmin = () => {
   const { getAuthConfig, isAdmin } = useAuth()
@@ -229,119 +229,6 @@ export const useAdmin = () => {
     }
   }
 
-  // 获取所有播放时段
-  const getPlayTimes = async () => {
-    if (!isAdmin.value) {
-      error.value = '只有管理员才能获取播放时段'
-      return null
-    }
-
-    loading.value = true
-    error.value = ''
-
-    try {
-      // 使用认证配置
-      const authConfig = getAuthConfig()
-
-      const data = await $fetch('/api/admin/play-times', {
-        ...authConfig
-      })
-
-      return data as PlayTime[]
-    } catch (err: any) {
-      error.value = err.message || '获取播放时段失败'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // 创建播放时段
-  const createPlayTime = async (playTimeData: Partial<PlayTime>) => {
-    if (!isAdmin.value) {
-      error.value = '只有管理员才能创建播放时段'
-      return null
-    }
-
-    loading.value = true
-    error.value = ''
-
-    try {
-      // 使用认证配置
-      const authConfig = getAuthConfig()
-
-      const data = await $fetch('/api/admin/play-times', {
-        method: 'POST',
-        body: playTimeData,
-        ...authConfig
-      })
-
-      return data as PlayTime
-    } catch (err: any) {
-      error.value = err.message || '创建播放时段失败'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // 更新播放时段
-  const updatePlayTime = async (id: number, playTimeData: Partial<PlayTime>) => {
-    if (!isAdmin.value) {
-      error.value = '只有管理员才能更新播放时段'
-      return null
-    }
-
-    loading.value = true
-    error.value = ''
-
-    try {
-      // 使用认证配置
-      const authConfig = getAuthConfig()
-
-      const data = await $fetch(`/api/admin/play-times/${id}`, {
-        method: 'PUT',
-        body: playTimeData,
-        ...authConfig
-      })
-
-      return data as PlayTime
-    } catch (err: any) {
-      error.value = err.message || '更新播放时段失败'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // 删除播放时段
-  const deletePlayTime = async (id: number) => {
-    if (!isAdmin.value) {
-      error.value = '只有管理员才能删除播放时段'
-      return null
-    }
-
-    loading.value = true
-    error.value = ''
-
-    try {
-      // 使用认证配置
-      const authConfig = getAuthConfig()
-
-      const data = await $fetch(`/api/admin/play-times/${id}`, {
-        method: 'DELETE',
-        ...authConfig
-      })
-
-      return data
-    } catch (err: any) {
-      error.value = err.message || '删除播放时段失败'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
   // 删除歌曲
   const deleteSong = async (songId: number) => {
     if (!isAdmin.value) {
@@ -439,10 +326,6 @@ export const useAdmin = () => {
     sendAdminNotification,
     getSystemSettings,
     updateSystemSettings,
-    getPlayTimes,
-    createPlayTime,
-    updatePlayTime,
-    deletePlayTime,
     deleteSong,
     updateSong,
     addSong

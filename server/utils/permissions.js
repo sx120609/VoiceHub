@@ -36,7 +36,6 @@ const ROLES = {
       'songs', // 歌曲管理
       'users', // 用户管理
       'notifications', // 通知管理
-      'playtimes', // 播出时段
       'semesters', // 学期管理
       'site-config', // 站点配置
       'data-analysis' // 数据分析

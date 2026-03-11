@@ -124,8 +124,6 @@ import {
   Bell,
   Mail,
   LogOut,
-  Clock,
-  FileEdit,
   BookOpen,
   Globe,
   Lock
@@ -179,8 +177,6 @@ const menuGroups = [
     items: [
       { icon: Bell, label: '通知管理', id: 'notifications' },
       { icon: Mail, label: '邮件配置', id: 'smtp-config' },
-      { icon: Clock, label: '播出时段', id: 'playtimes' },
-      { icon: FileEdit, label: '投稿管理', id: 'request-times' },
       { icon: BookOpen, label: '学期管理', id: 'semesters' },
       { icon: Globe, label: '站点配置', id: 'site-config' }
     ]

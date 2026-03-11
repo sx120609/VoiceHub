@@ -124,7 +124,7 @@ const fetchPlayTimes = async () => {
   try {
     // 使用useSongs中的方法获取播放时段
     await useSongs().fetchPlayTimes()
-    const response = await fetch('/api/admin/play-times')
+    const response = await fetch('/api/play-times')
     if (response.ok) {
       const data = await response.json()
       // 只显示启用的播放时段

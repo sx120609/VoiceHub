@@ -111,22 +111,6 @@
               <LazyAdminSmtpManager />
             </div>
 
-            <!-- 播出时段 -->
-            <div
-              v-if="activeTab === 'playtimes' && permissions.canAccessPage('playtimes')"
-              class="animate-in fade-in slide-in-from-bottom-4 duration-500"
-            >
-              <LazyAdminPlayTimeManager />
-            </div>
-
-            <!-- 投稿管理 -->
-            <div
-              v-if="activeTab === 'request-times' && permissions.canAccessPage('request-times')"
-              class="animate-in fade-in slide-in-from-bottom-4 duration-500"
-            >
-              <LazyAdminRequestTimeManager />
-            </div>
-
             <!-- 学期管理 -->
             <div
               v-if="activeTab === 'semesters' && permissions.canAccessPage('semesters')"
@@ -200,8 +184,6 @@ const getPageTitle = () => {
     users: '用户管理',
     notifications: '通知管理',
     'smtp-config': '邮件配置',
-    playtimes: '播出时段',
-    'request-times': '投稿管理',
     semesters: '学期管理',
     'site-config': '站点配置'
   }
