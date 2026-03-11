@@ -866,10 +866,16 @@ const handleVote = async (song) => {
 
     if (isUnvote) {
       // 如果已投票，则调用撤销投票
-      emit('vote', { songId: targetSongId, id: targetSongId, unvote: true })
+      song.songId = targetSongId
+      song.id = targetSongId
+      song.unvote = true
+      emit('vote', song)
     } else {
       // 正常投票
-      emit('vote', { songId: targetSongId, id: targetSongId, unvote: false })
+      song.songId = targetSongId
+      song.id = targetSongId
+      song.unvote = false
+      emit('vote', song)
     }
   } catch (err) {
     // 投票处理失败

@@ -19,6 +19,17 @@ async function clearReplayRelatedCache() {
   }
 }
 
+const fetchReplayRequestCount = async (songId: number) => {
+  const rows = await db
+    .select({
+      status: songReplayRequests.status
+    })
+    .from(songReplayRequests)
+    .where(eq(songReplayRequests.songId, songId))
+
+  return rows.filter((item) => item.status === 'PENDING' || item.status === 'FULFILLED').length
+}
+
 export default defineEventHandler(async (event) => {
   const user = event.context.user
   if (!user) {
@@ -59,6 +70,7 @@ export default defineEventHandler(async (event) => {
         )
       await clearReplayRelatedCache()
     }
+    const replayRequestCount = await fetchReplayRequestCount(songId)
 
     return {
       success: true,
@@ -67,6 +79,7 @@ export default defineEventHandler(async (event) => {
         songId,
         replayRequested: false,
         replayRequestStatus: null,
+        replayRequestCount,
         changed
       }
     }
@@ -111,6 +124,7 @@ export default defineEventHandler(async (event) => {
     let changed = false
     if (existing) {
       if (existing.status === 'PENDING') {
+        const replayRequestCount = await fetchReplayRequestCount(songId)
         return {
           success: true,
           message: '您已经申请过重播该歌曲',
@@ -118,6 +132,7 @@ export default defineEventHandler(async (event) => {
             songId,
             replayRequested: true,
             replayRequestStatus: 'PENDING',
+            replayRequestCount,
             changed: false
           }
         }
@@ -155,6 +170,7 @@ export default defineEventHandler(async (event) => {
         changed = true
       } catch (insertError: any) {
         if (insertError?.code === '23505') {
+          const replayRequestCount = await fetchReplayRequestCount(songId)
           return {
             success: true,
             message: '您已经申请过重播该歌曲',
@@ -162,6 +178,7 @@ export default defineEventHandler(async (event) => {
               songId,
               replayRequested: true,
               replayRequestStatus: 'PENDING',
+              replayRequestCount,
               changed: false
             }
           }
@@ -173,6 +190,7 @@ export default defineEventHandler(async (event) => {
     if (changed) {
       await clearReplayRelatedCache()
     }
+    const replayRequestCount = await fetchReplayRequestCount(songId)
 
     return {
       success: true,
@@ -181,6 +199,7 @@ export default defineEventHandler(async (event) => {
         songId,
         replayRequested: true,
         replayRequestStatus: 'PENDING',
+        replayRequestCount,
         changed
       }
     }

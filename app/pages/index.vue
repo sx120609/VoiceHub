@@ -1301,14 +1301,34 @@ const handleVote = async (song) => {
       return
     }
 
-    // 调用投票API - 通知已在composable中处理
-    // 检查是否是取消投票请求
-    if (song.unvote) {
-      // 传递完整对象以支持撤销投票功能
-      await songs.voteSong({ id: targetSongId, unvote: true })
-    } else {
-      // 保持向后兼容，传递ID
-      await songs.voteSong(targetSongId)
+    const isUnvote = !!song?.unvote
+    const previousVoted = !!song?.voted
+    const previousVoteCount = Math.max(0, Number(song?.voteCount || 0))
+
+    // 前端即时反馈，接口返回后再校正
+    if (song && typeof song === 'object') {
+      song.voted = !isUnvote
+      song.voteCount = Math.max(0, previousVoteCount + (isUnvote ? -1 : 1))
+    }
+
+    const result = await songs.voteSong({ id: targetSongId, unvote: isUnvote })
+    if (!result) {
+      if (song && typeof song === 'object') {
+        song.voted = previousVoted
+        song.voteCount = previousVoteCount
+      }
+      return
+    }
+
+    const voteData = result?.data || {}
+    if (song && typeof song === 'object') {
+      if (typeof voteData.voted === 'boolean') {
+        song.voted = voteData.voted
+      }
+      const serverVoteCount = Number(voteData.voteCount)
+      if (Number.isInteger(serverVoteCount) && serverVoteCount >= 0) {
+        song.voteCount = serverVoteCount
+      }
     }
 
     // 强制刷新歌曲列表，避免缓存导致点赞/取消点赞状态滞后
@@ -1328,10 +1348,43 @@ const handleCancelReplay = async (song) => {
 
   try {
     if (!songs) return
-    const songId = Number(song?.id)
+    const songId = Number(song?.songId ?? song?.id)
     if (!Number.isInteger(songId) || songId <= 0) return
+
+    const previousReplayRequested = !!song?.replayRequested
+    const previousReplayStatus = song?.replayRequestStatus
+    const previousReplayCount = Math.max(0, Number(song?.replayRequestCount || 0))
+    const previousIsReplay = !!song?.isReplay
+
+    if (song && typeof song === 'object') {
+      song.replayRequested = false
+      song.replayRequestStatus = undefined
+      song.replayRequestCount = Math.max(0, previousReplayCount - 1)
+      song.isReplay = song.replayRequestCount > 0
+    }
+
     const result = await songs.withdrawReplay(songId)
-    if (!result) return
+    if (!result) {
+      if (song && typeof song === 'object') {
+        song.replayRequested = previousReplayRequested
+        song.replayRequestStatus = previousReplayStatus
+        song.replayRequestCount = previousReplayCount
+        song.isReplay = previousIsReplay
+      }
+      return
+    }
+
+    const replayData = result?.data || {}
+    if (song && typeof song === 'object') {
+      song.replayRequested = false
+      song.replayRequestStatus = undefined
+      const serverReplayCount = Number(replayData.replayRequestCount)
+      if (Number.isInteger(serverReplayCount) && serverReplayCount >= 0) {
+        song.replayRequestCount = serverReplayCount
+      }
+      song.isReplay = (song.replayRequestCount || 0) > 0
+    }
+
     await songs.fetchSongs(true, undefined, true, true)
     updateSongCounts()
   } catch (err) {
@@ -1347,10 +1400,43 @@ const handleRequestReplay = async (song) => {
 
   try {
     if (!songs) return
-    const songId = Number(song?.id)
+    const songId = Number(song?.songId ?? song?.id)
     if (!Number.isInteger(songId) || songId <= 0) return
+
+    const previousReplayRequested = !!song?.replayRequested
+    const previousReplayStatus = song?.replayRequestStatus
+    const previousReplayCount = Math.max(0, Number(song?.replayRequestCount || 0))
+    const previousIsReplay = !!song?.isReplay
+
+    if (song && typeof song === 'object') {
+      song.replayRequested = true
+      song.replayRequestStatus = 'PENDING'
+      song.replayRequestCount = Math.max(1, previousReplayCount + 1)
+      song.isReplay = true
+    }
+
     const result = await songs.requestReplay(songId)
-    if (!result) return
+    if (!result) {
+      if (song && typeof song === 'object') {
+        song.replayRequested = previousReplayRequested
+        song.replayRequestStatus = previousReplayStatus
+        song.replayRequestCount = previousReplayCount
+        song.isReplay = previousIsReplay
+      }
+      return
+    }
+
+    const replayData = result?.data || {}
+    if (song && typeof song === 'object') {
+      song.replayRequested = replayData.replayRequested !== false
+      song.replayRequestStatus = replayData.replayRequestStatus || 'PENDING'
+      const serverReplayCount = Number(replayData.replayRequestCount)
+      if (Number.isInteger(serverReplayCount) && serverReplayCount >= 0) {
+        song.replayRequestCount = serverReplayCount
+      }
+      song.isReplay = (song.replayRequestCount || 0) > 0
+    }
+
     await songs.fetchSongs(true, undefined, true, true)
     updateSongCounts()
   } catch (err) {
