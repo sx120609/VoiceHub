@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
     // 数据库连接测试结果
     const dbTestResult = dbStatus.connected
-    const dbError = dbStatus.connected ? null : dbStatus.error
+    const dbError = dbStatus.connected ? null : 'Database connection check failed'
 
     // 获取系统信息
     const systemInfo = {
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
     // 返回完整的系统状态
     return {
-      status: 'ok',
+      status: dbTestResult ? 'ok' : 'error',
       database: {
         connected: dbTestResult,
         poolStatus: poolStatus,

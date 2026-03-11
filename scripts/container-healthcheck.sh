@@ -5,9 +5,11 @@ set -eu
 STATE_FILE="${HEALTHCHECK_STATE_FILE:-/tmp/voicehub-healthcheck.failures}"
 READY_FILE="${HEALTHCHECK_READY_FILE:-/tmp/voicehub-healthcheck.ready}"
 FAIL_THRESHOLD="${HEALTHCHECK_FAIL_THRESHOLD:-5}"
+UNREADY_FAIL_THRESHOLD="${HEALTHCHECK_UNREADY_FAIL_THRESHOLD:-12}"
 TIMEOUT_MS="${HEALTHCHECK_TIMEOUT_MS:-5000}"
 PORT_VALUE="${PORT:-3000}"
-PATH_VALUE="${HEALTHCHECK_PATH:-/api/healthz}"
+BOOT_PATH_VALUE="${HEALTHCHECK_BOOT_PATH:-/api/healthz}"
+PATH_VALUE="${HEALTHCHECK_PATH:-/api/system/status}"
 BASE_PATH_RAW="${HEALTHCHECK_BASE_PATH:-${NUXT_APP_BASE_URL:-}}"
 
 case "$FAIL_THRESHOLD" in
@@ -19,6 +21,14 @@ if [ "$FAIL_THRESHOLD" -lt 3 ]; then
   FAIL_THRESHOLD=3
 fi
 
+case "$UNREADY_FAIL_THRESHOLD" in
+  ''|*[!0-9]*) UNREADY_FAIL_THRESHOLD=12 ;;
+esac
+
+if [ "$UNREADY_FAIL_THRESHOLD" -lt "$FAIL_THRESHOLD" ]; then
+  UNREADY_FAIL_THRESHOLD=$FAIL_THRESHOLD
+fi
+
 case "$TIMEOUT_MS" in
   ''|*[!0-9]*) TIMEOUT_MS=5000 ;;
 esac
@@ -26,6 +36,11 @@ esac
 if [ "$TIMEOUT_MS" -lt 1000 ]; then
   TIMEOUT_MS=1000
 fi
+
+case "$BOOT_PATH_VALUE" in
+  /*) ;;
+  *) BOOT_PATH_VALUE="/${BOOT_PATH_VALUE}" ;;
+esac
 
 case "$PATH_VALUE" in
   /*) ;;
@@ -61,36 +76,35 @@ normalize_path() {
   echo "$path"
 }
 
-TARGET_URLS=""
-append_url() {
-  candidate="$1"
-  if [ -z "$candidate" ]; then
-    return 0
-  fi
-  case ",$TARGET_URLS," in
-    *,"$candidate",*) return 0 ;;
+build_target_urls() {
+  request_path="$1"
+  urls=""
+  BASE_PATH="$(normalize_base_path "$BASE_PATH_RAW")"
+  NORMALIZED_PATH="$(normalize_path "$request_path")"
+
+  candidate="http://127.0.0.1:${PORT_VALUE}${NORMALIZED_PATH}"
+  case ",$urls," in
+    *,"$candidate",*) ;;
+    *) urls="$candidate" ;;
   esac
-  if [ -z "$TARGET_URLS" ]; then
-    TARGET_URLS="$candidate"
-  else
-    TARGET_URLS="${TARGET_URLS},${candidate}"
+  if [ -n "$BASE_PATH" ]; then
+    candidate="http://127.0.0.1:${PORT_VALUE}${BASE_PATH}${NORMALIZED_PATH}"
+    case ",$urls," in
+      *,"$candidate",*) ;;
+      *) urls="${urls},${candidate}" ;;
+    esac
   fi
+  candidate="http://127.0.0.1:${PORT_VALUE}/rareapp${NORMALIZED_PATH}"
+  case ",$urls," in
+    *,"$candidate",*) ;;
+    *) urls="${urls},${candidate}" ;;
+  esac
+  printf '%s' "$urls"
 }
 
-if [ -n "${HEALTHCHECK_URL:-}" ]; then
-  append_url "$HEALTHCHECK_URL"
-else
-  NORMALIZED_PATH="$(normalize_path "$PATH_VALUE")"
-  BASE_PATH="$(normalize_base_path "$BASE_PATH_RAW")"
-
-  append_url "http://127.0.0.1:${PORT_VALUE}${NORMALIZED_PATH}"
-  if [ -n "$BASE_PATH" ]; then
-    append_url "http://127.0.0.1:${PORT_VALUE}${BASE_PATH}${NORMALIZED_PATH}"
-  fi
-  append_url "http://127.0.0.1:${PORT_VALUE}/rareapp${NORMALIZED_PATH}"
-fi
-
-if HEALTHCHECK_TARGET_URLS="$TARGET_URLS" HEALTHCHECK_TIMEOUT_MS="$TIMEOUT_MS" node <<'EOF'
+probe_urls() {
+  probe_urls_value="$1"
+  HEALTHCHECK_TARGET_URLS="$probe_urls_value" HEALTHCHECK_TIMEOUT_MS="$TIMEOUT_MS" node <<'EOF'
 const urls = (process.env.HEALTHCHECK_TARGET_URLS || '')
   .split(',')
   .map((v) => v.trim())
@@ -131,7 +145,33 @@ const timeoutMs = Number(process.env.HEALTHCHECK_TIMEOUT_MS || '5000')
   process.exit(1)
 })()
 EOF
-then
+}
+
+probe_success=0
+if [ -n "${HEALTHCHECK_URL:-}" ]; then
+  if probe_urls "$HEALTHCHECK_URL"; then
+    probe_success=1
+  fi
+else
+  if [ -f "$READY_FILE" ]; then
+    TARGET_URLS="$(build_target_urls "$PATH_VALUE")"
+    if probe_urls "$TARGET_URLS"; then
+      probe_success=1
+    fi
+  else
+    BOOT_TARGET_URLS="$(build_target_urls "$BOOT_PATH_VALUE")"
+    if probe_urls "$BOOT_TARGET_URLS"; then
+      probe_success=1
+    else
+      TARGET_URLS="$(build_target_urls "$PATH_VALUE")"
+      if probe_urls "$TARGET_URLS"; then
+        probe_success=1
+      fi
+    fi
+  fi
+fi
+
+if [ "$probe_success" -eq 1 ]; then
   rm -f "$STATE_FILE"
   touch "$READY_FILE"
   exit 0
@@ -148,13 +188,13 @@ echo "$FAIL_COUNT" > "$STATE_FILE"
 echo "[healthcheck] probe failed (${FAIL_COUNT}/${FAIL_THRESHOLD})" >&2
 
 if [ "$FAIL_COUNT" -ge "$FAIL_THRESHOLD" ]; then
-  if [ -f "$READY_FILE" ]; then
+  if [ -f "$READY_FILE" ] || [ "$FAIL_COUNT" -ge "$UNREADY_FAIL_THRESHOLD" ]; then
     echo "[healthcheck] fail threshold reached, stopping PID 1 for auto-restart" >&2
     kill -TERM 1 2>/dev/null || true
     sleep 2
     kill -KILL 1 2>/dev/null || true
   else
-    echo "[healthcheck] fail threshold reached before first successful probe; skip restart to prevent boot loop" >&2
+    echo "[healthcheck] fail threshold reached before first successful probe; wait until unready threshold (${UNREADY_FAIL_THRESHOLD})" >&2
   fi
 fi
 

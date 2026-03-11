@@ -127,6 +127,7 @@ export class DatabaseManager {
    */
   async getConnectionStatus(): Promise<{
     status: string
+    connected: boolean
     activeConnections: number
     serverlessMode: boolean
     autoSuspend: boolean
@@ -144,7 +145,8 @@ export class DatabaseManager {
       const connRow = connectionStats[0] as any
 
       return {
-        status: connectionStatus.status,
+        status: connectionStatus.status || (connectionStatus.connected ? 'connected' : 'disconnected'),
+        connected: connectionStatus.connected ?? connectionStatus.status === 'connected',
         activeConnections: parseInt(connRow?.active_connections) || 0,
         serverlessMode: true, // Neon Database 是无服务器架构
         autoSuspend: true // 支持自动暂停
