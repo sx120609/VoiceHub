@@ -74,12 +74,12 @@ if [ -n "$MONITOR_BASE_URL" ]; then
   MONITOR_BASE_URL="${MONITOR_BASE_URL%/}"
 fi
 
-default_check_url="http://127.0.0.1:3000/rareapp/api/auth/login"
+default_check_url="http://127.0.0.1:3000/rareapp/api/auth/verify"
 default_check_url_2="http://127.0.0.1:3000/rareapp/"
 if [ -n "$MONITOR_BASE_URL" ]; then
   base_host="$(extract_url_host "$MONITOR_BASE_URL")"
   if [ "$MONITOR_ALLOW_PUBLIC" = "1" ] || is_private_probe_host "$base_host"; then
-    default_check_url="${MONITOR_BASE_URL}/api/auth/login"
+    default_check_url="${MONITOR_BASE_URL}/api/auth/verify"
     default_check_url_2="${MONITOR_BASE_URL}/"
   else
     printf '%s %s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "[monitor]" \
@@ -87,7 +87,7 @@ if [ -n "$MONITOR_BASE_URL" ]; then
   fi
 fi
 
-# Primary probe: login API
+# Primary probe: auth verify API (无副作用，不触发登录限流)
 CHECK_URL="${CHECK_URL:-$default_check_url}"
 # Secondary probe: public page (set empty to disable)
 CHECK_URL_2="${CHECK_URL_2:-$default_check_url_2}"
@@ -95,8 +95,8 @@ CHECK_URL="$(sanitize_probe_url "$CHECK_URL" "$default_check_url" "CHECK_URL")"
 CHECK_URL_2="$(sanitize_probe_url "$CHECK_URL_2" "$default_check_url_2" "CHECK_URL_2")"
 
 # Probe behavior
-CHECK_METHOD="${CHECK_METHOD:-POST}"
-CHECK_BODY="${CHECK_BODY:-{\"username\":\"monitor_probe\",\"password\":\"invalid_password\"}}"
+CHECK_METHOD="${CHECK_METHOD:-GET}"
+CHECK_BODY="${CHECK_BODY:-}"
 CHECK_METHOD_2="${CHECK_METHOD_2:-GET}"
 REQUEST_TIMEOUT_SEC="${REQUEST_TIMEOUT_SEC:-4}"
 CHECK_INTERVAL_SEC="${CHECK_INTERVAL_SEC:-5}"
@@ -106,10 +106,11 @@ FAIL_THRESHOLD="${FAIL_THRESHOLD:-2}"
 PAUSE_AFTER_RESTART_SEC="${PAUSE_AFTER_RESTART_SEC:-30}"
 RESTART_CMD="${RESTART_CMD:-docker compose restart voicehub || docker-compose restart voicehub || docker restart voicehub}"
 
-# login API常见返回401/400（无效凭据）也代表服务存活；但不接受404/5xx
-SUCCESS_HTTP_REGEX="${SUCCESS_HTTP_REGEX:-^(200|400|401|403)$}"
+# 401/403/429 也代表服务存活（未登录、权限不足、限流）
+SUCCESS_HTTP_REGEX="${SUCCESS_HTTP_REGEX:-^(200|400|401|403|429)$}"
 # 首页探针默认必须200
 SUCCESS_HTTP_REGEX_2="${SUCCESS_HTTP_REGEX_2:-^200$}"
+SECONDARY_REQUIRED="${SECONDARY_REQUIRED:-0}"
 CURL_SILENT_ERRORS="${CURL_SILENT_ERRORS:-1}"
 
 log() {
@@ -133,7 +134,9 @@ probe_request() {
   probe_body="$3"
   probe_regex="$4"
 
+  PROBE_LAST_CODE="000"
   if [ -z "$probe_url" ]; then
+    PROBE_LAST_CODE="disabled"
     return 0
   fi
 
@@ -167,8 +170,11 @@ probe_request() {
   rm -f "$tmp_body"
 
   if [ -z "$http_code" ] || [ "$http_code" = "000" ]; then
+    PROBE_LAST_CODE="000"
     return 1
   fi
+
+  PROBE_LAST_CODE="$http_code"
 
   if printf '%s' "$http_code" | grep -Eq "$probe_regex"; then
     return 0
@@ -194,6 +200,7 @@ fi
 
 log "started"
 log "check_url=${CHECK_URL} check_url_2=${CHECK_URL_2:-disabled} interval=${CHECK_INTERVAL_SEC}s threshold=${FAIL_THRESHOLD} pause_after_restart=${PAUSE_AFTER_RESTART_SEC}s"
+log "secondary_required=${SECONDARY_REQUIRED} success_regex=${SUCCESS_HTTP_REGEX} success_regex_2=${SUCCESS_HTTP_REGEX_2}"
 log "restart_cmd=${RESTART_CMD}"
 
 consecutive_failures=0
@@ -201,17 +208,32 @@ consecutive_failures=0
 while true; do
   primary_ok=0
   secondary_ok=0
+  primary_code="000"
+  secondary_code="000"
 
   if probe_request "$CHECK_URL" "$CHECK_METHOD" "$CHECK_BODY" "$SUCCESS_HTTP_REGEX"; then
     primary_ok=1
   fi
+  primary_code="$PROBE_LAST_CODE"
   if probe_request "$CHECK_URL_2" "$CHECK_METHOD_2" "" "$SUCCESS_HTTP_REGEX_2"; then
     secondary_ok=1
   fi
+  secondary_code="$PROBE_LAST_CODE"
 
-  if [ "$primary_ok" -eq 1 ] && [ "$secondary_ok" -eq 1 ]; then
+  healthy_now=0
+  if [ "$primary_ok" -eq 1 ]; then
+    if [ "$SECONDARY_REQUIRED" = "1" ]; then
+      if [ "$secondary_ok" -eq 1 ]; then
+        healthy_now=1
+      fi
+    else
+      healthy_now=1
+    fi
+  fi
+
+  if [ "$healthy_now" -eq 1 ]; then
     if [ "$consecutive_failures" -gt 0 ]; then
-      log "probe recovered"
+      log "probe recovered primary_code=${primary_code} secondary_code=${secondary_code}"
     fi
     consecutive_failures=0
   else
@@ -227,7 +249,7 @@ while true; do
         fail_parts="secondary"
       fi
     fi
-    log "probe failed (${consecutive_failures}/${FAIL_THRESHOLD}) failed=${fail_parts}"
+    log "probe failed (${consecutive_failures}/${FAIL_THRESHOLD}) failed=${fail_parts} primary_code=${primary_code} secondary_code=${secondary_code}"
 
     if [ "$consecutive_failures" -ge "$FAIL_THRESHOLD" ]; then
       log "threshold reached, restarting container"
