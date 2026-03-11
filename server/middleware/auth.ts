@@ -57,10 +57,8 @@ export default defineEventHandler(async (event) => {
     return
   }
 
-  // 歌曲列表允许公开读取（仅放行精确路径 /api/songs，避免放开写接口）
-  if (requestMethod === 'GET' && routePath === '/api/songs') {
-    return
-  }
+  // 歌曲列表接口允许匿名访问，但如果携带 token 需要解析用户态（用于返回 voted/replayRequested）
+  const isOptionalAuthRoute = requestMethod === 'GET' && routePath === '/api/songs'
 
   // 公共API路径
   const publicApiPaths = [
@@ -135,6 +133,9 @@ export default defineEventHandler(async (event) => {
 
   // 受保护路由缺少token时返回401错误
   if (!token) {
+    if (isOptionalAuthRoute) {
+      return
+    }
     return sendError(
       event,
       createError({
@@ -195,6 +196,9 @@ export default defineEventHandler(async (event) => {
         maxAge: 0,
         path: '/'
       })
+      if (isOptionalAuthRoute) {
+        return
+      }
       return sendError(
         event,
         createError({
@@ -219,6 +223,10 @@ export default defineEventHandler(async (event) => {
           path: '/'
         })
 
+        if (isOptionalAuthRoute) {
+          return
+        }
+
         return sendError(
           event,
           createError({
@@ -239,6 +247,9 @@ export default defineEventHandler(async (event) => {
     if (isUserBlocked(normalizedUser.id)) {
       delete event.context.user
       const remaining = getUserBlockRemainingTime(normalizedUser.id)
+      if (isOptionalAuthRoute) {
+        return
+      }
       return sendError(
         event,
         createError({
@@ -263,6 +274,9 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error: any) {
     // 处理JWT验证错误
+    if (isOptionalAuthRoute) {
+      return
+    }
     return sendError(
       event,
       createError({
