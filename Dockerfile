@@ -51,6 +51,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/app/drizzle ./app/drizzle
 COPY --from=builder /app/scripts ./scripts
+RUN chmod +x /app/scripts/container-healthcheck.sh
 
 # 环境变量配置
 ENV NODE_ENV=production \
@@ -60,6 +61,10 @@ ENV NODE_ENV=production \
 
 # 暴露端口
 EXPOSE $PORT
+
+# 健康检查：连续失败后会主动终止 PID 1，触发 restart: unless-stopped 自动拉起
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=1 \
+  CMD ["sh", "/app/scripts/container-healthcheck.sh"]
 
 # 启动命令：先执行数据库迁移，再启动应用
 CMD ["sh", "-c", "node scripts/deploy.js && node .output/server/index.mjs"]

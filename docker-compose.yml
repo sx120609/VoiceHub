@@ -8,9 +8,16 @@ services:
       - JWT_SECRET=your-jwt-secret-here
       - NODE_ENV=production
       - SKIP_BUILD=true
+      - HEALTHCHECK_FAIL_THRESHOLD=1
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'sh /app/scripts/container-healthcheck.sh']
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 1
     restart: unless-stopped
 
   postgres:
