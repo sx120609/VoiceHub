@@ -231,6 +231,12 @@ while true; do
     fi
   fi
 
+  probe_status="fail"
+  if [ "$healthy_now" -eq 1 ]; then
+    probe_status="ok"
+  fi
+  log "probe result status=${probe_status} primary_ok=${primary_ok} primary_code=${primary_code} secondary_ok=${secondary_ok} secondary_code=${secondary_code} secondary_required=${SECONDARY_REQUIRED}"
+
   if [ "$healthy_now" -eq 1 ]; then
     if [ "$consecutive_failures" -gt 0 ]; then
       log "probe recovered primary_code=${primary_code} secondary_code=${secondary_code}"
