@@ -19,6 +19,9 @@ const buildActivationUrl = (event: any, token: string) => {
   return buildPublicAppUrl(event, `/api/auth/register/activate?token=${encodeURIComponent(token)}`)
 }
 
+type VerificationDispatchStatus = 'sent' | 'failed' | 'queued'
+const VERIFICATION_MAIL_TIMEOUT_MS = 8000
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const password = (body?.password || '').toString()
@@ -87,6 +90,31 @@ export default defineEventHandler(async (event) => {
       )
     }
 
+    const dispatchActivationLink = async (
+      email: string,
+      userId: number,
+      name: string,
+      usernameForMail: string
+    ): Promise<VerificationDispatchStatus> => {
+      const sendPromise = sendActivationLink(email, userId, name, usernameForMail)
+        .then((sent) => (sent ? 'sent' : 'failed') as VerificationDispatchStatus)
+        .catch((mailError) => {
+          console.error('发送注册激活链接失败:', mailError)
+          return 'failed' as VerificationDispatchStatus
+        })
+
+      const timeoutPromise = new Promise<VerificationDispatchStatus>((resolve) => {
+        setTimeout(() => resolve('queued'), VERIFICATION_MAIL_TIMEOUT_MS)
+      })
+
+      const result = await Promise.race([sendPromise, timeoutPromise])
+      if (result === 'queued') {
+        // 请求链路超时保护：后台继续发送，避免反向代理超时导致前端误判“崩溃”。
+        void sendPromise
+      }
+      return result
+    }
+
     const existingUserByEmail = await db
       .select({
         id: users.id,
@@ -134,26 +162,26 @@ export default defineEventHandler(async (event) => {
           .where(eq(users.id, existingUser.id))
       }
 
-      let verificationSent = false
-      try {
-        verificationSent = await sendActivationLink(
-          qqEmail,
-          existingUser.id,
-          displayName || existingUser.name || '',
-          existingUser.username || username
-        )
-      } catch (mailError) {
-        console.error('重发注册激活链接失败:', mailError)
-      }
+      const verificationStatus = await dispatchActivationLink(
+        qqEmail,
+        existingUser.id,
+        displayName || existingUser.name || '',
+        existingUser.username || username
+      )
+      const verificationSent = verificationStatus === 'sent'
 
       return {
         success: true,
         requiresEmailVerification: true,
         verificationSent,
+        verificationPending: verificationStatus === 'queued',
         email: qqEmail,
-        message: verificationSent
-          ? `该QQ邮箱已注册但尚未激活，激活链接已发送（${activationExpiresDays}天内有效）`
-          : '该QQ邮箱已注册但尚未激活，发送激活链接失败，请稍后重试'
+        message:
+          verificationStatus === 'sent'
+            ? `该QQ邮箱已注册但尚未激活，激活链接已发送（${activationExpiresDays}天内有效）`
+            : verificationStatus === 'queued'
+              ? `该QQ邮箱已注册但尚未激活，激活邮件正在发送，请稍后查收（${activationExpiresDays}天内有效）`
+              : '该QQ邮箱已注册但尚未激活，发送激活链接失败，请稍后重试'
       }
     }
 
@@ -204,27 +232,26 @@ export default defineEventHandler(async (event) => {
     const newUser = newUserResult[0]
 
     if (requireEmailVerification) {
-      let verificationSent = false
-
-      try {
-        verificationSent = await sendActivationLink(
-          qqEmail,
-          newUser.id,
-          displayName || newUser.name || '',
-          newUser.username || username
-        )
-      } catch (mailError) {
-        console.error('发送注册激活链接失败:', mailError)
-      }
+      const verificationStatus = await dispatchActivationLink(
+        qqEmail,
+        newUser.id,
+        displayName || newUser.name || '',
+        newUser.username || username
+      )
+      const verificationSent = verificationStatus === 'sent'
 
       return {
         success: true,
         requiresEmailVerification: true,
         verificationSent,
+        verificationPending: verificationStatus === 'queued',
         email: qqEmail,
-        message: verificationSent
-          ? `注册成功，请点击邮箱中的激活链接完成激活（${activationExpiresDays}天内有效）`
-          : '注册成功，但激活链接发送失败，请重发激活链接或联系管理员手动激活'
+        message:
+          verificationStatus === 'sent'
+            ? `注册成功，请点击邮箱中的激活链接完成激活（${activationExpiresDays}天内有效）`
+            : verificationStatus === 'queued'
+              ? `注册成功，激活邮件正在发送，请稍后查收（${activationExpiresDays}天内有效）`
+              : '注册成功，但激活链接发送失败，请重发激活链接或联系管理员手动激活'
       }
     }
 

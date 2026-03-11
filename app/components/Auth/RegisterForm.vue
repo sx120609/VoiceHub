@@ -217,7 +217,7 @@ const handleRegister = async () => {
     if (response?.requiresEmailVerification) {
       pendingVerification.value = true
       pendingEmail.value = response.email || toQQEmail(form.value.emailPrefix)
-      verificationSent.value = !!response.verificationSent
+      verificationSent.value = !!response.verificationSent || !!response.verificationPending
       info.value = response.message || '请点击邮箱中的激活链接完成账号激活'
       return
     }

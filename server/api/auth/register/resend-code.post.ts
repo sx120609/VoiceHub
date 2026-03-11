@@ -12,6 +12,9 @@ const buildActivationUrl = (event: any, token: string) => {
   return buildPublicAppUrl(event, `/api/auth/register/activate?token=${encodeURIComponent(token)}`)
 }
 
+type VerificationDispatchStatus = 'sent' | 'failed' | 'queued'
+const VERIFICATION_MAIL_TIMEOUT_MS = 8000
+
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
@@ -57,21 +60,37 @@ export default defineEventHandler(async (event) => {
     const smtp = SmtpService.getInstance()
     await smtp.initializeSmtpConfig()
 
-    const sent = await smtp.renderAndSend(
-      qqEmail,
-      'verification.link',
-      {
-        name: user.name || user.username,
-        email: qqEmail,
-        action: '账号激活',
-        actionUrl: activationUrl,
-        activationUrl,
-        expiresInDays
-      },
-      getClientIP(event)
-    )
+    const sendPromise = smtp
+      .renderAndSend(
+        qqEmail,
+        'verification.link',
+        {
+          name: user.name || user.username,
+          email: qqEmail,
+          action: '账号激活',
+          actionUrl: activationUrl,
+          activationUrl,
+          expiresInDays
+        },
+        getClientIP(event)
+      )
+      .then((ok) => (ok ? 'sent' : 'failed') as VerificationDispatchStatus)
+      .catch((mailError) => {
+        console.error('[Register] 重发激活邮件失败:', mailError)
+        return 'failed' as VerificationDispatchStatus
+      })
 
-    if (!sent) {
+    const timeoutPromise = new Promise<VerificationDispatchStatus>((resolve) => {
+      setTimeout(() => resolve('queued'), VERIFICATION_MAIL_TIMEOUT_MS)
+    })
+
+    const status = await Promise.race([sendPromise, timeoutPromise])
+    if (status === 'queued') {
+      // 后台继续发送，避免接口超时。
+      void sendPromise
+    }
+
+    if (status === 'failed') {
       throw createError({
         statusCode: 500,
         message: '激活链接发送失败，请检查SMTP配置或联系管理员手动激活'
@@ -80,7 +99,12 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      message: `激活链接已发送，请查收邮箱（${expiresInDays}天内有效）`,
+      verificationSent: status === 'sent',
+      verificationPending: status === 'queued',
+      message:
+        status === 'queued'
+          ? `激活邮件正在发送，请稍后查收邮箱（${expiresInDays}天内有效）`
+          : `激活链接已发送，请查收邮箱（${expiresInDays}天内有效）`,
       resendCooldownSeconds: 0
     }
   } catch (error: any) {
