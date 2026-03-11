@@ -525,15 +525,31 @@ export const useSongs = () => {
         // 立即更新本地歌曲的投票状态
         if (targetSong) {
           if (isUnvote) {
-            // 取消投票
+            // 取消投票（含 alreadyCancelled 场景）
             targetSong.voted = false
-            targetSong.voteCount = Math.max(0, (targetSong.voteCount || 1) - 1)
-            showNotification(`已取消对歌曲《${targetSong.title}》的投票`, 'success')
+            if (typeof data?.song?.voteCount === 'number') {
+              targetSong.voteCount = data.song.voteCount
+            } else {
+              targetSong.voteCount = Math.max(0, (targetSong.voteCount || 1) - 1)
+            }
+            if (data?.alreadyCancelled) {
+              showNotification(`歌曲《${targetSong.title}》当前已是未投票状态`, 'info')
+            } else {
+              showNotification(`已取消对歌曲《${targetSong.title}》的投票`, 'success')
+            }
           } else {
-            // 正常投票
+            // 正常投票（含 alreadyVoted 场景）
             targetSong.voted = true
-            targetSong.voteCount = (targetSong.voteCount || 0) + 1
-            showNotification(`为歌曲《${targetSong.title}》投票成功！`, 'success')
+            if (typeof data?.song?.voteCount === 'number') {
+              targetSong.voteCount = data.song.voteCount
+            } else {
+              targetSong.voteCount = (targetSong.voteCount || 0) + 1
+            }
+            if (data?.alreadyVoted) {
+              showNotification(`您已经为歌曲《${targetSong.title}》投过票`, 'info')
+            } else {
+              showNotification(`为歌曲《${targetSong.title}》投票成功！`, 'success')
+            }
           }
         }
 
@@ -568,6 +584,11 @@ export const useSongs = () => {
       }
     } catch (err: any) {
       const errorMsg = err.data?.message || err.message || '投票失败'
+      console.warn('[Vote] 请求失败', {
+        songId: actualSongId,
+        isUnvote,
+        message: errorMsg
+      })
       error.value = errorMsg
       showNotification(errorMsg, 'error')
       return null

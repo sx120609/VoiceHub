@@ -60,10 +60,16 @@ export default defineEventHandler(async (event) => {
     if (isUnvote) {
       // 撤销投票逻辑
       if (!existingVote) {
-        throw createError({
-          statusCode: 400,
-          message: '你尚未为这首歌投票，无法取消'
-        })
+        return {
+          success: true,
+          message: '当前已是未投票状态',
+          alreadyCancelled: true,
+          song: {
+            id: song.id,
+            title: song.title,
+            artist: song.artist
+          }
+        }
       }
 
       // 删除投票
@@ -159,10 +165,21 @@ export default defineEventHandler(async (event) => {
 
       // 正常投票逻辑
       if (existingVote) {
-        throw createError({
-          statusCode: 400,
-          message: '你已经为这首歌投过票了'
-        })
+        const voteCountResult = await db
+          .select({ count: count() })
+          .from(votes)
+          .where(eq(votes.songId, songId))
+        return {
+          success: true,
+          message: '你已经为这首歌投过票了',
+          alreadyVoted: true,
+          song: {
+            id: song.id,
+            title: song.title,
+            artist: song.artist,
+            voteCount: voteCountResult[0].count
+          }
+        }
       }
 
       // 创建新的投票

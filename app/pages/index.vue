@@ -1295,15 +1295,20 @@ const handleVote = async (song) => {
 
   try {
     if (!songs) return
+    const targetSongId = Number(song?.songId ?? song?.id)
+    if (!Number.isInteger(targetSongId) || targetSongId <= 0) {
+      showNotification('歌曲ID无效，无法投票', 'error')
+      return
+    }
 
     // 调用投票API - 通知已在composable中处理
     // 检查是否是取消投票请求
     if (song.unvote) {
       // 传递完整对象以支持撤销投票功能
-      await songs.voteSong(song)
+      await songs.voteSong({ id: targetSongId, unvote: true })
     } else {
       // 保持向后兼容，传递ID
-      await songs.voteSong(song.id)
+      await songs.voteSong(targetSongId)
     }
 
     // 强制刷新歌曲列表，避免缓存导致点赞/取消点赞状态滞后
