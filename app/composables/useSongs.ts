@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useAuth } from './useAuth'
 import { getGlobalDedup } from './useRequestDedup'
 import type { PlayTime, Schedule, Song } from '~/types'
@@ -6,17 +6,20 @@ import type { PlayTime, Schedule, Song } from '~/types'
 export const useSongs = () => {
   const { isAuthenticated, user, getAuthConfig, isAdmin, initAuth } = useAuth()
   const dedup = getGlobalDedup()
-
-  const songs = ref<Song[]>([])
-  const publicSchedules = ref<Schedule[]>([])
-  const publicSongs = ref<Song[]>([])
-  const loading = ref(false)
-  const error = ref('')
-  const notification = ref({ show: false, message: '', type: '' })
-  const similarSongFound = ref<Song | null>(null)
-  const playTimes = ref<PlayTime[]>([])
-  const playTimeEnabled = ref(false)
-  const songCount = ref(0)
+  const songs = useState<Song[]>('songs-store:songs', () => [])
+  const publicSchedules = useState<Schedule[]>('songs-store:public-schedules', () => [])
+  const publicSongs = useState<Song[]>('songs-store:public-songs', () => [])
+  const loading = useState('songs-store:loading', () => false)
+  const error = useState('songs-store:error', () => '')
+  const notification = useState('songs-store:notification', () => ({
+    show: false,
+    message: '',
+    type: ''
+  }))
+  const similarSongFound = useState<Song | null>('songs-store:similar-song-found', () => null)
+  const playTimes = useState<PlayTime[]>('songs-store:play-times', () => [])
+  const playTimeEnabled = useState('songs-store:play-time-enabled', () => false)
+  const songCount = useState('songs-store:song-count', () => 0)
 
   // 显示通知
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
