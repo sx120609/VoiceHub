@@ -1,6 +1,15 @@
 import { and, db, eq, songs, systemSettings, songReplayRequests, semesters } from '~/drizzle/db'
 import { cacheService } from '~~/server/services/cacheService'
 
+type ReplayAction = 'request' | 'cancel'
+
+const resolveReplayAction = (body: any): ReplayAction => {
+  if (body?.action === 'cancel' || body?.action === 'withdraw' || body?.cancel === true) {
+    return 'cancel'
+  }
+  return 'request'
+}
+
 async function clearReplayRelatedCache() {
   try {
     await cacheService.clearSongsCache()
@@ -11,24 +20,21 @@ async function clearReplayRelatedCache() {
 }
 
 export default defineEventHandler(async (event) => {
-  // 1. 检查用户认证
   const user = event.context.user
   if (!user) {
     throw createError({ statusCode: 401, message: '需要登录才能申请重播' })
   }
 
-  // 2. 读取请求体
   const body = await readBody(event)
   const songId = Number(body?.songId)
-  const { cancel, action } = body
+  const action = resolveReplayAction(body)
 
   if (!Number.isInteger(songId) || songId <= 0) {
     throw createError({ statusCode: 400, message: '歌曲ID不能为空' })
   }
 
-  // 兼容某些代理环境不支持 DELETE：支持通过 POST cancel 撤回重播申请
-  if (cancel === true || action === 'cancel' || action === 'withdraw') {
-    const existing = await db
+  if (action === 'cancel') {
+    const existingPending = await db
       .select()
       .from(songReplayRequests)
       .where(
@@ -40,33 +46,38 @@ export default defineEventHandler(async (event) => {
       )
       .limit(1)
 
-    if (existing.length === 0) {
-      return { success: true, message: '重播申请已是取消状态', alreadyCancelled: true }
+    const changed = existingPending.length > 0
+    if (changed) {
+      await db
+        .delete(songReplayRequests)
+        .where(
+          and(
+            eq(songReplayRequests.songId, songId),
+            eq(songReplayRequests.userId, user.id),
+            eq(songReplayRequests.status, 'PENDING')
+          )
+        )
+      await clearReplayRelatedCache()
     }
 
-    await db
-      .delete(songReplayRequests)
-      .where(
-        and(
-          eq(songReplayRequests.songId, songId),
-          eq(songReplayRequests.userId, user.id),
-          eq(songReplayRequests.status, 'PENDING')
-        )
-      )
-
-    await clearReplayRelatedCache()
-
-    return { success: true, message: '已取消重播申请' }
+    return {
+      success: true,
+      message: changed ? '已取消重播申请' : '重播申请已是取消状态',
+      data: {
+        songId,
+        replayRequested: false,
+        replayRequestStatus: null,
+        changed
+      }
+    }
   }
 
-  // 3. 检查系统设置
   const settingsResult = await db.select().from(systemSettings).limit(1)
   const settings = settingsResult[0]
   if (!settings?.enableReplayRequests) {
     throw createError({ statusCode: 403, message: '重播申请功能未开启' })
   }
 
-  // 4. 检查歌曲和学期
   const songResult = await db.select().from(songs).where(eq(songs.id, songId)).limit(1)
   const song = songResult[0]
   if (!song) {
@@ -76,47 +87,56 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '该歌曲尚未播放，无法申请重播' })
   }
 
-  // 获取当前学期
   const currentSemesterResult = await db
     .select()
     .from(semesters)
     .where(eq(semesters.isActive, true))
     .limit(1)
   const currentSemester = currentSemesterResult[0]
-
-  // 验证学期
-  if (currentSemester) {
-    if (song.semester !== currentSemester.name) {
-      throw createError({ statusCode: 400, message: '只能申请重播当前学期的歌曲' })
-    }
-  } else {
-    throw createError({ statusCode: 400, message: '当前没有活跃学期，无法申请重播' })
+  if (currentSemester && song.semester !== currentSemester.name) {
+    throw createError({ statusCode: 400, message: '只能申请重播当前学期的歌曲' })
+  }
+  if (!currentSemester) {
+    console.warn('[Replay API] 未找到活跃学期，跳过学期限制校验')
   }
 
-  // 5. 检查是否重复申请和冷却期
-  const existing = await db
+  const existingResult = await db
     .select()
     .from(songReplayRequests)
     .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
     .limit(1)
+  const existing = existingResult[0]
 
-  if (existing.length > 0) {
-    const existingRequest = existing[0]
-    if (existingRequest.status === 'REJECTED') {
-      // 检查冷却期 (24 小时)
-      const COOLDOWN_HOURS = 24
-      const cooldownTime = COOLDOWN_HOURS * 60 * 60 * 1000
-      const timeSinceUpdate = Date.now() - new Date(existingRequest.updatedAt).getTime()
-
-      if (timeSinceUpdate < cooldownTime) {
-        const remainingHours = Math.ceil((cooldownTime - timeSinceUpdate) / (60 * 60 * 1000))
-        throw createError({
-          statusCode: 429,
-          message: `您的重播申请被拒绝后需要等待 ${remainingHours} 小时才能重新申请`
-        })
+  try {
+    let changed = false
+    if (existing) {
+      if (existing.status === 'PENDING') {
+        return {
+          success: true,
+          message: '您已经申请过重播该歌曲',
+          data: {
+            songId,
+            replayRequested: true,
+            replayRequestStatus: 'PENDING',
+            changed: false
+          }
+        }
       }
 
-      // 冷却期已过，更新状态为 PENDING
+      if (existing.status === 'REJECTED') {
+        const COOLDOWN_HOURS = 24
+        const cooldownTime = COOLDOWN_HOURS * 60 * 60 * 1000
+        const timeSinceUpdate = Date.now() - new Date(existing.updatedAt).getTime()
+
+        if (timeSinceUpdate < cooldownTime) {
+          const remainingHours = Math.ceil((cooldownTime - timeSinceUpdate) / (60 * 60 * 1000))
+          throw createError({
+            statusCode: 429,
+            message: `您的重播申请被拒绝后需要等待 ${remainingHours} 小时才能重新申请`
+          })
+        }
+      }
+
       await db
         .update(songReplayRequests)
         .set({
@@ -124,42 +144,53 @@ export default defineEventHandler(async (event) => {
           updatedAt: new Date(),
           createdAt: new Date()
         })
-        .where(eq(songReplayRequests.id, existingRequest.id))
-
-      await clearReplayRelatedCache()
-
-      return { success: true, message: '重新申请重播成功' }
-    } else if (existingRequest.status === 'FULFILLED') {
-      await db
-        .update(songReplayRequests)
-        .set({
-          status: 'PENDING',
-          updatedAt: new Date(),
-          createdAt: new Date()
-        })
-        .where(eq(songReplayRequests.id, existingRequest.id))
-
-      await clearReplayRelatedCache()
-
-      return { success: true, message: '再次申请重播成功' }
+        .where(eq(songReplayRequests.id, existing.id))
+      changed = true
     } else {
-      return { success: true, message: '您已经申请过重播该歌曲', alreadyExists: true }
+      try {
+        await db.insert(songReplayRequests).values({
+          songId,
+          userId: user.id
+        })
+        changed = true
+      } catch (insertError: any) {
+        if (insertError?.code === '23505') {
+          return {
+            success: true,
+            message: '您已经申请过重播该歌曲',
+            data: {
+              songId,
+              replayRequested: true,
+              replayRequestStatus: 'PENDING',
+              changed: false
+            }
+          }
+        }
+        throw insertError
+      }
     }
-  }
 
-  // 6. 插入申请记录
-  try {
-    await db.insert(songReplayRequests).values({
-      songId,
-      userId: user.id
-    })
-    await clearReplayRelatedCache()
-    return { success: true, message: '申请重播成功' }
-  } catch (error: any) {
-    // 处理唯一约束冲突
-    if (error.code === '23505') {
-      return { success: true, message: '您已经申请过重播该歌曲', alreadyExists: true }
+    if (changed) {
+      await clearReplayRelatedCache()
     }
-    throw error
+
+    return {
+      success: true,
+      message: existing ? '重新申请重播成功' : '申请重播成功',
+      data: {
+        songId,
+        replayRequested: true,
+        replayRequestStatus: 'PENDING',
+        changed
+      }
+    }
+  } catch (error: any) {
+    if (error?.statusCode) {
+      throw error
+    }
+    throw createError({
+      statusCode: 500,
+      message: '重播申请处理失败，请稍后重试'
+    })
   }
 })

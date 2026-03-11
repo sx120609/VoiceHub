@@ -856,12 +856,20 @@ const handleVote = async (song) => {
 
   voteInProgress.value = true
   try {
+    const targetSongId = Number(song?.songId ?? song?.id)
+    if (!Number.isInteger(targetSongId) || targetSongId <= 0) {
+      if (window.$showNotification) {
+        window.$showNotification('歌曲ID无效，无法点赞', 'error')
+      }
+      return
+    }
+
     if (isUnvote) {
       // 如果已投票，则调用撤销投票
-      emit('vote', { ...song, unvote: true })
+      emit('vote', { songId: targetSongId, id: targetSongId, unvote: true })
     } else {
       // 正常投票
-      emit('vote', song)
+      emit('vote', { songId: targetSongId, id: targetSongId, unvote: false })
     }
   } catch (err) {
     // 投票处理失败

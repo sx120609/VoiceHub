@@ -41,6 +41,20 @@ export const useSongs = () => {
     }
   }
 
+  const resolveErrorMessage = (err: any, fallback: string) => {
+    return (
+      err?.data?.message ||
+      err?.data?.statusMessage ||
+      err?.statusMessage ||
+      err?.message ||
+      fallback
+    )
+  }
+
+  const findSongById = (songId: number) => {
+    return songs.value.find((s: any) => Number(s?.id) === Number(songId))
+  }
+
   // 获取播放时段列表
   const fetchPlayTimes = async () => {
     loading.value = true
@@ -500,95 +514,39 @@ export const useSongs = () => {
     }
 
     try {
-      // 检查是否已经投过票（只在正常投票时检查）
-      const targetSong = songs.value.find((s) => Number(s.id) === actualSongId)
-
-      if (!isUnvote && targetSong && targetSong.voted) {
-        showNotification('您已经为这首歌投过票了', 'info')
-        loading.value = false
-        return null
-      }
-
-      // 使用认证配置
+      const targetSong: any = findSongById(actualSongId)
       const authConfig = getAuthConfig()
-
-      try {
-        const data = await $fetch('/api/songs/vote', {
-          method: 'POST',
-          body: {
-            songId: actualSongId,
-            unvote: isUnvote // 添加取消投票参数
-          },
-          ...authConfig
-        })
-
-        // 立即更新本地歌曲的投票状态
-        if (targetSong) {
-          if (isUnvote) {
-            // 取消投票（含 alreadyCancelled 场景）
-            targetSong.voted = false
-            if (typeof data?.song?.voteCount === 'number') {
-              targetSong.voteCount = data.song.voteCount
-            } else {
-              targetSong.voteCount = Math.max(0, (targetSong.voteCount || 1) - 1)
-            }
-            if (data?.alreadyCancelled) {
-              showNotification(`歌曲《${targetSong.title}》当前已是未投票状态`, 'info')
-            } else {
-              showNotification(`已取消对歌曲《${targetSong.title}》的投票`, 'success')
-            }
-          } else {
-            // 正常投票（含 alreadyVoted 场景）
-            targetSong.voted = true
-            if (typeof data?.song?.voteCount === 'number') {
-              targetSong.voteCount = data.song.voteCount
-            } else {
-              targetSong.voteCount = (targetSong.voteCount || 0) + 1
-            }
-            if (data?.alreadyVoted) {
-              showNotification(`您已经为歌曲《${targetSong.title}》投过票`, 'info')
-            } else {
-              showNotification(`为歌曲《${targetSong.title}》投票成功！`, 'success')
-            }
-          }
-        }
-
-        return data
-      } catch (fetchErr: any) {
-        // 处理API返回的错误
-        const errorMsg = fetchErr.data?.message || fetchErr.message || '投票失败'
-
-        // 如果是已投票错误，只显示通知，不抛出异常
-        if (errorMsg.includes('已经为这首歌投过票')) {
-          showNotification('您已经为这首歌投过票了', 'info')
-
-          // 如果API返回已投票错误，也更新本地状态
-          if (targetSong && !targetSong.voted) {
-            targetSong.voted = true
-          }
-
-          return null
-        }
-
-        if (errorMsg.includes('尚未为这首歌投票') || errorMsg.includes('无法取消')) {
-          if (targetSong && targetSong.voted) {
-            targetSong.voted = false
-            targetSong.voteCount = Math.max(0, Number(targetSong.voteCount || 0))
-          }
-          showNotification(errorMsg, 'info')
-          return null
-        }
-
-        // 其他错误则抛出
-        throw fetchErr
-      }
-    } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '投票失败'
-      console.warn('[Vote] 请求失败', {
-        songId: actualSongId,
-        isUnvote,
-        message: errorMsg
+      const data: any = await $fetch('/api/songs/vote', {
+        method: 'POST',
+        body: {
+          songId: actualSongId,
+          action: isUnvote ? 'unvote' : 'vote'
+        },
+        ...authConfig
       })
+
+      const voteData = data?.data || {}
+      const voted = typeof voteData.voted === 'boolean' ? voteData.voted : !isUnvote
+      const voteCount = Number(voteData.voteCount)
+      const changed = voteData.changed !== false
+
+      if (targetSong) {
+        targetSong.voted = voted
+        if (Number.isInteger(voteCount) && voteCount >= 0) {
+          targetSong.voteCount = voteCount
+        } else if (voted) {
+          targetSong.voteCount = Number(targetSong.voteCount || 0) + 1
+        } else {
+          targetSong.voteCount = Math.max(0, Number(targetSong.voteCount || 1) - 1)
+        }
+      }
+
+      const message = data?.message || (voted ? '投票成功' : '取消投票成功')
+      showNotification(message, changed ? 'success' : 'info')
+      return data
+    } catch (err: any) {
+      const errorMsg = resolveErrorMessage(err, '投票失败')
+      console.warn('[Vote] 请求失败', { songId: actualSongId, isUnvote, message: errorMsg })
       error.value = errorMsg
       showNotification(errorMsg, 'error')
       return null
@@ -763,6 +721,10 @@ export const useSongs = () => {
   // 申请重播
   const requestReplay = async (songId: number) => {
     if (!isAuthenticated.value) {
+      await initAuth()
+    }
+
+    if (!isAuthenticated.value) {
       showNotification('需要登录才能申请重播', 'error')
       return null
     }
@@ -778,42 +740,35 @@ export const useSongs = () => {
 
     try {
       const authConfig = getAuthConfig()
-      const data = await $fetch('/api/songs/replay', {
+      const data: any = await $fetch('/api/songs/replay', {
         method: 'POST',
-        body: { songId: normalizedSongId },
+        body: {
+          songId: normalizedSongId,
+          action: 'request'
+        },
         ...authConfig
       })
 
-      // 更新本地数据状态
-      const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
-      if (songIndex !== -1) {
-        const targetSong: any = songs.value[songIndex]
+      const replayData = data?.data || {}
+      const changed = replayData.changed !== false
+      const targetSong: any = findSongById(normalizedSongId)
+      if (targetSong) {
         targetSong.replayRequested = true
-        targetSong.replayRequestStatus = 'PENDING'
+        targetSong.replayRequestStatus = replayData.replayRequestStatus || 'PENDING'
         targetSong.replayRequestCooldownRemaining = 0
-        targetSong.replayRequestCount = (targetSong.replayRequestCount || 0) + 1
+        if (Number.isInteger(Number(replayData.replayRequestCount))) {
+          targetSong.replayRequestCount = Number(replayData.replayRequestCount)
+        } else {
+          targetSong.replayRequestCount = Math.max(1, Number(targetSong.replayRequestCount || 0))
+        }
         targetSong.isReplay = targetSong.replayRequestCount > 0
       }
 
-      showNotification('申请重播成功', 'success')
+      showNotification(data?.message || '申请重播成功', changed ? 'success' : 'info')
       return data
     } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '申请重播失败'
-      if (errorMsg.includes('已经申请')) {
-        const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
-        if (songIndex !== -1) {
-          const targetSong: any = songs.value[songIndex]
-          targetSong.replayRequested = true
-          targetSong.replayRequestStatus = 'PENDING'
-          targetSong.replayRequestCooldownRemaining = 0
-          targetSong.replayRequestCount = Math.max(1, Number(targetSong.replayRequestCount || 0))
-          targetSong.isReplay = true
-        }
-        showNotification('您已经申请过重播这首歌了', 'info')
-        return { success: true, alreadyExists: true }
-      } else {
-        showNotification(errorMsg, 'error')
-      }
+      const errorMsg = resolveErrorMessage(err, '申请重播失败')
+      showNotification(errorMsg, 'error')
       return null
     } finally {
       loading.value = false
@@ -825,7 +780,11 @@ export const useSongs = () => {
    * @param songId 歌曲ID
    */
   const withdrawReplay = async (songId: number) => {
-    if (!user.value) {
+    if (!isAuthenticated.value) {
+      await initAuth()
+    }
+
+    if (!isAuthenticated.value) {
       showNotification('需要登录才能取消重播申请', 'error')
       return null
     }
@@ -841,20 +800,27 @@ export const useSongs = () => {
 
     try {
       const authConfig = getAuthConfig()
-      const data = await $fetch('/api/songs/replay', {
+      const data: any = await $fetch('/api/songs/replay', {
         method: 'POST',
-        body: { songId: normalizedSongId, cancel: true },
+        body: {
+          songId: normalizedSongId,
+          action: 'cancel'
+        },
         ...authConfig
       })
 
-      // 更新本地数据状态
-      const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
-      if (songIndex !== -1) {
-        const targetSong: any = songs.value[songIndex]
+      const replayData = data?.data || {}
+      const changed = replayData.changed !== false
+      const targetSong: any = findSongById(normalizedSongId)
+      if (targetSong) {
         targetSong.replayRequested = false
         targetSong.replayRequestStatus = undefined
         targetSong.replayRequestCooldownRemaining = 0
-        targetSong.replayRequestCount = Math.max(0, (targetSong.replayRequestCount || 0) - 1)
+        if (Number.isInteger(Number(replayData.replayRequestCount))) {
+          targetSong.replayRequestCount = Number(replayData.replayRequestCount)
+        } else {
+          targetSong.replayRequestCount = Math.max(0, Number(targetSong.replayRequestCount || 0) - 1)
+        }
         targetSong.isReplay = targetSong.replayRequestCount > 0
 
         if (Array.isArray(targetSong.replayRequesters) && user.value?.id) {
@@ -865,23 +831,10 @@ export const useSongs = () => {
         }
       }
 
-      showNotification('已取消重播申请', 'success')
+      showNotification(data?.message || '已取消重播申请', changed ? 'success' : 'info')
       return data
     } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '取消重播申请失败'
-      if (errorMsg.includes('不存在') || errorMsg.includes('无权取消')) {
-        const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
-        if (songIndex !== -1) {
-          const targetSong: any = songs.value[songIndex]
-          targetSong.replayRequested = false
-          targetSong.replayRequestStatus = undefined
-          targetSong.replayRequestCooldownRemaining = 0
-          targetSong.replayRequestCount = Math.max(0, Number(targetSong.replayRequestCount || 0))
-          targetSong.isReplay = targetSong.replayRequestCount > 0
-        }
-        showNotification('该重播申请已不存在，已同步最新状态', 'info')
-        return { success: true, alreadyCancelled: true }
-      }
+      const errorMsg = resolveErrorMessage(err, '取消重播申请失败')
       showNotification(errorMsg, 'error')
       return null
     } finally {
