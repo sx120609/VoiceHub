@@ -489,12 +489,19 @@ export const useSongs = () => {
     error.value = ''
 
     // 处理传入的可能是对象的情况
-    const actualSongId = typeof songId === 'object' ? songId.id : songId
+    const rawSongId = typeof songId === 'object' ? songId.id : songId
+    const actualSongId = Number(rawSongId)
     const isUnvote = typeof songId === 'object' && songId.unvote === true
+
+    if (!Number.isInteger(actualSongId) || actualSongId <= 0) {
+      showNotification('歌曲ID无效，无法进行投票操作', 'error')
+      loading.value = false
+      return null
+    }
 
     try {
       // 检查是否已经投过票（只在正常投票时检查）
-      const targetSong = songs.value.find((s) => s.id === actualSongId)
+      const targetSong = songs.value.find((s) => Number(s.id) === actualSongId)
 
       if (!isUnvote && targetSong && targetSong.voted) {
         showNotification('您已经为这首歌投过票了', 'info')
@@ -544,6 +551,15 @@ export const useSongs = () => {
             targetSong.voted = true
           }
 
+          return null
+        }
+
+        if (errorMsg.includes('尚未为这首歌投票') || errorMsg.includes('无法取消')) {
+          if (targetSong && targetSong.voted) {
+            targetSong.voted = false
+            targetSong.voteCount = Math.max(0, Number(targetSong.voteCount || 0))
+          }
+          showNotification(errorMsg, 'info')
           return null
         }
 
@@ -763,7 +779,17 @@ export const useSongs = () => {
     } catch (err: any) {
       const errorMsg = err.data?.message || err.message || '申请重播失败'
       if (errorMsg.includes('已经申请')) {
+        const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
+        if (songIndex !== -1) {
+          const targetSong: any = songs.value[songIndex]
+          targetSong.replayRequested = true
+          targetSong.replayRequestStatus = 'PENDING'
+          targetSong.replayRequestCooldownRemaining = 0
+          targetSong.replayRequestCount = Math.max(1, Number(targetSong.replayRequestCount || 0))
+          targetSong.isReplay = true
+        }
         showNotification('您已经申请过重播这首歌了', 'info')
+        return { success: true, alreadyExists: true }
       } else {
         showNotification(errorMsg, 'error')
       }
@@ -822,6 +848,19 @@ export const useSongs = () => {
       return data
     } catch (err: any) {
       const errorMsg = err.data?.message || err.message || '取消重播申请失败'
+      if (errorMsg.includes('不存在') || errorMsg.includes('无权取消')) {
+        const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
+        if (songIndex !== -1) {
+          const targetSong: any = songs.value[songIndex]
+          targetSong.replayRequested = false
+          targetSong.replayRequestStatus = undefined
+          targetSong.replayRequestCooldownRemaining = 0
+          targetSong.replayRequestCount = Math.max(0, Number(targetSong.replayRequestCount || 0))
+          targetSong.isReplay = targetSong.replayRequestCount > 0
+        }
+        showNotification('该重播申请已不存在，已同步最新状态', 'info')
+        return { success: true, alreadyCancelled: true }
+      }
       showNotification(errorMsg, 'error')
       return null
     } finally {

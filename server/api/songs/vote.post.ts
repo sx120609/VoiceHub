@@ -24,8 +24,9 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const clientIP = getClientIP(event)
+  const songId = Number(body?.songId)
 
-  if (!body.songId) {
+  if (!Number.isInteger(songId) || songId <= 0) {
     throw createError({
       statusCode: 400,
       message: '歌曲ID不能为空'
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // 检查歌曲是否存在
-    const songResult = await db.select().from(songs).where(eq(songs.id, body.songId)).limit(1)
+    const songResult = await db.select().from(songs).where(eq(songs.id, songId)).limit(1)
 
     const song = songResult[0]
 
@@ -47,71 +48,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 检查学期
-    const currentSemesterResult = await db
-      .select()
-      .from(semesters)
-      .where(eq(semesters.isActive, true))
-      .limit(1)
-    const currentSemester = currentSemesterResult[0]
-
-    if (!currentSemester) {
-      throw createError({
-        statusCode: 400,
-        message: '未设置活跃学期，无法进行投票操作'
-      })
-    }
-
-    if (song.semester !== currentSemester.name) {
-      throw createError({
-        statusCode: 400,
-        message: '非活跃学期，无法进行投票操作'
-      })
-    }
-
-    // 检查歌曲是否已播放
-    if (song.played) {
-      throw createError({
-        statusCode: 400,
-        message: '该歌曲已播放，无法进行投票操作'
-      })
-    }
-
-    // 检查歌曲是否已排期（只检查已发布的排期，草稿不算）
-    const schedulesResult = await db
-      .select()
-      .from(schedules)
-      .where(and(eq(schedules.songId, body.songId), eq(schedules.isDraft, false)))
-      .limit(1)
-
-    if (schedulesResult.length > 0) {
-      throw createError({
-        statusCode: 400,
-        message: '该歌曲已排期，无法进行投票操作'
-      })
-    }
-
-    // 检查是否是自己的歌曲
-    if (song.requesterId === user.id) {
-      throw createError({
-        statusCode: 400,
-        message: '不允许自己给自己投票'
-      })
-    }
-
-    if (isSongProtected(body.songId)) {
-      const remain = getSongProtectRemainingSeconds(body.songId)
-      throw createError({
-        statusCode: 423,
-        message: `该歌曲处于临时保护期，剩余 ${Math.max(remain, 1)} 秒`
-      })
-    }
-
     // 检查用户是否已经投过票
     const existingVoteResult = await db
       .select()
       .from(votes)
-      .where(and(eq(votes.songId, body.songId), eq(votes.userId, user.id)))
+      .where(and(eq(votes.songId, songId), eq(votes.userId, user.id)))
       .limit(1)
 
     const existingVote = existingVoteResult[0]
@@ -132,7 +73,7 @@ export default defineEventHandler(async (event) => {
       const voteCountResult = await db
         .select({ count: count() })
         .from(votes)
-        .where(eq(votes.songId, body.songId))
+        .where(eq(votes.songId, songId))
 
       const voteCount = voteCountResult[0].count
 
@@ -156,6 +97,66 @@ export default defineEventHandler(async (event) => {
         }
       }
     } else {
+      // 检查学期
+      const currentSemesterResult = await db
+        .select()
+        .from(semesters)
+        .where(eq(semesters.isActive, true))
+        .limit(1)
+      const currentSemester = currentSemesterResult[0]
+
+      if (!currentSemester) {
+        throw createError({
+          statusCode: 400,
+          message: '未设置活跃学期，无法进行投票操作'
+        })
+      }
+
+      if (song.semester !== currentSemester.name) {
+        throw createError({
+          statusCode: 400,
+          message: '非活跃学期，无法进行投票操作'
+        })
+      }
+
+      // 检查歌曲是否已播放
+      if (song.played) {
+        throw createError({
+          statusCode: 400,
+          message: '该歌曲已播放，无法进行投票操作'
+        })
+      }
+
+      // 检查歌曲是否已排期（只检查已发布的排期，草稿不算）
+      const schedulesResult = await db
+        .select()
+        .from(schedules)
+        .where(and(eq(schedules.songId, songId), eq(schedules.isDraft, false)))
+        .limit(1)
+
+      if (schedulesResult.length > 0) {
+        throw createError({
+          statusCode: 400,
+          message: '该歌曲已排期，无法进行投票操作'
+        })
+      }
+
+      // 检查是否是自己的歌曲
+      if (song.requesterId === user.id) {
+        throw createError({
+          statusCode: 400,
+          message: '不允许自己给自己投票'
+        })
+      }
+
+      if (isSongProtected(songId)) {
+        const remain = getSongProtectRemainingSeconds(songId)
+        throw createError({
+          statusCode: 423,
+          message: `该歌曲处于临时保护期，剩余 ${Math.max(remain, 1)} 秒`
+        })
+      }
+
       // 正常投票逻辑
       if (existingVote) {
         throw createError({
@@ -165,10 +166,10 @@ export default defineEventHandler(async (event) => {
       }
 
       // 创建新的投票
-      const newVote = await db
+      await db
         .insert(votes)
         .values({
-          songId: body.songId,
+          songId,
           userId: user.id
         })
         .returning()
@@ -177,18 +178,18 @@ export default defineEventHandler(async (event) => {
       const voteCountResult = await db
         .select({ count: count() })
         .from(votes)
-        .where(eq(votes.songId, body.songId))
+        .where(eq(votes.songId, songId))
 
       const voteCount = voteCountResult[0].count
 
       // 发送通知（异步，不阻塞响应）
       if (song.requesterId !== user.id) {
-        createSongVotedNotification(body.songId, user.id, clientIP).catch(() => {
+        createSongVotedNotification(songId, user.id, clientIP).catch(() => {
           // 发送通知失败不影响主流程
         })
       }
 
-      const protectedTriggered = recordSongVote(body.songId, clientIP, user.id)
+      recordSongVote(songId, clientIP, user.id)
       recordUserVoteActivity(user.id, song.title)
 
       // 清除统计缓存和歌曲缓存

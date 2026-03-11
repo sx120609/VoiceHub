@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const songId = Number(body?.songId)
   const { cancel, action } = body
 
-  if (!songId || Number.isNaN(songId)) {
+  if (!Number.isInteger(songId) || songId <= 0) {
     throw createError({ statusCode: 400, message: '歌曲ID不能为空' })
   }
 
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
       .limit(1)
 
     if (existing.length === 0) {
-      throw createError({ statusCode: 404, message: '重播申请不存在或无权取消' })
+      return { success: true, message: '重播申请已是取消状态', alreadyCancelled: true }
     }
 
     await db
@@ -143,7 +143,7 @@ export default defineEventHandler(async (event) => {
 
       return { success: true, message: '再次申请重播成功' }
     } else {
-      throw createError({ statusCode: 400, message: '您已经申请过重播该歌曲' })
+      return { success: true, message: '您已经申请过重播该歌曲', alreadyExists: true }
     }
   }
 
@@ -158,7 +158,7 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     // 处理唯一约束冲突
     if (error.code === '23505') {
-      throw createError({ statusCode: 400, message: '您已经申请过重播该歌曲' })
+      return { success: true, message: '您已经申请过重播该歌曲', alreadyExists: true }
     }
     throw error
   }

@@ -325,7 +325,7 @@
                 <!-- 如果是自己的投稿或联合投稿，显示撤回/退出按钮 -->
                 <button
                   v-if="(isMySong(song) || isCollaborator(song)) && !song.played && !song.scheduled"
-                  :disabled="actionInProgress"
+                  :disabled="actionInProgress || props.loading"
                   :title="isMySong(song) ? '撤回投稿' : '退出联合投稿'"
                   class="withdraw-button"
                   @click.stop="handleWithdraw(song)"
@@ -337,7 +337,7 @@
                 <template v-if="song.played && isAuthenticated">
                   <button
                     v-if="shouldShowCancelButton(song)"
-                    :disabled="actionInProgress"
+                    :disabled="actionInProgress || props.loading"
                     class="withdraw-button replay-cancel-btn"
                     title="撤回重播申请"
                     @click.stop="handleCancelReplay(song)"
@@ -373,7 +373,7 @@
           :title="confirmDialog.title"
           :message="confirmDialog.message"
           :type="confirmDialog.type"
-          :loading="actionInProgress"
+          :loading="actionInProgress || props.loading"
           @confirm="confirmAction"
           @cancel="cancelConfirm"
         />
@@ -773,12 +773,17 @@ const paginatedSongs = computed(() => {
 // 检查点赞按钮是否应该禁用
 const isVoteButtonDisabled = (song) => {
   // 仅在请求处理中禁用，其他情况允许点击后给出明确提示
-  return voteInProgress.value || !song
+  return voteInProgress.value || props.loading || !song
 }
 
 // 获取点赞按钮标题（tooltip）
 const getVoteButtonTitle = (song) => {
   if (!song) return '点赞'
+
+  // 已点赞时优先显示“可取消”，避免被学期/排期提示覆盖
+  if (song.voted) {
+    return '点击取消点赞'
+  }
 
   // 检查学期
   if (!currentSemester.value || song.semester !== currentSemester.value.name) {
@@ -798,7 +803,7 @@ const getVoteButtonTitle = (song) => {
     return '不允许自己给自己点赞'
   }
 
-  return song.voted ? '点击取消点赞' : '点赞'
+  return '点赞'
 }
 
 const handleVote = async (song) => {
@@ -810,40 +815,48 @@ const handleVote = async (song) => {
     return
   }
 
-  // 检查学期
-  if (!currentSemester.value || !currentSemester.value.name) {
-    if (window.$showNotification) {
-      window.$showNotification('当前未设置活跃学期，暂不可点赞', 'error')
-    }
-    return
-  }
+  const isUnvote = !!song.voted
 
-  if (song.semester !== currentSemester.value.name) {
-    if (window.$showNotification) {
-      window.$showNotification(`仅可点赞当前学期歌曲（${currentSemester.value.name}）`, 'error')
+  // 仅“新增点赞”需要校验学期/状态/是否本人投稿；取消点赞允许直接执行
+  if (!isUnvote) {
+    // 检查学期
+    if (!currentSemester.value || !currentSemester.value.name) {
+      if (window.$showNotification) {
+        window.$showNotification('当前未设置活跃学期，暂不可点赞', 'error')
+      }
+      return
     }
-    return
-  }
 
-  // 检查歌曲状态
-  if (song.played || song.scheduled) {
-    if (window.$showNotification) {
-      window.$showNotification(song.played ? '已播放的歌曲不能点赞' : '已排期的歌曲不能点赞', 'error')
+    if (song.semester !== currentSemester.value.name) {
+      if (window.$showNotification) {
+        window.$showNotification(`仅可点赞当前学期歌曲（${currentSemester.value.name}）`, 'error')
+      }
+      return
     }
-    return
-  }
 
-  // 检查是否是自己的歌曲
-  if (isMySong(song)) {
-    if (window.$showNotification) {
-      window.$showNotification('不允许自己给自己点赞', 'error')
+    // 检查歌曲状态
+    if (song.played || song.scheduled) {
+      if (window.$showNotification) {
+        window.$showNotification(
+          song.played ? '已播放的歌曲不能点赞' : '已排期的歌曲不能点赞',
+          'error'
+        )
+      }
+      return
     }
-    return
+
+    // 检查是否是自己的歌曲
+    if (isMySong(song)) {
+      if (window.$showNotification) {
+        window.$showNotification('不允许自己给自己点赞', 'error')
+      }
+      return
+    }
   }
 
   voteInProgress.value = true
   try {
-    if (song.voted) {
+    if (isUnvote) {
       // 如果已投票，则调用撤销投票
       emit('vote', { ...song, unvote: true })
     } else {
@@ -908,7 +921,7 @@ const handleRequestReplay = (song) => {
 
 // 获取重播按钮文本
 const getReplayButtonText = (song) => {
-  if (actionInProgress.value) return '处理中...'
+  if (actionInProgress.value || props.loading) return '处理中...'
   if (!song) return '申请重播'
 
   // 检查学期
@@ -967,7 +980,7 @@ const getReplayButtonTitle = (song) => {
 
 // 检查重播按钮是否应该禁用
 const isReplayButtonDisabled = (song) => {
-  if (actionInProgress.value || !song) return true
+  if (actionInProgress.value || props.loading || !song) return true
 
   // 检查学期
   if (currentSemester.value && song.semester !== currentSemester.value.name) {

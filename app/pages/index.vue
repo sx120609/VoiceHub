@@ -1306,12 +1306,9 @@ const handleVote = async (song) => {
       await songs.voteSong(song.id)
     }
 
-    // 静默刷新歌曲列表以获取最新状态，但不影响当前视图
-    setTimeout(() => {
-      songs.refreshSongsSilent().catch((err) => {
-        console.error('刷新歌曲列表失败', err)
-      })
-    }, 500)
+    // 强制刷新歌曲列表，避免缓存导致点赞/取消点赞状态滞后
+    await songs.fetchSongs(true, undefined, true, true)
+    updateSongCounts()
   } catch (err) {
     // 不做任何处理，因为useSongs中已经处理了错误提示
     console.log('API错误已在useSongs中处理')
@@ -1326,7 +1323,9 @@ const handleCancelReplay = async (song) => {
 
   try {
     if (!songs) return
-    const result = await songs.withdrawReplay(song.id)
+    const songId = Number(song?.id)
+    if (!Number.isInteger(songId) || songId <= 0) return
+    const result = await songs.withdrawReplay(songId)
     if (!result) return
     await songs.fetchSongs(true, undefined, true, true)
     updateSongCounts()
@@ -1343,7 +1342,9 @@ const handleRequestReplay = async (song) => {
 
   try {
     if (!songs) return
-    const result = await songs.requestReplay(song.id)
+    const songId = Number(song?.id)
+    if (!Number.isInteger(songId) || songId <= 0) return
+    const result = await songs.requestReplay(songId)
     if (!result) return
     await songs.fetchSongs(true, undefined, true, true)
     updateSongCounts()
