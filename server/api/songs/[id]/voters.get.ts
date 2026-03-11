@@ -2,6 +2,7 @@ import { createError, defineEventHandler, getRouterParam } from 'h3'
 import { db } from '~/drizzle/db'
 import { songs, users, votes } from '~/drizzle/schema'
 import { eq } from 'drizzle-orm'
+import { applyVoteOffset, fetchVoteOffsetMap } from '~~/server/utils/vote-offset'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -88,6 +89,10 @@ export default defineEventHandler(async (event) => {
       }
     })
 
+    const offsetMap = await fetchVoteOffsetMap([songId])
+    const voteOffset = Number(offsetMap.get(songId) || 0)
+    const totalVotes = applyVoteOffset(votersWithDisplayName.length, voteOffset)
+
     return {
       song: {
         id: song.id,
@@ -95,7 +100,7 @@ export default defineEventHandler(async (event) => {
         artist: song.artist
       },
       voters: votersWithDisplayName,
-      totalVotes: votersWithDisplayName.length
+      totalVotes
     }
   } catch (error: any) {
     console.error('获取投票人员列表失败:', error)

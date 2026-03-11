@@ -4,6 +4,7 @@ import { and, count, eq } from 'drizzle-orm'
 import { createSongVotedNotification } from '../../services/notificationService'
 import { cacheService } from '~~/server/services/cacheService'
 import { getClientIP } from '~~/server/utils/ip-utils'
+import { applyVoteOffset, fetchVoteOffsetMap } from '~~/server/utils/vote-offset'
 
 type VoteAction = 'vote' | 'unvote'
 
@@ -37,7 +38,10 @@ const normalizeUserId = (user: any): number | null => {
 
 const fetchVoteCount = async (songId: number) => {
   const voteCountResult = await db.select({ count: count() }).from(votes).where(eq(votes.songId, songId))
-  return voteCountResult[0]?.count || 0
+  const rawVoteCount = Number(voteCountResult[0]?.count || 0)
+  const voteOffsetMap = await fetchVoteOffsetMap([songId])
+  const voteOffset = Number(voteOffsetMap.get(songId) || 0)
+  return applyVoteOffset(rawVoteCount, voteOffset)
 }
 
 const clearVoteRelatedCache = async (tag: string) => {

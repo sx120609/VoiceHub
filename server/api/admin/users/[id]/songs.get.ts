@@ -1,6 +1,7 @@
 import { db } from '~/drizzle/db'
 import { schedules, songReplayRequests, songs, users, votes } from '~/drizzle/schema'
 import { and, count, desc, eq, inArray } from 'drizzle-orm'
+import { buildAdjustedVoteCountMap } from '~~/server/utils/vote-offset'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -84,6 +85,10 @@ export default defineEventHandler(async (event) => {
         submittedVoteCountsMap.set(item.songId, item.voteCount)
       })
     }
+    const adjustedSubmittedVoteCountsMap = await buildAdjustedVoteCountMap(
+      submittedSongIds,
+      submittedVoteCountsMap
+    )
 
     // 获取用户投票的歌曲
     const votedSongs = await db
@@ -122,6 +127,7 @@ export default defineEventHandler(async (event) => {
         votedVoteCountsMap.set(item.songId, item.voteCount)
       })
     }
+    const adjustedVotedVoteCountsMap = await buildAdjustedVoteCountMap(votedSongIds, votedVoteCountsMap)
 
     // 获取投稿歌曲的排期状态
     // 只查询已发布的排期，草稿不算作已排期
@@ -224,7 +230,7 @@ export default defineEventHandler(async (event) => {
         createdAt: song.createdAt,
         played: song.played,
         scheduled: submittedScheduleMap.has(song.id),
-        voteCount: submittedVoteCountsMap.get(song.id) || 0
+        voteCount: adjustedSubmittedVoteCountsMap.get(song.id) || 0
       })),
       votedSongs: votedSongs.map((vote) => ({
         id: vote.songId,
@@ -233,7 +239,7 @@ export default defineEventHandler(async (event) => {
         semester: vote.songSemester,
         played: vote.songPlayed,
         scheduled: votedScheduleMap.has(vote.songId),
-        voteCount: votedVoteCountsMap.get(vote.songId) || 0,
+        voteCount: adjustedVotedVoteCountsMap.get(vote.songId) || 0,
         votedAt: vote.createdAt,
         requester: {
           name: vote.requesterName,

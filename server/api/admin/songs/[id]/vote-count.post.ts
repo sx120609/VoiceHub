@@ -1,8 +1,9 @@
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
-import { asc, count, eq, inArray } from 'drizzle-orm'
+import { count, eq, sql } from 'drizzle-orm'
 import { db } from '~/drizzle/db'
-import { songs, users, votes } from '~/drizzle/schema'
+import { songs, votes } from '~/drizzle/schema'
 import { cacheService } from '~~/server/services/cacheService'
+import { applyVoteOffset } from '~~/server/utils/vote-offset'
 
 const normalizeSongId = (rawSongId: unknown): number | null => {
   const songId = Number(rawSongId)
@@ -18,6 +19,34 @@ const normalizeTargetCount = (rawTargetCount: unknown): number | null => {
     return null
   }
   return targetCount
+}
+
+const isMissingVoteOffsetTableError = (error: unknown) => {
+  const normalized = error as { code?: string; cause?: { code?: string }; message?: string }
+  const message = String(normalized?.message || '').toLowerCase()
+  return (
+    normalized?.code === '42P01' ||
+    normalized?.cause?.code === '42P01' ||
+    message.includes('song_vote_offsets') ||
+    message.includes('does not exist')
+  )
+}
+
+const ensureVoteOffsetTable = async () => {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS song_vote_offsets (
+      id SERIAL PRIMARY KEY,
+      song_id INTEGER NOT NULL,
+      vote_offset INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_by INTEGER
+    )
+  `)
+
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS song_vote_offsets_song_id_unique
+    ON song_vote_offsets (song_id)
+  `)
 }
 
 export default defineEventHandler(async (event) => {
@@ -39,7 +68,6 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const targetCount = normalizeTargetCount(body?.targetCount)
-
   if (targetCount === null) {
     throw createError({
       statusCode: 400,
@@ -48,12 +76,19 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    try {
+      await ensureVoteOffsetTable()
+    } catch (error) {
+      if (!isMissingVoteOffsetTableError(error)) {
+        throw error
+      }
+    }
+
     const result = await db.transaction(async (tx) => {
       const songRows = await tx
         .select({
           id: songs.id,
-          title: songs.title,
-          requesterId: songs.requesterId
+          title: songs.title
         })
         .from(songs)
         .where(eq(songs.id, songId))
@@ -67,77 +102,38 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      const existingVotes = await tx
+      const rawVoteCountRows = await tx
         .select({
-          id: votes.id,
-          userId: votes.userId,
-          createdAt: votes.createdAt
+          count: count(votes.id)
         })
         .from(votes)
         .where(eq(votes.songId, songId))
-        .orderBy(asc(votes.createdAt), asc(votes.id))
 
-      const currentCount = existingVotes.length
+      const rawVoteCount = Number(rawVoteCountRows[0]?.count || 0)
+      const targetOffset = targetCount - rawVoteCount
 
-      if (targetCount === currentCount) {
-        return {
-          songId,
-          songTitle: song.title,
-          previousCount: currentCount,
-          totalVotes: currentCount,
-          changed: false
-        }
-      }
-
-      if (targetCount < currentCount) {
-        const removeCount = currentCount - targetCount
-        const voteIdsToDelete = existingVotes.slice(currentCount - removeCount).map((vote) => vote.id)
-
-        if (voteIdsToDelete.length > 0) {
-          await tx.delete(votes).where(inArray(votes.id, voteIdsToDelete))
-        }
+      if (targetOffset === 0) {
+        await tx.execute(sql`DELETE FROM song_vote_offsets WHERE song_id = ${songId}`)
       } else {
-        const needToAdd = targetCount - currentCount
-        const votedUserIdSet = new Set(existingVotes.map((vote) => vote.userId))
-
-        const userRows = await tx
-          .select({ id: users.id })
-          .from(users)
-
-        const availableUserIds = userRows
-          .map((row) => row.id)
-          .filter((userId) => userId !== song.requesterId && !votedUserIdSet.has(userId))
-
-        if (availableUserIds.length < needToAdd) {
-          throw createError({
-            statusCode: 400,
-            message: `可用于补票的用户不足：当前最多可调整到 ${currentCount + availableUserIds.length} 票`
-          })
-        }
-
-        const newVoteRows = availableUserIds.slice(0, needToAdd).map((userId) => ({
-          songId,
-          userId
-        }))
-
-        if (newVoteRows.length > 0) {
-          await tx.insert(votes).values(newVoteRows)
-        }
+        await tx.execute(sql`
+          INSERT INTO song_vote_offsets (song_id, vote_offset, updated_at, updated_by)
+          VALUES (${songId}, ${targetOffset}, NOW(), ${Number(user.id) || null})
+          ON CONFLICT (song_id)
+          DO UPDATE SET
+            vote_offset = EXCLUDED.vote_offset,
+            updated_at = NOW(),
+            updated_by = EXCLUDED.updated_by
+        `)
       }
 
-      const latestCountRows = await tx
-        .select({ count: count() })
-        .from(votes)
-        .where(eq(votes.songId, songId))
-
-      const latestCount = latestCountRows[0]?.count || 0
+      const totalVotes = applyVoteOffset(rawVoteCount, targetOffset)
 
       return {
         songId,
         songTitle: song.title,
-        previousCount: currentCount,
-        totalVotes: latestCount,
-        changed: true
+        rawVoteCount,
+        voteOffset: targetOffset,
+        totalVotes
       }
     })
 
@@ -151,20 +147,20 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      message: result.changed ? '投票人数已更新' : '投票人数未变化',
+      message: '投票人数已更新',
       data: result
     }
   } catch (error: unknown) {
-    const normalizedError = error as { statusCode?: number; code?: string }
+    const normalized = error as { statusCode?: number; code?: string; message?: string }
 
-    if (normalizedError?.statusCode) {
+    if (normalized?.statusCode) {
       throw error
     }
 
-    if (normalizedError?.code === '23505') {
+    if (normalized?.code === '42P01') {
       throw createError({
-        statusCode: 409,
-        message: '投票数据已发生变化，请刷新后重试'
+        statusCode: 500,
+        message: '投票偏移量表初始化失败，请稍后重试'
       })
     }
 

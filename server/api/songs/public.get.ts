@@ -16,6 +16,7 @@ import { executeRedisCommand, isRedisReady } from '../../utils/redis'
 import { formatDateTime } from '~/utils/timeUtils'
 import { maskPublicScheduleData, PublicScheduleItem } from '../../utils/studentMask'
 import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
+import { buildAdjustedVoteCountMap } from '~~/server/utils/vote-offset'
 
 import { verifyUserAuth } from '../../utils/auth'
 
@@ -232,6 +233,7 @@ export default defineEventHandler(async (event) => {
 
     // 获取重播申请信息
     const songIds = schedulesData.map((s) => s.song.id)
+    const adjustedVoteCounts = await buildAdjustedVoteCountMap(songIds, voteCounts)
     const replayRequestCountsMap = new Map()
     const replayRequestersMap = new Map()
 
@@ -381,7 +383,7 @@ export default defineEventHandler(async (event) => {
           requesterGrade: schedule.requester?.grade || null,
           requesterClass: schedule.requester?.class || null,
           collaborators: [],
-          voteCount: voteCounts.get(schedule.song.id) || 0,
+          voteCount: adjustedVoteCounts.get(schedule.song.id) || 0,
           played: schedule.song.played || false,
           cover: schedule.song.cover || null,
           musicPlatform: schedule.song.musicPlatform || null,

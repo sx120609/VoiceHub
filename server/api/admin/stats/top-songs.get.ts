@@ -2,6 +2,7 @@ import { createError, defineEventHandler, getQuery } from 'h3'
 import { db } from '~/drizzle/db'
 import { songs, users, votes, songReplayRequests } from '~/drizzle/schema'
 import { count, desc, eq, sql } from 'drizzle-orm'
+import { buildAdjustedVoteCountMap } from '~~/server/utils/vote-offset'
 
 export default defineEventHandler(async (event) => {
   // 检查认证和权限
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
         .limit(limit)
     } else {
       // 按投票数排行（默认）
-      topSongs = await db
+      const allSongs = await db
         .select({
           id: songs.id,
           title: songs.title,
@@ -55,8 +56,20 @@ export default defineEventHandler(async (event) => {
         .leftJoin(votes, eq(songs.id, votes.songId))
         .where(semester && semester !== 'all' ? eq(songs.semester, semester) : sql`1=1`)
         .groupBy(songs.id, songs.title, songs.artist, users.name, users.username)
-        .orderBy(desc(count(votes.id)))
-        .limit(limit)
+
+      const rawVoteMap = new Map(allSongs.map((song) => [song.id, Number(song.count) || 0]))
+      const adjustedVoteMap = await buildAdjustedVoteCountMap(
+        allSongs.map((song) => song.id),
+        rawVoteMap
+      )
+
+      topSongs = allSongs
+        .map((song) => ({
+          ...song,
+          count: adjustedVoteMap.get(song.id) || 0
+        }))
+        .sort((a, b) => Number(b.count) - Number(a.count))
+        .slice(0, limit)
     }
 
     // 格式化数据

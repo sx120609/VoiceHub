@@ -70,6 +70,17 @@ export const votes = pgTable('Vote', {
   userId: integer('userId').notNull(),
 });
 
+// 歌曲投票偏移量表（用于后台隐式调整展示票数）
+export const songVoteOffsets = pgTable('song_vote_offsets', {
+  id: serial('id').primaryKey(),
+  songId: integer('song_id').notNull(),
+  voteOffset: integer('vote_offset').default(0).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedBy: integer('updated_by'),
+}, (t) => ({
+  songIdUnique: unique().on(t.songId),
+}));
+
 // 排期表
 export const schedules = pgTable('Schedule', {
   id: serial('id').primaryKey(),
@@ -331,6 +342,7 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
     references: [playTimes.id],
   }),
   votes: many(votes),
+  voteOffsets: many(songVoteOffsets),
   schedules: many(schedules),
   notifications: many(notifications),
     collaborators: many(songCollaborators),
@@ -345,6 +357,17 @@ export const votesRelations = relations(votes, ({ one }) => ({
   }),
   user: one(users, {
     fields: [votes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const songVoteOffsetsRelations = relations(songVoteOffsets, ({ one }) => ({
+  song: one(songs, {
+    fields: [songVoteOffsets.songId],
+    references: [songs.id],
+  }),
+  updatedByUser: one(users, {
+    fields: [songVoteOffsets.updatedBy],
     references: [users.id],
   }),
 }));

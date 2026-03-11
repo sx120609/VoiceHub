@@ -8,6 +8,7 @@ import { cache } from '~~/server/utils/cache-helpers'
 import crypto from 'crypto'
 import { formatDateTime } from '~/utils/timeUtils'
 import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
+import { buildAdjustedVoteCountMap } from '~~/server/utils/vote-offset'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -198,6 +199,7 @@ export default defineEventHandler(async (event) => {
         : []
 
     const voteCounts = new Map(voteCountsQuery.map((v) => [v.songId, v.count]))
+    const adjustedVoteCounts = await buildAdjustedVoteCountMap(songIds, voteCounts)
 
     // 获取每首歌的排期状态
     // 只查询已发布的排期，草稿不算作已排期
@@ -275,7 +277,7 @@ export default defineEventHandler(async (event) => {
         artist: song.artist,
         requester: requesterName,
         requesterId: song.requester?.id,
-        voteCount: voteCounts.get(song.id) || 0,
+        voteCount: adjustedVoteCounts.get(song.id) || 0,
         played: song.played,
         playedAt: song.playedAt,
         playedAtFormatted: song.playedAt ? formatDateTime(song.playedAt) : null,

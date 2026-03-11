@@ -16,6 +16,7 @@ import { formatDateTime } from '~/utils/timeUtils'
 import { maskSongsInfo, MaskableSong, MaskableUser } from '~~/server/utils/studentMask'
 import crypto from 'crypto'
 import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
+import { buildAdjustedVoteCountMap } from '~~/server/utils/vote-offset'
 
 interface SongResponse {
   id: number
@@ -309,6 +310,7 @@ export default defineEventHandler(async (event) => {
 
     // 获取每首歌的重播状态（全局，不分用户，统计 PENDING + FULFILLED）
     const songIds = songsData.map((s) => s.id)
+    const adjustedVoteCounts = await buildAdjustedVoteCountMap(songIds, voteCounts)
     let replayRequestCounts = new Map()
     const replayRequestersMap = new Map()
 
@@ -485,7 +487,7 @@ export default defineEventHandler(async (event) => {
         requester: requesterName,
         requesterId: song.requester?.id,
         collaborators: [],
-        voteCount: voteCounts.get(song.id) || 0,
+        voteCount: adjustedVoteCounts.get(song.id) || 0,
         played: song.played,
         playedAt: song.playedAt,
         semester: song.semester,
