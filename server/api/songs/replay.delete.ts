@@ -1,4 +1,5 @@
 import { and, db, eq, songReplayRequests } from '~/drizzle/db'
+import { cacheService } from '~~/server/services/cacheService'
 
 export default defineEventHandler(async (event) => {
   // 1. 检查用户认证
@@ -49,6 +50,14 @@ export default defineEventHandler(async (event) => {
           eq(songReplayRequests.status, 'PENDING')
         )
       )
+
+    try {
+      await cacheService.clearSongsCache()
+      await cacheService.clearSchedulesCache()
+    } catch (cacheError) {
+      console.error('[Replay API] 清理缓存失败:', cacheError)
+    }
+
     return { success: true, message: '已取消重播申请' }
   } catch (error: any) {
     console.error('取消重播申请失败:', error)

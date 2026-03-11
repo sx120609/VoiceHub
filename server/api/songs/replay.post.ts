@@ -1,4 +1,14 @@
 import { and, db, eq, songs, systemSettings, songReplayRequests, semesters } from '~/drizzle/db'
+import { cacheService } from '~~/server/services/cacheService'
+
+async function clearReplayRelatedCache() {
+  try {
+    await cacheService.clearSongsCache()
+    await cacheService.clearSchedulesCache()
+  } catch (error) {
+    console.error('[Replay API] 清理缓存失败:', error)
+  }
+}
 
 export default defineEventHandler(async (event) => {
   // 1. 检查用户认证
@@ -43,6 +53,8 @@ export default defineEventHandler(async (event) => {
           eq(songReplayRequests.status, 'PENDING')
         )
       )
+
+    await clearReplayRelatedCache()
 
     return { success: true, message: '已取消重播申请' }
   }
@@ -114,6 +126,8 @@ export default defineEventHandler(async (event) => {
         })
         .where(eq(songReplayRequests.id, existingRequest.id))
 
+      await clearReplayRelatedCache()
+
       return { success: true, message: '重新申请重播成功' }
     } else if (existingRequest.status === 'FULFILLED') {
       await db
@@ -124,6 +138,8 @@ export default defineEventHandler(async (event) => {
           createdAt: new Date()
         })
         .where(eq(songReplayRequests.id, existingRequest.id))
+
+      await clearReplayRelatedCache()
 
       return { success: true, message: '再次申请重播成功' }
     } else {
@@ -137,6 +153,7 @@ export default defineEventHandler(async (event) => {
       songId,
       userId: user.id
     })
+    await clearReplayRelatedCache()
     return { success: true, message: '申请重播成功' }
   } catch (error: any) {
     // 处理唯一约束冲突
