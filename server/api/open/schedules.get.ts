@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, getQuery } from 'h3'
 import { db } from '~/drizzle/db'
-import { playTimes, schedules, songCollaborators, songs, users } from '~/drizzle/schema'
-import { and, asc, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm'
+import { playTimes, schedules, songs, users } from '~/drizzle/schema'
+import { and, asc, desc, eq, gte, like, lt, or, sql } from 'drizzle-orm'
 import { formatDateTime } from '~/utils/timeUtils'
 import { openApiCache } from '~~/server/utils/open-api-cache'
 import { CACHE_CONSTANTS } from '~~/server/config/constants'
@@ -250,44 +250,10 @@ export default defineEventHandler(async (event) => {
 
     const total = Number(totalResult[0].count)
 
-    // 获取联合投稿人信息
-    const songIds = schedulesData.map((s) => s.song.id)
-    const collaboratorsMap = new Map()
-
-    if (songIds.length > 0) {
-      const collaboratorsData = await db
-        .select({
-          songId: songCollaborators.songId,
-          user: {
-            id: users.id,
-            name: users.name,
-            username: users.username,
-            grade: users.grade,
-            class: users.class
-          }
-        })
-        .from(songCollaborators)
-        .leftJoin(users, eq(songCollaborators.userId, users.id))
-        .where(
-          and(inArray(songCollaborators.songId, songIds), eq(songCollaborators.status, 'ACCEPTED'))
-        )
-
-      collaboratorsData.forEach((c) => {
-        if (!collaboratorsMap.has(c.songId)) {
-          collaboratorsMap.set(c.songId, [])
-        }
-        if (c.user) {
-          collaboratorsMap.get(c.songId).push(c.user)
-        }
-      })
-    }
-
     const resolveDisplayName = (userObj: any) => userObj?.name || userObj?.username || '未知用户'
 
     // 格式化数据
     const formattedSchedules = schedulesData.map((schedule) => {
-      const collaborators = collaboratorsMap.get(schedule.song.id) || []
-
       return {
         id: schedule.id,
         playDate: schedule.playDate,
@@ -303,12 +269,7 @@ export default defineEventHandler(async (event) => {
           played: schedule.song.played,
           playedAt: schedule.song.playedAt,
           requestedAt: formatDateTime(schedule.song.createdAt),
-          collaborators: collaborators.map((c: any) => ({
-            id: c.id,
-            name: resolveDisplayName(c),
-            grade: c.grade,
-            class: c.class
-          }))
+          collaborators: []
         },
         requester: schedule.requester
           ? {

@@ -925,14 +925,6 @@ const selectedEditUser = ref(null)
 const filteredEditUsers = ref([])
 const editUserSearchLoading = ref(false)
 
-// 联合投稿人搜索相关
-const selectedEditCollaborators = ref([])
-const editCollaboratorSearchQuery = ref('')
-const filteredEditCollaborators = ref([])
-const showEditCollaboratorDropdown = ref(false)
-const editCollaboratorSearchLoading = ref(false)
-let editCollaboratorSearchTimeout = null
-
 // 数据
 const songs = ref([])
 
@@ -1324,12 +1316,6 @@ const editSong = (song) => {
     clearSelectedEditUser()
   }
 
-  if (song.collaborators && Array.isArray(song.collaborators)) {
-    selectedEditCollaborators.value = [...song.collaborators]
-  } else {
-    selectedEditCollaborators.value = []
-  }
-
   showEditModal.value = true
 }
 
@@ -1361,7 +1347,6 @@ const saveEditSong = async () => {
       title: editForm.value.title,
       artist: editForm.value.artist,
       requester: editForm.value.requester,
-      collaborators: selectedEditCollaborators.value.map((u) => u.id),
       semester: editForm.value.semester,
       musicPlatform: editForm.value.musicPlatform || null,
       musicId: editForm.value.musicId || null,
@@ -1403,8 +1388,6 @@ const cancelEditSong = () => {
   editCoverValidation.value = { valid: true, error: '', validating: false }
   editPlayUrlValidation.value = { valid: true, error: '', validating: false }
   clearSelectedEditUser()
-  selectedEditCollaborators.value = []
-  editCollaboratorSearchQuery.value = ''
 }
 
 const openAddSongModal = () => {
@@ -1629,58 +1612,11 @@ const clearSelectedEditUser = () => {
   showEditUserDropdown.value = false
 }
 
-// 联合投稿人搜索相关
-const searchEditCollaborators = async () => {
-  if (!editCollaboratorSearchQuery.value.trim()) {
-    filteredEditCollaborators.value = []
-    showEditCollaboratorDropdown.value = false
-    editCollaboratorSearchLoading.value = false
-    return
-  }
-
-  if (editCollaboratorSearchTimeout) {
-    clearTimeout(editCollaboratorSearchTimeout)
-  }
-
-  editCollaboratorSearchTimeout = setTimeout(async () => {
-    editCollaboratorSearchLoading.value = true
-    try {
-      const users = await searchUsersFromAPI(editCollaboratorSearchQuery.value)
-      filteredEditCollaborators.value = users.filter(
-        (u) =>
-          (!selectedEditUser.value || u.id !== selectedEditUser.value.id) &&
-          !selectedEditCollaborators.value.some((c) => c.id === u.id)
-      )
-      showEditCollaboratorDropdown.value = filteredEditCollaborators.value.length > 0
-    } catch (error) {
-      console.error('搜索联合投稿人失败:', error)
-      filteredEditCollaborators.value = []
-      showEditCollaboratorDropdown.value = false
-    } finally {
-      editCollaboratorSearchLoading.value = false
-    }
-  }, 300)
-}
-
-const selectEditCollaborator = (user) => {
-  selectedEditCollaborators.value.push(user)
-  editCollaboratorSearchQuery.value = ''
-  showEditCollaboratorDropdown.value = false
-}
-
-const removeEditCollaborator = (userId) => {
-  const index = selectedEditCollaborators.value.findIndex((u) => u.id === userId)
-  if (index > -1) {
-    selectedEditCollaborators.value.splice(index, 1)
-  }
-}
-
 // 点击外部关闭下拉框
 const handleClickOutside = (event) => {
   if (!event.target.closest('.user-search-container')) {
     showUserDropdown.value = false
     showEditUserDropdown.value = false
-    showEditCollaboratorDropdown.value = false
   }
 }
 

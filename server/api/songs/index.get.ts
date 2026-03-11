@@ -4,7 +4,6 @@ import {
   playTimes,
   schedules,
   songComments,
-  songCollaborators,
   songReplayRequests,
   songs,
   systemSettings,
@@ -446,42 +445,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 获取联合投稿人信息
-    // const songIds = songsData.map(s => s.id) // Already defined above
-    const collaboratorsMap = new Map()
-
-    if (songIds.length > 0) {
-      const collaboratorsData = await db
-        .select({
-          songId: songCollaborators.songId,
-          status: songCollaborators.status,
-          user: {
-            id: users.id,
-            name: users.name,
-            username: users.username,
-            grade: users.grade,
-            class: users.class
-          }
-        })
-        .from(songCollaborators)
-        .leftJoin(users, eq(songCollaborators.userId, users.id))
-        .where(
-          and(
-            inArray(songCollaborators.songId, songIds),
-            eq(songCollaborators.status, 'ACCEPTED') // 只展示已接受的
-          )
-        )
-
-      collaboratorsData.forEach((c) => {
-        if (!collaboratorsMap.has(c.songId)) {
-          collaboratorsMap.set(c.songId, [])
-        }
-        if (c.user) {
-          collaboratorsMap.get(c.songId).push(c.user)
-        }
-      })
-    }
-
     // 辅助函数：格式化显示名称
     const formatDisplayName = (userObj: any) => {
       if (!userObj) return '未知用户'
@@ -507,16 +470,6 @@ export default defineEventHandler(async (event) => {
       // 处理投稿人姓名
       const requesterName = formatDisplayName(song.requester)
 
-      // 处理联合投稿人
-      const collaborators = collaboratorsMap.get(song.id) || []
-      const formattedCollaborators = collaborators.map((c: MaskableUser) => ({
-        id: c.id,
-        name: c.name || c.username,
-        displayName: formatDisplayName(c),
-        grade: c.grade,
-        class: c.class
-      }))
-
       // 处理重播申请人
       const replayRequesters = (replayRequestersMap.get(song.id) || []) as MaskableUser[]
       const formattedReplayRequesters = replayRequesters.map((r: MaskableUser) => ({
@@ -531,7 +484,7 @@ export default defineEventHandler(async (event) => {
         artist: song.artist,
         requester: requesterName,
         requesterId: song.requester?.id,
-        collaborators: formattedCollaborators, // 添加联合投稿人列表
+        collaborators: [],
         voteCount: voteCounts.get(song.id) || 0,
         played: song.played,
         playedAt: song.playedAt,

@@ -4,7 +4,6 @@ import { db } from '~/drizzle/db'
 import {
   playTimes,
   schedules,
-  songCollaborators,
   songReplayRequests,
   songs,
   systemSettings,
@@ -48,14 +47,6 @@ export default defineEventHandler(async (event) => {
         const names: string[] = []
         const requester = item?.song?.requester
         if (typeof requester === 'string') names.push(requester)
-
-        const collaborators = Array.isArray(item?.song?.collaborators)
-          ? item.song.collaborators
-          : []
-        collaborators.forEach((c: any) => {
-          if (typeof c?.displayName === 'string') names.push(c.displayName)
-          if (typeof c?.name === 'string') names.push(c.name)
-        })
 
         const replayRequesters = Array.isArray(item?.song?.replayRequesters)
           ? item.song.replayRequesters
@@ -119,7 +110,7 @@ export default defineEventHandler(async (event) => {
         (item: any) =>
           item?.song &&
           typeof item.song.requester === 'string' &&
-          Array.isArray(item.song.collaborators)
+          Array.isArray(item.song.replayRequesters)
       )
       const cacheContainsAnonymous = hasAnonymousName(cachedSchedules)
 
@@ -239,43 +230,8 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // 获取联合投稿人信息
-    const songIds = schedulesData.map((s) => s.song.id)
-    const collaboratorsMap = new Map()
-
-    if (songIds.length > 0) {
-      const collaboratorsData = await db
-        .select({
-          songId: songCollaborators.songId,
-          status: songCollaborators.status,
-          user: {
-            id: users.id,
-            name: users.name,
-            username: users.username,
-            grade: users.grade,
-            class: users.class
-          }
-        })
-        .from(songCollaborators)
-        .leftJoin(users, eq(songCollaborators.userId, users.id))
-        .where(
-          and(
-            inArray(songCollaborators.songId, songIds),
-            eq(songCollaborators.status, 'ACCEPTED') // 只展示已接受的
-          )
-        )
-
-      collaboratorsData.forEach((c) => {
-        if (!collaboratorsMap.has(c.songId)) {
-          collaboratorsMap.set(c.songId, [])
-        }
-        if (c.user) {
-          collaboratorsMap.get(c.songId).push(c.user)
-        }
-      })
-    }
-
     // 获取重播申请信息
+    const songIds = schedulesData.map((s) => s.song.id)
     const replayRequestCountsMap = new Map()
     const replayRequestersMap = new Map()
 
@@ -384,16 +340,6 @@ export default defineEventHandler(async (event) => {
       // 处理投稿人姓名
       const requesterName = formatDisplayName(schedule.requester)
 
-      // 处理联合投稿人
-      const collaborators = collaboratorsMap.get(schedule.song.id) || []
-      const formattedCollaborators = collaborators.map((c: any) => ({
-        id: c.id,
-        name: c.name || c.username,
-        displayName: formatDisplayName(c),
-        grade: c.grade,
-        class: c.class
-      }))
-
       // 获取重播申请信息
       const replayRequestCount = replayRequestCountsMap.get(schedule.song.id) || 0
       const replayRequesters = replayRequestersMap.get(schedule.song.id) || []
@@ -434,7 +380,7 @@ export default defineEventHandler(async (event) => {
           requester: requesterName,
           requesterGrade: schedule.requester?.grade || null,
           requesterClass: schedule.requester?.class || null,
-          collaborators: formattedCollaborators, // 添加联合投稿人
+          collaborators: [],
           voteCount: voteCounts.get(schedule.song.id) || 0,
           played: schedule.song.played || false,
           cover: schedule.song.cover || null,

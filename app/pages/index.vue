@@ -272,18 +272,6 @@
                               name="x-circle"
                             />
                             <Icon
-                              v-else-if="notification.type === 'COLLABORATION_INVITE'"
-                              :size="20"
-                              color="#0B5AFE"
-                              name="users"
-                            />
-                            <Icon
-                              v-else-if="notification.type === 'COLLABORATION_RESPONSE'"
-                              :size="20"
-                              color="#8b5cf6"
-                              name="message-circle"
-                            />
-                            <Icon
                               v-else-if="notification.type === 'SONG_COMMENTED'"
                               :size="20"
                               color="#16a34a"
@@ -307,31 +295,6 @@
                               <span v-else-if="notification.type === 'SONG_REJECTED'"
                                 >歌曲被驳回</span
                               >
-                              <span v-else-if="notification.type === 'COLLABORATION_INVITE'">
-                                联合投稿邀请
-                                <span
-                                  v-if="notification.handled"
-                                  :class="[
-                                    'status-tag',
-                                    notification.status === 'ACCEPTED'
-                                      ? 'accepted'
-                                      : notification.status === 'INVALID'
-                                        ? 'invalid'
-                                        : 'rejected'
-                                  ]"
-                                >
-                                  {{
-                                    notification.status === 'ACCEPTED'
-                                      ? '- 已接受'
-                                      : notification.status === 'INVALID'
-                                        ? '- 已失效'
-                                        : '- 已拒绝'
-                                  }}
-                                </span>
-                              </span>
-                              <span v-else-if="notification.type === 'COLLABORATION_RESPONSE'"
-                                >联合投稿回复</span
-                              >
                               <span v-else-if="notification.type === 'SONG_COMMENTED'"
                                 >收到歌曲评论</span
                               >
@@ -348,29 +311,6 @@
                         </div>
                         <div class="notification-card-body">
                           <div class="notification-text">{{ notification.message }}</div>
-
-                          <!-- 联合投稿邀请操作按钮 -->
-                          <div
-                            v-if="
-                              notification.type === 'COLLABORATION_INVITE' && !notification.handled
-                            "
-                            class="invite-actions"
-                          >
-                            <button
-                              :disabled="notification.processing"
-                              class="action-button accept-btn"
-                              @click.stop="handleCollaborationReply(notification, true)"
-                            >
-                              {{ notification.processing ? '处理中...' : '接受邀请' }}
-                            </button>
-                            <button
-                              :disabled="notification.processing"
-                              class="action-button reject-btn"
-                              @click.stop="handleCollaborationReply(notification, false)"
-                            >
-                              拒绝
-                            </button>
-                          </div>
                         </div>
                         <div class="notification-card-actions">
                           <button
@@ -1513,48 +1453,6 @@ const handleDashboardClick = (event) => {
 const viewNotification = async (notification) => {
   if (!notification.read) {
     await notificationsService.markAsRead(notification.id)
-  }
-}
-
-// 处理联合投稿回复
-const handleCollaborationReply = async (notification, accept) => {
-  if (notification.processing) return
-  notification.processing = true
-
-  try {
-    await $fetch('/api/songs/collaborators/reply', {
-      method: 'POST',
-      body: {
-        songId: notification.songId,
-        accept
-      }
-    })
-
-    // 标记为已处理
-    notification.handled = true
-    notification.status = accept ? 'ACCEPTED' : 'REJECTED'
-    notification.repliedAt = new Date()
-    // notification.message += accept ? ' (已接受)' : ' (已拒绝)'
-
-    if (window.$showNotification) {
-      window.$showNotification(accept ? '已接受联合投稿邀请' : '已拒绝联合投稿邀请', 'success')
-    }
-
-    // 标记通知为已读
-    await markNotificationAsRead(notification.id)
-
-    // 刷新歌曲列表
-    refreshSongs()
-
-    // 刷新通知列表
-    await loadNotifications()
-  } catch (error) {
-    console.error('处理联合投稿邀请失败:', error)
-    if (window.$showNotification) {
-      window.$showNotification(error.statusMessage || '操作失败', 'error')
-    }
-  } finally {
-    notification.processing = false
   }
 }
 

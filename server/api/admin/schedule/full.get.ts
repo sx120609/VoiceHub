@@ -5,7 +5,6 @@ import {
   songs,
   users,
   votes,
-  songCollaborators,
   songReplayRequests
 } from '~/drizzle/schema'
 import { and, asc, count, eq, gte, lt, inArray, desc } from 'drizzle-orm'
@@ -145,36 +144,6 @@ export default defineEventHandler(async (event) => {
 
     const voteCountMap = new Map(voteCounts.map((v) => [v.songId, v.count]))
 
-    // 获取联合投稿人信息
-    const collaboratorsMap = new Map()
-
-    if (songIds.length > 0) {
-      const collaboratorsData = await db
-        .select({
-          songId: songCollaborators.songId,
-          user: {
-            id: users.id,
-            name: users.name,
-            grade: users.grade,
-            class: users.class
-          }
-        })
-        .from(songCollaborators)
-        .leftJoin(users, eq(songCollaborators.userId, users.id))
-        .where(
-          and(inArray(songCollaborators.songId, songIds), eq(songCollaborators.status, 'ACCEPTED'))
-        )
-
-      collaboratorsData.forEach((c) => {
-        if (!collaboratorsMap.has(c.songId)) {
-          collaboratorsMap.set(c.songId, [])
-        }
-        if (c.user) {
-          collaboratorsMap.get(c.songId).push(c.user)
-        }
-      })
-    }
-
     // 获取重播申请信息
     const replayRequestCountsMap = new Map()
     const replayRequestersMap = new Map()
@@ -262,7 +231,7 @@ export default defineEventHandler(async (event) => {
         }
       }
 
-      // 辅助函数：格式化显示名称 (用于联合投稿人)
+      // 辅助函数：格式化显示名称
       const formatDisplayName = (userObj: any) => {
         if (!userObj || !userObj.name) return '未知用户'
         let displayName = userObj.name
@@ -280,15 +249,6 @@ export default defineEventHandler(async (event) => {
         }
         return displayName
       }
-
-      const collaborators = collaboratorsMap.get(schedule.songId) || []
-      const formattedCollaborators = collaborators.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        displayName: formatDisplayName(c),
-        grade: c.grade,
-        class: c.class
-      }))
 
       // 获取重播申请信息
       const replayRequestCount = replayRequestCountsMap.get(schedule.songId) || 0
@@ -334,7 +294,7 @@ export default defineEventHandler(async (event) => {
           requesterId: schedule.songRequesterId,
           requesterGrade: schedule.requesterGrade || null,
           requesterClass: schedule.requesterClass || null,
-          collaborators: formattedCollaborators,
+          collaborators: [],
           voteCount: voteCountMap.get(schedule.songId) || 0,
           played: schedule.songPlayed || false,
           cover: schedule.songCover || null,

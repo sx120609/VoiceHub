@@ -1,15 +1,12 @@
 import {
-  collaborationLogs,
   db,
   playTimes,
   requestTimes,
   semesters,
-  songCollaborators,
   songs,
   systemSettings
 } from '~/drizzle/db'
 import { and, eq, gt, gte, lt, lte, sql } from 'drizzle-orm'
-import { createCollaborationInvitationNotification } from '~~/server/services/notificationService'
 import { isLimitReached } from '~~/server/utils/submissionLimit'
 import { getBeijingTimeISOString } from '~/utils/timeUtils'
 
@@ -234,9 +231,6 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // 准备发送通知的列表
-    const notificationsToSend: { userId: number; songId: number; songTitle: string }[] = []
-
     // 创建歌曲和更新状态（使用事务）
     const song = await db.transaction(async (tx) => {
       // 检查投稿限额（在事务内进行，防止并发绕过限制）
@@ -328,85 +322,8 @@ export default defineEventHandler(async (event) => {
         .returning()
       const newSong = songResult[0]
 
-      // 处理联合投稿人
-      if (
-        body.collaborators &&
-        Array.isArray(body.collaborators) &&
-        body.collaborators.length > 0
-      ) {
-        // 去重
-        const uniqueCollaboratorIds = [...new Set(body.collaborators.map((id: any) => Number(id)))]
-
-        for (const collaboratorId of uniqueCollaboratorIds) {
-          // 跳过自己或无效ID
-          if (isNaN(collaboratorId) || collaboratorId === user.id) continue
-
-          try {
-            // 检查是否已经是联合投稿人
-            const existingCollab = await tx
-              .select()
-              .from(songCollaborators)
-              .where(
-                and(
-                  eq(songCollaborators.songId, newSong.id),
-                  eq(songCollaborators.userId, collaboratorId)
-                )
-              )
-              .limit(1)
-
-            if (existingCollab.length > 0) continue
-
-            // 创建联合投稿记录
-            const collabResult = await tx
-              .insert(songCollaborators)
-              .values({
-                songId: newSong.id,
-                userId: collaboratorId,
-                status: 'PENDING'
-              })
-              .returning()
-
-            const collab = collabResult[0]
-
-            // 记录审计日志
-            await tx.insert(collaborationLogs).values({
-              collaboratorId: collab.id,
-              action: 'INVITE',
-              operatorId: user.id,
-              ipAddress:
-                (event.node.req.headers['x-forwarded-for'] as string) ||
-                event.node.req.socket.remoteAddress
-            })
-
-            // 添加到通知列表，事务结束后发送
-            notificationsToSend.push({
-              userId: collaboratorId,
-              songId: newSong.id,
-              songTitle: newSong.title
-            })
-          } catch (err) {
-            console.error(`邀请用户 ${collaboratorId} 失败:`, err)
-          }
-        }
-      }
-
       return newSong
     })
-
-    // 事务提交成功后，发送通知
-    // 即使通知发送失败，也不影响点歌结果
-    for (const notification of notificationsToSend) {
-      try {
-        await createCollaborationInvitationNotification(
-          user.id,
-          notification.userId,
-          notification.songId,
-          notification.songTitle
-        )
-      } catch (error) {
-        console.error(`发送邀请通知给用户 ${notification.userId} 失败:`, error)
-      }
-    }
 
     return song
   } catch (error: any) {

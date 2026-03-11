@@ -5,8 +5,7 @@ import {
   songs,
   systemSettings,
   votes,
-  songCollaborators,
-  collaborationLogs
+  songCollaborators
 } from '~/drizzle/schema'
 import { and, eq } from 'drizzle-orm'
 
@@ -41,28 +40,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 检查是否是用户自己的投稿或联合投稿
+  // 仅允许主投稿人或管理员撤回
   const isRequester = song.requesterId === user.id
-  let isCollaborator = false
-  let collaboratorRecord = null
-
-  if (!isRequester) {
-    const collabResult = await db
-      .select()
-      .from(songCollaborators)
-      .where(and(eq(songCollaborators.songId, song.id), eq(songCollaborators.userId, user.id)))
-      .limit(1)
-
-    if (collabResult.length > 0) {
-      isCollaborator = true
-      collaboratorRecord = collabResult[0]
-    }
-  }
-
-  if (!isRequester && !isCollaborator && !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+  if (!isRequester && !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
     throw createError({
       statusCode: 403,
-      message: '只能撤回自己的投稿或退出联合投稿'
+      message: '只能撤回自己的投稿'
     })
   }
 
@@ -89,30 +72,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 如果是联合投稿人撤回（退出）
-  if (isCollaborator && !isRequester && !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
-    await db.delete(songCollaborators).where(eq(songCollaborators.id, collaboratorRecord.id))
-
-    // 记录日志
-    await db.insert(collaborationLogs).values({
-      collaboratorId: collaboratorRecord.id,
-      action: 'LEAVE',
-      operatorId: user.id,
-      ipAddress:
-        (event.node.req.headers['x-forwarded-for'] as string) || event.node.req.socket.remoteAddress
-    })
-
-    // 清除歌曲列表缓存
-    await cacheService.clearSongsCache()
-
-    return {
-      message: '已成功退出联合投稿',
-      songId: body.songId,
-      action: 'leave'
-    }
-  }
-
-  // 如果是主投稿人撤回（删除歌曲）
+  // 主投稿人撤回（删除歌曲）
 
   // 获取系统设置以检查限制类型
   const settingsResult = await db.select().from(systemSettings).limit(1)

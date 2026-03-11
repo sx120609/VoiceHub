@@ -224,34 +224,10 @@
                           </span>
                           <span
                             v-else
-                            :title="
-                              (schedule.song.collaborators && schedule.song.collaborators.length > 0
-                                ? '主投稿人: '
-                                : '投稿人: ') +
-                              schedule.song.requester +
-                              (schedule.song.collaborators && schedule.song.collaborators.length
-                                ? '\n联合投稿: ' +
-                                  schedule.song.collaborators
-                                    .map((c) => c.displayName || c.name)
-                                    .join(', ')
-                                : '')
-                            "
+                            :title="'投稿人: ' + schedule.song.requester"
                             class="requester"
                           >
                             投稿人：{{ schedule.song.requester }}
-                            <span
-                              v-if="
-                                schedule.song.collaborators &&
-                                schedule.song.collaborators.length > 0
-                              "
-                            >
-                              &
-                              {{
-                                schedule.song.collaborators
-                                  .map((c) => c.displayName || c.name)
-                                  .join(' & ')
-                              }}
-                            </span>
                           </span>
                         </div>
                       </div>

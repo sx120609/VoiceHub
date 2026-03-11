@@ -56,7 +56,7 @@
 
     <div class="form-container">
       <form class="song-request-form" @submit.prevent="handleSearch">
-        <!-- 顶部行：搜索和联合投稿 -->
+        <!-- 顶部行：歌曲搜索 -->
         <div class="form-header-row">
           <!-- 歌曲搜索区域 -->
           <div class="search-section">
@@ -89,31 +89,6 @@
               <Icon :size="16" name="history" />
               <span class="btn-text">从往期导入</span>
             </button>
-          </div>
-
-          <!-- 联合投稿人区域 -->
-          <div v-if="user" class="collaborators-section">
-            <div class="section-label">联合投稿</div>
-            <div class="collaborators-list">
-              <div v-for="user in collaborators" :key="user.id" class="collaborator-tag">
-                <span class="collaborator-name">{{ user.name }}</span>
-                <button
-                  class="remove-collaborator"
-                  type="button"
-                  @click="removeCollaborator(user.id)"
-                >
-                  <Icon :size="12" name="close" />
-                </button>
-              </div>
-              <button
-                class="add-collaborator-btn"
-                type="button"
-                @click="showUserSearchModal = true"
-              >
-                <Icon :size="14" name="plus" />
-                添加
-              </button>
-            </div>
           </div>
         </div>
 
@@ -766,15 +741,6 @@
       @submit="handlePlaylistSubmit"
     />
 
-    <!-- 用户搜索弹窗 -->
-    <UserSearchModal
-      v-model:show="showUserSearchModal"
-      :exclude-ids="[user?.id, ...collaborators.map((u) => u.id)]"
-      :multiple="true"
-      title="添加联合投稿人"
-      @select="handleUserSelect"
-    />
-
     <!-- 手动输入弹窗 -->
     <Teleport to="body">
       <Transition
@@ -994,7 +960,6 @@ import PodcastEpisodesModal from './PodcastEpisodesModal.vue'
 import BilibiliEpisodesModal from './BilibiliEpisodesModal.vue'
 import RecentSongsModal from './RecentSongsModal.vue'
 import PlaylistSelectionModal from './PlaylistSelectionModal.vue'
-import UserSearchModal from '../Common/UserSearchModal.vue'
 import NeteaseUploadDialog from './NeteaseUploadDialog.vue'
 
 const props = defineProps({
@@ -1091,8 +1056,6 @@ const podcastCookie = ref('')
 
 const showRecentSongsModal = ref(false)
 const showPlaylistModal = ref(false)
-const showUserSearchModal = ref(false)
-const collaborators = ref([])
 
 const songService = useSongs()
 const playTimes = ref([])
@@ -1150,22 +1113,6 @@ const handleImportSuccess = async () => {
   } catch (error) {
     console.error('刷新歌曲列表失败:', error)
   }
-}
-
-const handleUserSelect = (users) => {
-  if (Array.isArray(users)) {
-    // 过滤掉已存在的
-    const newUsers = users.filter((u) => !collaborators.value.some((c) => c.id === u.id))
-    collaborators.value.push(...newUsers)
-  } else if (users) {
-    if (!collaborators.value.some((c) => c.id === users.id)) {
-      collaborators.value.push(users)
-    }
-  }
-}
-
-const removeCollaborator = (userId) => {
-  collaborators.value = collaborators.value.filter((c) => c.id !== userId)
 }
 
 // 获取播出时段
@@ -2239,7 +2186,6 @@ const submitSong = async (result, options = {}) => {
       cover: selectedCover.value,
       musicPlatform: result.actualMusicPlatform || result.musicPlatform || platform.value, // 优先使用搜索结果的实际平台来源
       musicId: result.musicId ? String(result.musicId) : null,
-      collaborators: collaborators.value.map((u) => u.id),
       bilibiliCid: bilibiliCid || null,
       bilibiliPage: bilibiliPage
     }
@@ -2286,8 +2232,7 @@ const handleSubmit = async () => {
       preferredPlayTimeId: preferredPlayTimeId.value ? parseInt(preferredPlayTimeId.value) : null,
       cover: selectedCover.value,
       musicPlatform: platform.value,
-      musicId: null, // 手动输入时没有musicId
-      collaborators: collaborators.value.map((u) => u.id)
+      musicId: null // 手动输入时没有musicId
     }
 
     // 只emit事件，让父组件处理实际的API调用
@@ -2689,7 +2634,6 @@ const resetForm = () => {
   manualCover.value = ''
   manualPlayUrl.value = ''
   hasSearched.value = false
-  collaborators.value = []
   // 重置URL验证状态
   coverValidation.value = { valid: true, error: '', validating: false }
   playUrlValidation.value = { valid: true, error: '', validating: false }
@@ -3048,80 +2992,6 @@ defineExpose({
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-}
-
-/* 联合投稿人区域 */
-.collaborators-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-  min-width: 200px; /* 增加最小宽度，防止在窄屏下与搜索框重叠 */
-  padding: 0.5rem 0.75rem;
-  background: #f8fbf6;
-  border: 1px solid #d2deca;
-  border-radius: 10px;
-}
-
-.section-label {
-  font-family: 'MiSans', sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  color: #1f2a1f;
-  white-space: nowrap;
-  flex-shrink: 0; /* 防止标签被压缩 */
-}
-
-.collaborators-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.collaborator-tag {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #e6efe0;
-  border: 1px solid #c8d7bf;
-  border-radius: 6px;
-  padding: 0.25rem 0.5rem;
-  font-size: 14px;
-  color: #2f4d2f;
-}
-
-.remove-collaborator {
-  background: none;
-  border: none;
-  color: #5f715f;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 0;
-}
-
-.remove-collaborator:hover {
-  color: #2f7d4f;
-}
-
-.add-collaborator-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: #eef4e8;
-  border: 1px solid #cfdcc7;
-  border-radius: 6px;
-  padding: 0.25rem 0.75rem;
-  font-size: 13px;
-  color: #3b543b;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.add-collaborator-btn:hover {
-  background: #e3ecda;
-  color: #2f7d4f;
 }
 
 /* 横向投稿状态样式 */
@@ -4854,20 +4724,6 @@ defineExpose({
     flex: none;
     width: 100%;
     min-width: unset; /* 移除桌面端的最小宽度限制 */
-  }
-
-  .collaborators-section {
-    flex-direction: row;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    flex: none;
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .section-label {
-    font-size: 14px;
   }
 
   .search-label {

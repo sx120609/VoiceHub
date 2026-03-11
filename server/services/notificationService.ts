@@ -4,7 +4,6 @@ import {
   notificationSettings,
   playTimes,
   schedules,
-  songCollaborators,
   songs,
   systemSettings,
   users,
@@ -14,102 +13,6 @@ import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import { sendBatchMeowNotifications, sendMeowNotificationToUser } from './meowNotificationService'
 import { sendBatchEmailNotifications, sendEmailNotificationToUser } from './smtpService'
 import { formatDateTime, getBeijingTime } from '~/utils/timeUtils'
-
-/**
- * 创建联合投稿邀请通知
- */
-export async function createCollaborationInvitationNotification(
-  inviterId: number,
-  inviteeId: number,
-  songId: number,
-  songTitle: string
-) {
-  try {
-    const inviter = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, inviterId))
-      .limit(1)
-      .then((res) => res[0])
-    const message = `用户 ${inviter?.name || '未知用户'} 邀请您共同投稿歌曲《${songTitle}》。`
-
-    // 创建通知
-    const notificationResult = await db
-      .insert(notifications)
-      .values({
-        userId: inviteeId,
-        type: 'COLLABORATION_INVITE',
-        message,
-        songId
-      })
-      .returning()
-
-    // 发送外部通知（MeoW, Email等）
-    try {
-      await sendMeowNotificationToUser(inviteeId, '收到联合投稿邀请', message)
-    } catch (error) {
-      console.error('发送 MeoW 通知失败:', error)
-    }
-
-    try {
-      await sendEmailNotificationToUser(
-        inviteeId,
-        '收到联合投稿邀请',
-        message,
-        undefined,
-        'notification.collaborationInvite',
-        {
-          inviterName: inviter?.name || '未知用户',
-          songTitle: songTitle
-        }
-      )
-    } catch (error) {
-      console.error('发送邮件通知失败:', error)
-    }
-
-    return notificationResult[0]
-  } catch (error) {
-    console.error('创建联合投稿邀请通知失败:', error)
-    return null
-  }
-}
-
-/**
- * 创建联合投稿回复通知
- */
-export async function createCollaborationResponseNotification(
-  inviteeId: number,
-  inviterId: number,
-  songTitle: string,
-  accepted: boolean
-) {
-  try {
-    const invitee = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, inviteeId))
-      .limit(1)
-      .then((res) => res[0])
-    const actionText = accepted ? '接受' : '拒绝'
-    const message = `用户 ${invitee?.name || '未知用户'} ${actionText}了您的歌曲《${songTitle}》的联合投稿邀请。`
-
-    // 创建通知
-    const notificationResult = await db
-      .insert(notifications)
-      .values({
-        userId: inviterId,
-        type: 'COLLABORATION_RESPONSE',
-        message
-        // songId // 这里可能不需要songId，或者需要传进来
-      })
-      .returning()
-
-    return notificationResult[0]
-  } catch (error) {
-    console.error('创建联合投稿回复通知失败:', error)
-    return null
-  }
-}
 
 /**
  * 创建歌曲被选中的通知
@@ -182,21 +85,16 @@ export async function createSongSelectedNotification(
       message += `播出时段：${schedule.playTime.name}${timeInfo ? ' ' + timeInfo : ''}。`
     }
 
-    let notification
-    try {
-      const notificationResult = await db
-        .insert(notifications)
-        .values({
-          userId,
-          type: 'SONG_SELECTED',
-          message,
-          songId
-        })
-        .returning()
-      notification = notificationResult[0]
-    } catch (error) {
-      throw error
-    }
+    const notificationResult = await db
+      .insert(notifications)
+      .values({
+        userId,
+        type: 'SONG_SELECTED',
+        message,
+        songId
+      })
+      .returning()
+    const notification = notificationResult[0]
 
     // 同步发送 MeoW 通知
     try {
@@ -427,81 +325,38 @@ export async function createSongPlayedNotification(songId: number, ipAddress?: s
 
     // 创建通知
     const message = `您投稿的歌曲《${song.title}》已播放。`
+    const notificationResult = await db
+      .insert(notifications)
+      .values({
+        userId: song.requesterId,
+        type: 'SONG_PLAYED',
+        message,
+        songId: songId
+      })
+      .returning()
 
-    // 获取所有关联用户（投稿人 + 联合投稿人）
-    const userIdsToNotify = [song.requesterId]
-
-    // 获取联合投稿人
-    const collaborators = await db
-      .select()
-      .from(songCollaborators)
-      .where(and(eq(songCollaborators.songId, songId), eq(songCollaborators.status, 'ACCEPTED')))
-
-    collaborators.forEach((c) => {
-      if (!userIdsToNotify.includes(c.userId)) {
-        userIdsToNotify.push(c.userId)
-      }
-    })
-
-    const notificationsCreated = []
-
-    for (const targetUserId of userIdsToNotify) {
-      try {
-        // 获取用户通知设置
-        const settingsResult = await db
-          .select()
-          .from(notificationSettings)
-          .where(eq(notificationSettings.userId, targetUserId))
-          .limit(1)
-        const settings = settingsResult[0]
-
-        // 如果用户关闭了此类通知，则不发送
-        if (settings && !settings.songPlayedEnabled) {
-          continue
-        }
-
-        const userMessage =
-          targetUserId === song.requesterId
-            ? message
-            : `您参与联合投稿的歌曲《${song.title}》已播放。`
-
-        const notificationResult = await db
-          .insert(notifications)
-          .values({
-            userId: targetUserId,
-            type: 'SONG_PLAYED',
-            message: userMessage,
-            songId: songId
-          })
-          .returning()
-        notificationsCreated.push(notificationResult[0])
-
-        // 同步发送 MeoW 通知
-        try {
-          await sendMeowNotificationToUser(targetUserId, '歌曲已播放', userMessage)
-        } catch (error) {
-          console.error(`发送 MeoW 通知失败 (User: ${targetUserId}):`, error)
-        }
-
-        // 同步发送 邮件通知
-        try {
-          await sendEmailNotificationToUser(
-            targetUserId,
-            '歌曲已播放',
-            userMessage,
-            ipAddress,
-            'notification.songPlayed',
-            { songTitle: song.title }
-          )
-        } catch (error) {
-          console.error(`发送邮件通知失败 (User: ${targetUserId}):`, error)
-        }
-      } catch (err) {
-        console.error(`处理播放通知失败 (User: ${targetUserId}):`, err)
-      }
+    // 同步发送 MeoW 通知
+    try {
+      await sendMeowNotificationToUser(song.requesterId, '歌曲已播放', message)
+    } catch (error) {
+      console.error(`发送 MeoW 通知失败 (User: ${song.requesterId}):`, error)
     }
 
-    return notificationsCreated.length > 0 ? notificationsCreated[0] : null
+    // 同步发送 邮件通知
+    try {
+      await sendEmailNotificationToUser(
+        song.requesterId,
+        '歌曲已播放',
+        message,
+        ipAddress,
+        'notification.songPlayed',
+        { songTitle: song.title }
+      )
+    } catch (error) {
+      console.error(`发送邮件通知失败 (User: ${song.requesterId}):`, error)
+    }
+
+    return notificationResult[0]
   } catch (err) {
     return null
   }
@@ -685,20 +540,15 @@ export async function createSongRejectedNotification(
     const message = `您投稿的歌曲《${songInfo.title} - ${songInfo.artist}》已被管理员驳回。驳回原因：${reason}`
 
     // 创建站内通知
-    let notification
-    try {
-      const notificationResult = await db
-        .insert(notifications)
-        .values({
-          userId,
-          type: 'SONG_REJECTED',
-          message
-        })
-        .returning()
-      notification = notificationResult[0]
-    } catch (error) {
-      throw error
-    }
+    const notificationResult = await db
+      .insert(notifications)
+      .values({
+        userId,
+        type: 'SONG_REJECTED',
+        message
+      })
+      .returning()
+    const notification = notificationResult[0]
 
     // 同步发送 MeoW 通知
     try {
@@ -910,20 +760,15 @@ export async function createReplayRequestRejectedNotification(
     const message = `您的重播申请《${songInfo.title}》已被管理员拒绝。`
 
     // 创建站内通知
-    let notification
-    try {
-      const notificationResult = await db
-        .insert(notifications)
-        .values({
-          userId,
-          type: 'REPLAY_REJECTED',
-          message
-        })
-        .returning()
-      notification = notificationResult[0]
-    } catch (error) {
-      throw error
-    }
+    const notificationResult = await db
+      .insert(notifications)
+      .values({
+        userId,
+        type: 'REPLAY_REJECTED',
+        message
+      })
+      .returning()
+    const notification = notificationResult[0]
 
     // 同步发送 MeoW 通知
     try {
