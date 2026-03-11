@@ -15,6 +15,21 @@ const buildLoginRedirectUrl = (event: any, activation: string, redirectOrigin?: 
   return buildPublicAppUrl(event, loginPath)
 }
 
+const safeSendLoginRedirect = (
+  event: any,
+  activation: string,
+  redirectOrigin?: string | null,
+  fallbackActivation: string = 'server'
+) => {
+  try {
+    const target = buildLoginRedirectUrl(event, activation, redirectOrigin)
+    return sendRedirect(event, target, 302)
+  } catch (redirectError) {
+    console.error('[Register Activation] 构建重定向地址失败:', redirectError)
+    return sendRedirect(event, `/login?activation=${encodeURIComponent(fallbackActivation)}`, 302)
+  }
+}
+
 const resolveActivationStatusFromError = (error: any): 'expired' | 'invalid' | 'blocked' | 'server' => {
   const message = typeof error?.message === 'string' ? error.message : ''
   if (error?.statusCode === 403) {
@@ -38,13 +53,13 @@ export default defineEventHandler(async (event) => {
     redirectOrigin = token ? extractRegistrationActivationRedirectOrigin(token) : null
 
     if (!token || token.length > 4096) {
-      return sendRedirect(event, buildLoginRedirectUrl(event, 'invalid', redirectOrigin), 302)
+      return safeSendLoginRedirect(event, 'invalid', redirectOrigin, 'invalid')
     }
 
     const verifyResult = verifyRegistrationActivationToken(token)
     if (!verifyResult.ok) {
       const status = verifyResult.message.includes('过期') ? 'expired' : 'invalid'
-      return sendRedirect(event, buildLoginRedirectUrl(event, status, redirectOrigin), 302)
+      return safeSendLoginRedirect(event, status, redirectOrigin, status)
     }
 
     const {
@@ -66,22 +81,22 @@ export default defineEventHandler(async (event) => {
 
     const user = userResult[0]
     if (!user) {
-      return sendRedirect(event, buildLoginRedirectUrl(event, 'invalid', finalRedirectOrigin), 302)
+      return safeSendLoginRedirect(event, 'invalid', finalRedirectOrigin, 'invalid')
     }
 
     if (user.status !== 'active') {
-      return sendRedirect(event, buildLoginRedirectUrl(event, 'blocked', finalRedirectOrigin), 302)
+      return safeSendLoginRedirect(event, 'blocked', finalRedirectOrigin, 'blocked')
     }
 
     if (!user.emailVerified) {
       await db.update(users).set({ emailVerified: true }).where(eq(users.id, user.id))
-      return sendRedirect(event, buildLoginRedirectUrl(event, 'success', finalRedirectOrigin), 302)
+      return safeSendLoginRedirect(event, 'success', finalRedirectOrigin, 'success')
     }
 
-    return sendRedirect(event, buildLoginRedirectUrl(event, 'already', finalRedirectOrigin), 302)
+    return safeSendLoginRedirect(event, 'already', finalRedirectOrigin, 'already')
   } catch (error: any) {
     const status = resolveActivationStatusFromError(error)
     console.error('[Register Activation] 激活流程异常:', error)
-    return sendRedirect(event, buildLoginRedirectUrl(event, status, redirectOrigin), 302)
+    return safeSendLoginRedirect(event, status, redirectOrigin, 'server')
   }
 })
