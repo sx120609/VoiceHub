@@ -23,11 +23,64 @@ import { computed, onMounted, ref, watch } from 'vue'
 // 导入通知容器组件和音频播放器
 import { useAudioPlayer } from '~/composables/useAudioPlayer'
 import { useAuth } from '~/composables/useAuth'
+import { useSiteConfig } from '~/composables/useSiteConfig'
 import { useRoute } from 'vue-router'
+import { normalizeApiBase, normalizeAppBase, withApiBase } from '~/utils/baseUrl'
 
 // 获取运行时配置
 const config = useRuntimeConfig()
 const route = useRoute()
+const appBaseURL = normalizeAppBase(config.app.baseURL)
+const apiBase = normalizeApiBase(config.public.apiBase, config.app.baseURL)
+
+const { logoUrl, initSiteConfig } = useSiteConfig()
+
+const normalizeFaviconUrl = (url) => {
+  const value = (url || '').trim()
+  if (!value) {
+    return `${appBaseURL}favicon.ico`
+  }
+
+  if (value.startsWith('http://')) {
+    return withApiBase(`/api/proxy/image?url=${encodeURIComponent(value)}`, apiBase)
+  }
+
+  if (value.startsWith('https://') || value.startsWith('data:')) {
+    return value
+  }
+
+  if (value.startsWith('/api')) {
+    return withApiBase(value, apiBase)
+  }
+
+  if (value.startsWith('/')) {
+    const appBasePrefix = appBaseURL === '/' ? '' : appBaseURL.slice(0, -1)
+    if (appBasePrefix && value.startsWith(`${appBasePrefix}/`)) {
+      return value
+    }
+    return `${appBasePrefix}${value}`
+  }
+
+  return `${appBaseURL}${value.replace(/^\/+/, '')}`
+}
+
+const faviconHref = computed(() => normalizeFaviconUrl(logoUrl.value))
+
+useHead(() => ({
+  link: [
+    {
+      key: 'dynamic-favicon',
+      rel: 'icon',
+      type: 'image/png',
+      href: faviconHref.value
+    },
+    {
+      key: 'dynamic-favicon-shortcut',
+      rel: 'shortcut icon',
+      href: faviconHref.value
+    }
+  ]
+}))
 
 // 通知容器引用
 const notificationContainer = ref(null)
@@ -175,6 +228,8 @@ const setupHarmonyOSListeners = () => {
 
 // 在组件挂载后初始化认证（只会在客户端执行）
 onMounted(async () => {
+  await initSiteConfig()
+
   auth = useAuth()
   isAuthenticated = auth.isAuthenticated.value
 
