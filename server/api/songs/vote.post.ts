@@ -2,12 +2,6 @@ import { db } from '~/drizzle/db'
 import { schedules, semesters, songs, votes } from '~/drizzle/schema'
 import { and, count, eq } from 'drizzle-orm'
 import { createSongVotedNotification } from '../../services/notificationService'
-import {
-  isSongProtected,
-  getSongProtectRemainingSeconds,
-  recordSongVote,
-  recordUserVoteActivity
-} from '~~/server/services/securityService'
 import { cacheService } from '~~/server/services/cacheService'
 import { getClientIP } from '~~/server/utils/ip-utils'
 
@@ -150,14 +144,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    if (isSongProtected(songId)) {
-      const remain = getSongProtectRemainingSeconds(songId)
-      throw createError({
-        statusCode: 423,
-        message: `该歌曲处于临时保护期，剩余 ${Math.max(remain, 1)} 秒`
-      })
-    }
-
     const currentSemesterResult = await db
       .select()
       .from(semesters)
@@ -218,8 +204,6 @@ export default defineEventHandler(async (event) => {
         // 发送通知失败不影响主流程
       })
     }
-    recordSongVote(songId, clientIP, userId)
-    recordUserVoteActivity(userId, song.title)
     await clearVoteRelatedCache('投票')
 
     return {

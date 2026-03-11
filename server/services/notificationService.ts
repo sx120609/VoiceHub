@@ -13,6 +13,56 @@ import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import { sendBatchMeowNotifications, sendMeowNotificationToUser } from './meowNotificationService'
 import { sendBatchEmailNotifications, sendEmailNotificationToUser } from './smtpService'
 import { formatDateTime, getBeijingTime } from '~/utils/timeUtils'
+import { executeRedisCommand, getRedisClient, isRedisReady } from '~~/server/utils/redis'
+
+const VOTE_EXTERNAL_NOTIFICATION_COOLDOWN_SECONDS = 24 * 60 * 60
+const voteNotificationCooldownMap = new Map<string, number>()
+
+const buildVoteExternalNotificationCooldownKey = (requesterId: number, songId: number, voterId: number) =>
+  `vote:notify:requester:${requesterId}:song:${songId}:voter:${voterId}`
+
+const shouldSkipVoteExternalNotification = async (
+  requesterId: number,
+  songId: number,
+  voterId: number
+) => {
+  const cooldownKey = buildVoteExternalNotificationCooldownKey(requesterId, songId, voterId)
+
+  if (isRedisReady()) {
+    const skipped = await executeRedisCommand(async () => {
+      const client = getRedisClient()
+      if (!client) return false
+
+      const exists = await client.exists(cooldownKey)
+      if (exists) {
+        return true
+      }
+
+      await client.setEx(
+        cooldownKey,
+        VOTE_EXTERNAL_NOTIFICATION_COOLDOWN_SECONDS,
+        String(Date.now())
+      )
+      return false
+    })
+
+    if (typeof skipped === 'boolean') {
+      return skipped
+    }
+  }
+
+  const now = Date.now()
+  const expireAt = voteNotificationCooldownMap.get(cooldownKey) || 0
+  if (expireAt > now) {
+    return true
+  }
+
+  voteNotificationCooldownMap.set(
+    cooldownKey,
+    now + VOTE_EXTERNAL_NOTIFICATION_COOLDOWN_SECONDS * 1000
+  )
+  return false
+}
 
 /**
  * 创建歌曲被选中的通知
@@ -486,24 +536,32 @@ export async function createSongVotedNotification(
         })
         .returning()
       notification = createResult[0]
-      // 仅在新建通知时发送外部通知，避免短时间反复点赞/取消导致推送轰炸
-      try {
-        await sendMeowNotificationToUser(song.requesterId, '收到新投票', message)
-      } catch (error) {
-        console.error('发送 MeoW 通知失败:', error)
-      }
+      // 仅在新建通知时尝试发送外部通知；且同一投票人对同一歌曲设置冷却，避免反复投票/取消导致邮件轰炸
+      const shouldSkipExternal = await shouldSkipVoteExternalNotification(
+        song.requesterId,
+        songId,
+        voterId
+      )
 
-      try {
-        await sendEmailNotificationToUser(
-          song.requesterId,
-          '收到新投票',
-          message,
-          ipAddress,
-          'notification.songVoted',
-          { songTitle: song.title, votesCount: songVotes.length }
-        )
-      } catch (error) {
-        console.error('发送邮件通知失败:', error)
+      if (!shouldSkipExternal) {
+        try {
+          await sendMeowNotificationToUser(song.requesterId, '收到新投票', message)
+        } catch (error) {
+          console.error('发送 MeoW 通知失败:', error)
+        }
+
+        try {
+          await sendEmailNotificationToUser(
+            song.requesterId,
+            '收到新投票',
+            message,
+            ipAddress,
+            'notification.songVoted',
+            { songTitle: song.title, votesCount: songVotes.length }
+          )
+        } catch (error) {
+          console.error('发送邮件通知失败:', error)
+        }
       }
     }
 
