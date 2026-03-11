@@ -1,44 +1,59 @@
 import { db } from '~/drizzle/db'
 import { sql } from 'drizzle-orm'
 
+const getErrorMessage = (error: unknown): string => {
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as any).message
+    if (typeof message === 'string') return message
+  }
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return String(error)
+  }
+}
+
+const isDatabaseConnectionError = (message: string): boolean => {
+  return (
+    message.includes('ECONNRESET') ||
+    message.includes('ENOTFOUND') ||
+    message.includes('ETIMEDOUT') ||
+    message.includes('Connection terminated') ||
+    message.includes('Connection lost')
+  )
+}
+
 export default defineNitroPlugin(async (nitroApp) => {
   // 全局未处理的Promise拒绝处理器
   process.on('unhandledRejection', async (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason)
 
+    const errorMessage = getErrorMessage(reason)
+
     // 检查是否是数据库连接错误
-    if (reason && typeof reason === 'object' && 'message' in reason) {
-      const errorMessage = (reason as Error).message
+    if (isDatabaseConnectionError(errorMessage)) {
+      console.log('Database connection error detected, attempting to reconnect...')
 
-      if (
-        errorMessage.includes('ECONNRESET') ||
-        errorMessage.includes('ENOTFOUND') ||
-        errorMessage.includes('ETIMEDOUT') ||
-        errorMessage.includes('Connection terminated') ||
-        errorMessage.includes('Connection lost')
-      ) {
-        console.log('Database connection error detected, attempting to reconnect...')
+      try {
+        // 尝试重新连接数据库
+        // 注意: Drizzle 没有显式的 connect/disconnect 方法
+        // 连接由库自动管理
+        await new Promise((resolve) => setTimeout(resolve, 2000)) // 等待2秒
+        console.log('Database reconnection successful')
+      } catch (reconnectError) {
+        console.error('Database reconnection failed:', reconnectError)
 
-        try {
-          // 尝试重新连接数据库
-          // 注意: Drizzle 没有显式的 connect/disconnect 方法
-          // 连接由库自动管理
-          await new Promise((resolve) => setTimeout(resolve, 2000)) // 等待2秒
-          console.log('Database reconnection successful')
-        } catch (reconnectError) {
-          console.error('Database reconnection failed:', reconnectError)
-
-          // 如果重连失败，等待更长时间后再次尝试
-          setTimeout(async () => {
-            try {
-              // Note: Drizzle doesn't have explicit connect/disconnect methods
-              await new Promise((resolve) => setTimeout(resolve, 5000)) // 等待5秒
-              console.log('Database delayed reconnection successful')
-            } catch (delayedReconnectError) {
-              console.error('Database delayed reconnection failed:', delayedReconnectError)
-            }
-          }, 10000) // 10秒后重试
-        }
+        // 如果重连失败，等待更长时间后再次尝试
+        setTimeout(async () => {
+          try {
+            // Note: Drizzle doesn't have explicit connect/disconnect methods
+            await new Promise((resolve) => setTimeout(resolve, 5000)) // 等待5秒
+            console.log('Database delayed reconnection successful')
+          } catch (delayedReconnectError) {
+            console.error('Database delayed reconnection failed:', delayedReconnectError)
+          }
+        }, 10000) // 10秒后重试
       }
     }
 
@@ -49,13 +64,10 @@ export default defineNitroPlugin(async (nitroApp) => {
   // 全局未捕获异常处理器
   process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error)
+    const errorMessage = getErrorMessage(error)
 
     // 检查是否是数据库相关错误
-    if (
-      error.message.includes('ECONNRESET') ||
-      error.message.includes('ENOTFOUND') ||
-      error.message.includes('ETIMEDOUT')
-    ) {
+    if (isDatabaseConnectionError(errorMessage)) {
       console.log('Database-related uncaught exception, process will continue')
       return // 不退出进程
     }
@@ -95,11 +107,9 @@ export default defineNitroPlugin(async (nitroApp) => {
     apply: async (target, thisArg, argumentsList) => {
       try {
         return await target.apply(thisArg, argumentsList)
-      } catch (error) {
-        if (
-          error.message.includes('ECONNRESET') ||
-          error.message.includes('Connection terminated')
-        ) {
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error)
+        if (errorMessage.includes('ECONNRESET') || errorMessage.includes('Connection terminated')) {
           console.log('Query failed due to connection reset, attempting to retry...')
 
           try {

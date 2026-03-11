@@ -246,7 +246,8 @@ onMounted(async () => {
     already: { type: 'info', message: '账号已激活，请直接登录' },
     expired: { type: 'error', message: '激活链接已过期，请重新发送激活链接' },
     invalid: { type: 'error', message: '激活链接无效，请重新获取' },
-    blocked: { type: 'error', message: '账号当前不可用，请联系管理员处理' }
+    blocked: { type: 'error', message: '账号当前不可用，请联系管理员处理' },
+    server: { type: 'error', message: '激活过程中发生异常，请稍后重试或重新发送激活链接' }
   }
 
   const payload = activationMessageMap[activation]
@@ -259,7 +260,7 @@ onMounted(async () => {
       info.value = ''
     }
 
-    if (activation === 'expired' || activation === 'invalid') {
+    if (activation === 'expired' || activation === 'invalid' || activation === 'server') {
       showActivationResend.value = true
     }
   }
