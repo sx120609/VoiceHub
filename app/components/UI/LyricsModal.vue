@@ -2086,8 +2086,9 @@ onUnmounted(() => {
 
 .close-button {
   background: #edf3e7 !important;
-  color: #5f715f !important;
+  color: #2f4430 !important;
   border: 1px solid #d2deca !important;
+  box-shadow: 0 4px 14px rgba(31, 42, 31, 0.1) !important;
 }
 
 .close-button:hover {
@@ -2096,12 +2097,9 @@ onUnmounted(() => {
 }
 
 .playback-controls {
-  background: linear-gradient(
-    to top,
-    rgba(248, 251, 246, 0.95) 0%,
-    rgba(248, 251, 246, 0.82) 55%,
-    rgba(248, 251, 246, 0) 100%
-  ) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-top: none !important;
 }
 
 .time-display {
@@ -2173,6 +2171,7 @@ onUnmounted(() => {
 
 .setting-item button {
   color: #2f4430 !important;
+  font-weight: 600;
 }
 
 .setting-item button:hover {
@@ -2226,5 +2225,21 @@ onUnmounted(() => {
 
 .lyrics-fullscreen-container :deep(.am-lyric) {
   color: #5f715f !important;
+}
+
+.close-button :deep(.icon) {
+  color: currentColor !important;
+  stroke-width: 2.4;
+}
+
+@media (max-width: 1024px) {
+  .playback-controls {
+    background: linear-gradient(
+      to top,
+      rgba(248, 251, 246, 0.96) 0%,
+      rgba(248, 251, 246, 0.82) 56%,
+      rgba(248, 251, 246, 0) 100%
+    ) !important;
+  }
 }
 </style>

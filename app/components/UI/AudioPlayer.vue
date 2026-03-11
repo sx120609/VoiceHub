@@ -58,12 +58,7 @@
           <div v-if="isMobile" class="mobile-controls">
             <button class="mobile-control-btn" @click.stop="handleTogglePlay">
               <div v-if="control.isLoadingTrack.value" class="loading-spinner-small" />
-              <Icon
-                v-else
-                :name="control.isPlaying.value ? 'pause' : 'play'"
-                :size="24"
-                color="white"
-              />
+              <Icon v-else :name="control.isPlaying.value ? 'pause' : 'play'" :size="24" />
             </button>
             <button class="mobile-control-btn close-player-btn" @click.stop="stopPlaying">
               <Icon name="close" :size="20" class="close-icon" />
@@ -1398,11 +1393,11 @@ const getFirstChar = (text) => {
   padding: 0 12px;
   flex-direction: row;
   align-items: center;
-  background: rgba(20, 20, 25, 0.85);
-  backdrop-filter: blur(20px) saturate(1.8);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: rgba(248, 251, 246, 0.95);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid rgba(207, 220, 199, 0.92);
+  box-shadow: 0 8px 24px rgba(31, 42, 31, 0.12);
   animation: none;
   overflow: hidden;
 }
@@ -1418,15 +1413,15 @@ const getFirstChar = (text) => {
   left: 0;
   right: 0;
   height: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #d8e5d1;
   cursor: pointer;
   z-index: 10;
 }
 
 .mobile-top-progress .progress-fill {
   height: 100%;
-  background: #0b5afe;
-  box-shadow: 0 0 8px rgba(11, 90, 254, 0.6);
+  background: #2f7d4f;
+  box-shadow: 0 0 8px rgba(47, 125, 79, 0.25);
   border-radius: 0 1px 1px 0;
 }
 
@@ -1457,11 +1452,13 @@ const getFirstChar = (text) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #1f2a1f;
 }
 
 .music-widget.mobile-player-bar .song-artist {
   font-size: 12px;
-  opacity: 0.6;
+  opacity: 1;
+  color: #5f715f;
 }
 
 .mobile-controls {
@@ -1478,6 +1475,7 @@ const getFirstChar = (text) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: #2f7d4f;
 }
 
 .mobile-control-btn:active {
@@ -1502,8 +1500,8 @@ const getFirstChar = (text) => {
 .loading-spinner-small {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: white;
+  border: 2px solid rgba(47, 125, 79, 0.2);
+  border-top-color: #2f7d4f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
