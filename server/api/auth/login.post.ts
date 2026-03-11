@@ -20,10 +20,28 @@ import { normalizeRoleOrDefault } from '~~/server/utils/role'
 
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
+  const normalizeLoginFailureError = () =>
+    createError({
+      statusCode: 401,
+      message: '账号或密码错误'
+    })
+
+  const safeRecordLoginFailure = (username: string, ip: string) => {
+    try {
+      recordLoginFailure(username, ip)
+    } catch (securityError) {
+      console.error('[Login] 记录登录失败状态异常:', securityError)
+    }
+  }
 
   try {
     const body = await readBody(event)
-    const clientIp = getClientIP(event)
+    let clientIp = 'unknown'
+    try {
+      clientIp = getClientIP(event)
+    } catch (ipError) {
+      console.error('[Login] 获取客户端IP失败，使用unknown:', ipError)
+    }
 
     if (!body.username || !body.password) {
       throw createError({
@@ -104,23 +122,26 @@ export default defineEventHandler(async (event) => {
 
     if (!user) {
       // 记录登录失败（用户不存在）
-      recordLoginFailure(rawAccount, clientIp)
-      throw createError({
-        statusCode: 401,
-        message: '用户不存在'
-      })
+      safeRecordLoginFailure(rawAccount, clientIp)
+      throw normalizeLoginFailureError()
     }
     const normalizedRole = normalizeRoleOrDefault(user.role, 'USER')
 
     // 验证密码
-    const isPasswordValid = await bcrypt.compare(body.password, user.password)
+    let isPasswordValid = false
+    try {
+      const passwordHash = typeof user.password === 'string' ? user.password : ''
+      isPasswordValid = await bcrypt.compare(String(body.password), passwordHash)
+    } catch (passwordCheckError) {
+      // 历史脏数据或非法哈希不应导致接口崩溃，按密码错误处理。
+      console.error('[Login] 密码校验异常:', passwordCheckError)
+      isPasswordValid = false
+    }
+
     if (!isPasswordValid) {
       // 记录登录失败（密码错误）
-      recordLoginFailure(rawAccount, clientIp)
-      throw createError({
-        statusCode: 401,
-        message: '密码不正确'
-      })
+      safeRecordLoginFailure(rawAccount, clientIp)
+      throw normalizeLoginFailureError()
     }
 
     // 检查用户状态 (移到2FA之前，防止已注销用户进行2FA验证)
@@ -156,9 +177,19 @@ export default defineEventHandler(async (event) => {
       user.emailVerified = true
     }
 
-    recordLoginSuccess(rawAccount, clientIp)
+    try {
+      recordLoginSuccess(rawAccount, clientIp)
+    } catch (securityError) {
+      console.error('[Login] 记录登录成功状态异常:', securityError)
+    }
 
-    const ipSwitchExceeded = recordAccountIpLogin(rawAccount, clientIp)
+    let ipSwitchExceeded = false
+    try {
+      ipSwitchExceeded = recordAccountIpLogin(rawAccount, clientIp)
+    } catch (securityError) {
+      console.error('[Login] 账号IP切换风控检测异常:', securityError)
+      ipSwitchExceeded = false
+    }
     if (ipSwitchExceeded) {
       blockUser(user.id)
       const ipRemain = getIPBlockRemainingTime(clientIp)
