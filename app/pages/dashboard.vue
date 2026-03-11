@@ -100,7 +100,7 @@
               v-if="activeTab === 'users' && permissions.canAccessPage('users')"
               class="animate-in fade-in slide-in-from-bottom-4 duration-500"
             >
-              <LazyAdminUserManager />
+              <AdminUserManager />
             </div>
 
             <!-- 消息管理 -->

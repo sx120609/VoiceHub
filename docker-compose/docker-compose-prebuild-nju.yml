@@ -9,9 +9,6 @@ services:
       - NODE_ENV=production
     depends_on:
       - postgres
-    volumes:
-      - .:/app
-      - /app/node_modules
     restart: unless-stopped
 
   postgres:
