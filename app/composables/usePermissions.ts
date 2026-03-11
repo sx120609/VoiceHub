@@ -51,8 +51,7 @@ export const usePermissions = () => {
           'playtimes',
           'request-times',
           'semesters',
-          'site-config',
-          'api-keys'
+          'site-config'
         ]
       case 'ADMIN':
         return ['overview', 'schedule', 'songs', 'users', 'data-analysis']

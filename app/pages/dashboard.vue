@@ -143,13 +143,6 @@
               <LazyAdminSiteConfigManager />
             </div>
 
-            <!-- API密钥管理 -->
-            <div
-              v-if="activeTab === 'api-keys' && permissions.canAccessPage('api-keys')"
-              class="animate-in fade-in slide-in-from-bottom-4 duration-500"
-            >
-              <LazyAdminApiKeyManager />
-            </div>
           </div>
         </main>
       </div>

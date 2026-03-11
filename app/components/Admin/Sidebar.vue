@@ -121,7 +121,6 @@ import {
   Music2,
   BarChart3,
   Users,
-  Key,
   Bell,
   Mail,
   LogOut,
@@ -174,10 +173,6 @@ const menuGroups = [
   {
     section: '用户管理',
     items: [{ icon: Users, label: '用户管理', id: 'users' }]
-  },
-  {
-    section: 'API管理',
-    items: [{ icon: Key, label: 'API密钥管理', id: 'api-keys' }]
   },
   {
     section: '系统管理',
