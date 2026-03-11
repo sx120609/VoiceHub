@@ -76,7 +76,7 @@
               v-if="activeTab === 'schedule' && permissions.canAccessPage('schedule')"
               class="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full"
             >
-              <LazyAdminScheduleManager />
+              <AdminScheduleManager />
             </div>
 
             <!-- 打印排期 -->

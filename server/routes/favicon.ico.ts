@@ -17,6 +17,23 @@ const withBase = (path: string, basePrefix: string) => {
   return `${basePrefix}${path}`
 }
 
+const normalizePathname = (path: string) => {
+  const base = (path || '/').split('?')[0].replace(/\/{2,}/g, '/')
+  if (!base) return '/'
+  return base.endsWith('/') && base !== '/' ? base.slice(0, -1) : base
+}
+
+const toPathname = (target: string, currentOrigin: string) => {
+  try {
+    if (target.startsWith('http://') || target.startsWith('https://')) {
+      return new URL(target).pathname
+    }
+    return new URL(target, currentOrigin).pathname
+  } catch {
+    return target
+  }
+}
+
 const isSameOriginAbsoluteUrl = (url: string, currentOrigin: string): boolean => {
   try {
     return new URL(url).origin === new URL(currentOrigin).origin
@@ -62,6 +79,7 @@ export default defineEventHandler(async (event) => {
   const runtimeConfig = useRuntimeConfig(event)
   const basePrefix = normalizeAppBase((runtimeConfig as any)?.app?.baseURL || '/')
   const currentOrigin = getPublicOrigin(event)
+  const fallback = withBase('/images/logo.png', basePrefix)
 
   let logoUrl = ''
   try {
@@ -76,6 +94,15 @@ export default defineEventHandler(async (event) => {
     console.warn('[favicon] 获取站点 logo 配置失败，使用默认 logo', error)
   }
 
-  const target = resolveFaviconTarget(logoUrl, basePrefix, currentOrigin)
+  let target = resolveFaviconTarget(logoUrl, basePrefix, currentOrigin)
+  const requestPath = normalizePathname(getRequestURL(event).pathname)
+  const targetPath = normalizePathname(toPathname(target, currentOrigin))
+  const faviconPath = normalizePathname(withBase('/favicon.ico', basePrefix))
+
+  // 防止 favicon 请求被重定向到 favicon 自己导致循环。
+  if (targetPath === requestPath || targetPath === faviconPath) {
+    target = fallback
+  }
+
   return sendRedirect(event, target, 302)
 })
