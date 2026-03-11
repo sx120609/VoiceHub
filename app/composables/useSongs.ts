@@ -730,6 +730,12 @@ export const useSongs = () => {
       return null
     }
 
+    const normalizedSongId = Number(songId)
+    if (!Number.isInteger(normalizedSongId) || normalizedSongId <= 0) {
+      showNotification('歌曲ID无效，无法申请重播', 'error')
+      return null
+    }
+
     loading.value = true
     error.value = ''
 
@@ -737,12 +743,12 @@ export const useSongs = () => {
       const authConfig = getAuthConfig()
       const data = await $fetch('/api/songs/replay', {
         method: 'POST',
-        body: { songId },
+        body: { songId: normalizedSongId },
         ...authConfig
       })
 
       // 更新本地数据状态
-      const songIndex = songs.value.findIndex((s) => s.id === songId)
+      const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
       if (songIndex !== -1) {
         const targetSong: any = songs.value[songIndex]
         targetSong.replayRequested = true
@@ -777,6 +783,12 @@ export const useSongs = () => {
       return null
     }
 
+    const normalizedSongId = Number(songId)
+    if (!Number.isInteger(normalizedSongId) || normalizedSongId <= 0) {
+      showNotification('歌曲ID无效，无法取消重播申请', 'error')
+      return null
+    }
+
     loading.value = true
     error.value = ''
 
@@ -784,12 +796,12 @@ export const useSongs = () => {
       const authConfig = getAuthConfig()
       const data = await $fetch('/api/songs/replay', {
         method: 'POST',
-        body: { songId, cancel: true },
+        body: { songId: normalizedSongId, cancel: true },
         ...authConfig
       })
 
       // 更新本地数据状态
-      const songIndex = songs.value.findIndex((s) => s.id === songId)
+      const songIndex = songs.value.findIndex((s) => Number(s.id) === normalizedSongId)
       if (songIndex !== -1) {
         const targetSong: any = songs.value[songIndex]
         targetSong.replayRequested = false
@@ -799,8 +811,9 @@ export const useSongs = () => {
         targetSong.isReplay = targetSong.replayRequestCount > 0
 
         if (Array.isArray(targetSong.replayRequesters) && user.value?.id) {
+          const currentUserId = Number(user.value.id)
           targetSong.replayRequesters = targetSong.replayRequesters.filter(
-            (r: any) => r?.id !== user.value?.id
+            (r: any) => Number(r?.id) !== currentUserId
           )
         }
       }

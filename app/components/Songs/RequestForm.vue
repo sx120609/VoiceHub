@@ -2543,6 +2543,14 @@ const handleManualSubmit = async () => {
 const handleRequestReplay = async (song) => {
   if (requestingReplay.value || !song) return
 
+  const targetSongId = Number(song.id)
+  if (!Number.isInteger(targetSongId) || targetSongId <= 0) {
+    if (window.$showNotification) {
+      window.$showNotification('歌曲ID无效，无法申请重播', 'error')
+    }
+    return
+  }
+
   // 如果已经申请过，不执行
   if (song.replayRequested || song.replayRequestStatus === 'PENDING') {
     if (window.$showNotification) {
@@ -2553,22 +2561,25 @@ const handleRequestReplay = async (song) => {
 
   requestingReplay.value = true
   try {
-    const result = await songService.requestReplay(song.id)
+    const result = await songService.requestReplay(targetSongId)
     if (!result) {
       return
     }
 
-    // 刷新歌曲状态
-    setTimeout(() => {
-      songService.refreshSongsSilent().catch(console.error)
-    }, 500)
-    if (window.$showNotification) {
-      window.$showNotification('申请重播成功', 'success')
-    }
+    // 兜底更新当前按钮对应对象，确保按钮文案立即切换
+    song.replayRequested = true
+    song.replayRequestStatus = 'PENDING'
+    song.replayRequestCooldownRemaining = 0
+    song.replayRequestCount = Math.max(1, Number(song.replayRequestCount || 0))
+    song.isReplay = true
+
+    // 强制刷新歌曲列表，避免缓存造成“已申请但列表未更新”
+    await songService.fetchSongs(true, undefined, true, true)
   } catch (err) {
     console.error('申请重播失败:', err)
     if (window.$showNotification) {
-      window.$showNotification('申请重播失败: ' + err.message, 'error')
+      const errorMsg = err?.data?.message || err?.message || '申请重播失败，请稍后重试'
+      window.$showNotification(errorMsg, 'error')
     }
   } finally {
     requestingReplay.value = false
