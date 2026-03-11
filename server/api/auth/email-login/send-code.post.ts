@@ -64,7 +64,6 @@ export default defineEventHandler(async (event) => {
 
     const pendingCode = setPendingEmailLoginCode(qqEmail, user.id)
     const smtp = SmtpService.getInstance()
-    await smtp.initializeSmtpConfig()
 
     const sent = await smtp.renderAndSend(
       qqEmail,

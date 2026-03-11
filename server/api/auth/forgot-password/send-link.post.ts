@@ -34,7 +34,6 @@ export default defineEventHandler(async (event) => {
       const token = createPasswordResetToken(qqEmail, user.id)
       const resetUrl = buildForgotPasswordUrl(event, token)
       const smtp = SmtpService.getInstance()
-      await smtp.initializeSmtpConfig()
 
       await smtp.renderAndSend(
         qqEmail,

@@ -79,8 +79,7 @@ export default defineEventHandler(async (event) => {
 
   // 发送邮件
   const smtp = SmtpService.getInstance()
-  await smtp.initializeSmtpConfig()
-  
+
   const sent = await smtp.renderAndSend(
     user.email,
     'verification.code',

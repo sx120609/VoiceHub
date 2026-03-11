@@ -13,7 +13,11 @@ const buildActivationUrl = (event: any, token: string) => {
 }
 
 type VerificationDispatchStatus = 'sent' | 'failed' | 'queued'
-const VERIFICATION_MAIL_TIMEOUT_MS = 8000
+const registerMailTimeoutRaw = Number(process.env.REGISTER_MAIL_TIMEOUT_MS || 3000)
+const VERIFICATION_MAIL_TIMEOUT_MS =
+  Number.isFinite(registerMailTimeoutRaw) && registerMailTimeoutRaw >= 1000
+    ? registerMailTimeoutRaw
+    : 3000
 
 export default defineEventHandler(async (event) => {
   try {
@@ -58,7 +62,6 @@ export default defineEventHandler(async (event) => {
     const activationUrl = buildActivationUrl(event, activationToken)
     const expiresInDays = getRegistrationActivationExpiresDays()
     const smtp = SmtpService.getInstance()
-    await smtp.initializeSmtpConfig()
 
     const sendPromise = smtp
       .renderAndSend(
@@ -80,11 +83,15 @@ export default defineEventHandler(async (event) => {
         return 'failed' as VerificationDispatchStatus
       })
 
+    let timeoutHandle: NodeJS.Timeout | null = null
     const timeoutPromise = new Promise<VerificationDispatchStatus>((resolve) => {
-      setTimeout(() => resolve('queued'), VERIFICATION_MAIL_TIMEOUT_MS)
+      timeoutHandle = setTimeout(() => resolve('queued'), VERIFICATION_MAIL_TIMEOUT_MS)
     })
 
     const status = await Promise.race([sendPromise, timeoutPromise])
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle)
+    }
     if (status === 'queued') {
       // 后台继续发送，避免接口超时。
       void sendPromise

@@ -5,10 +5,21 @@ import { and, eq, isNotNull } from 'drizzle-orm'
 import { getSiteTitle } from '~~/server/utils/siteUtils'
 import { formatIPForEmail } from '~~/server/utils/ip-utils'
 
-const SMTP_CONNECTION_TIMEOUT = 15000
-const SMTP_GREETING_TIMEOUT = 10000
-const SMTP_SOCKET_TIMEOUT = 30000
-const SMTP_DNS_TIMEOUT = 10000
+const parseTimeoutEnv = (name: string, fallback: number) => {
+  const raw = process.env[name]
+  if (!raw) return fallback
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed) || parsed < 1000) return fallback
+  return Math.floor(parsed)
+}
+
+const SMTP_CONNECTION_TIMEOUT = parseTimeoutEnv('SMTP_CONNECTION_TIMEOUT_MS', 8000)
+const SMTP_GREETING_TIMEOUT = parseTimeoutEnv('SMTP_GREETING_TIMEOUT_MS', 8000)
+const SMTP_SOCKET_TIMEOUT = parseTimeoutEnv('SMTP_SOCKET_TIMEOUT_MS', 15000)
+const SMTP_DNS_TIMEOUT = parseTimeoutEnv('SMTP_DNS_TIMEOUT_MS', 8000)
+const SMTP_SEND_RETRY_DELAY_MS = parseTimeoutEnv('SMTP_SEND_RETRY_DELAY_MS', 300)
+const SITE_TITLE_CACHE_TTL_MS = parseTimeoutEnv('SMTP_SITE_TITLE_CACHE_TTL_MS', 300000)
+const SITE_TITLE_LOOKUP_TIMEOUT_MS = parseTimeoutEnv('SMTP_SITE_TITLE_LOOKUP_TIMEOUT_MS', 1500)
 
 export const formatSmtpErrorDetail = (error: any): string => {
   const message = error?.message || '未知错误'
@@ -90,6 +101,9 @@ export class SmtpService {
   private static instance: SmtpService
   public transporter: nodemailer.Transporter | null = null
   public smtpConfig: any = null
+  private initPromise: Promise<boolean> | null = null
+  private lastSiteTitle = ''
+  private lastSiteTitleAt = 0
   /** 基础邮件模板结构 */
   private baseTemplate = `
     <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px;">
@@ -273,41 +287,61 @@ export class SmtpService {
    * 初始化SMTP配置
    */
   async initializeSmtpConfig(): Promise<boolean> {
-    try {
-      const settingsResult = await db.select().from(systemSettings).limit(1)
-      const settings = settingsResult[0]
+    if (this.initPromise) {
+      return this.initPromise
+    }
 
-      if (!settings || !settings.smtpEnabled || !settings.smtpHost) {
+    this.initPromise = (async () => {
+      try {
+        const settingsResult = await db.select().from(systemSettings).limit(1)
+        const settings = settingsResult[0]
+
+        if (!settings || !settings.smtpEnabled || !settings.smtpHost) {
+          this.smtpConfig = null
+          this.transporter = null
+          return false
+        }
+
+        const nextConfig = {
+          host: settings.smtpHost,
+          port: settings.smtpPort || 587,
+          secure: settings.smtpSecure || false,
+          auth:
+            settings.smtpUsername && settings.smtpPassword
+              ? {
+                  user: settings.smtpUsername,
+                  pass: settings.smtpPassword
+                }
+              : undefined,
+          fromEmail: settings.smtpFromEmail || settings.smtpUsername,
+          fromName: settings.smtpFromName || '校园广播站'
+        }
+
+        const prevSignature = this.smtpConfig ? JSON.stringify(this.smtpConfig) : ''
+        const nextSignature = JSON.stringify(nextConfig)
+        const configChanged = prevSignature !== nextSignature
+
+        if (!this.transporter || configChanged) {
+          this.smtpConfig = nextConfig
+          this.transporter = nodemailer.createTransport(buildSmtpTransporterConfig(this.smtpConfig))
+        } else {
+          // 配置未变化时，刷新内存配置，避免 fromName 等信息滞后
+          this.smtpConfig = nextConfig
+        }
+
+        return true
+      } catch (error) {
+        console.error('初始化SMTP配置失败:', error instanceof Error ? error.message : '未知错误')
         this.smtpConfig = null
         this.transporter = null
         return false
       }
+    })()
 
-      this.smtpConfig = {
-        host: settings.smtpHost,
-        port: settings.smtpPort || 587,
-        secure: settings.smtpSecure || false,
-        auth:
-          settings.smtpUsername && settings.smtpPassword
-            ? {
-                user: settings.smtpUsername,
-                pass: settings.smtpPassword
-              }
-            : undefined,
-        fromEmail: settings.smtpFromEmail || settings.smtpUsername,
-        fromName: settings.smtpFromName || '校园广播站'
-      }
-
-      this.transporter = nodemailer.createTransport(buildSmtpTransporterConfig(this.smtpConfig))
-
-      // 验证SMTP连接
-      await this.transporter.verify()
-      return true
-    } catch (error) {
-      console.error('初始化SMTP配置失败:', error instanceof Error ? error.message : '未知错误')
-      this.smtpConfig = null
-      this.transporter = null
-      return false
+    try {
+      return await this.initPromise
+    } finally {
+      this.initPromise = null
     }
   }
 
@@ -379,6 +413,25 @@ export class SmtpService {
         } catch (retryError) {
           console.error('重试发送失败:', retryError)
           throw error // 如果重试也失败，抛出原始错误
+        }
+      }
+
+      const transientErrorPattern =
+        /ETIMEDOUT|ESOCKET|ECONNRESET|ECONNREFUSED|EHOSTUNREACH|ENETUNREACH|Connection (?:closed|terminated|timeout)/i
+      if (transientErrorPattern.test(error?.message || '') || transientErrorPattern.test(error?.code || '')) {
+        console.warn('SMTP连接异常，尝试重建连接后重试发送...')
+        try {
+          // 强制重建 transporter
+          this.transporter = null
+          const reinitialized = await this.initializeSmtpConfig()
+          if (reinitialized) {
+            await new Promise((resolve) => setTimeout(resolve, SMTP_SEND_RETRY_DELAY_MS))
+            const result = await this.transporter!.sendMail(mailOptions)
+            console.log(`重建连接后发送成功: ${result.messageId}`)
+            return true
+          }
+        } catch (retryError) {
+          console.error('SMTP重建连接后重试失败:', retryError)
         }
       }
 
@@ -639,7 +692,26 @@ export class SmtpService {
    * 准备模板渲染数据
    */
   private async prepareTemplateData(data: Record<string, any>): Promise<Record<string, any>> {
-    const siteTitle = await getSiteTitle()
+    const now = Date.now()
+    if (!this.lastSiteTitle || now - this.lastSiteTitleAt > SITE_TITLE_CACHE_TTL_MS) {
+      let timeoutHandle: NodeJS.Timeout | null = null
+      try {
+        const lookupPromise = getSiteTitle().catch(() => '')
+        const timeoutPromise = new Promise<string>((resolve) => {
+          timeoutHandle = setTimeout(() => resolve(''), SITE_TITLE_LOOKUP_TIMEOUT_MS)
+        })
+        const lookedUpTitle = await Promise.race([lookupPromise, timeoutPromise])
+        if (lookedUpTitle) {
+          this.lastSiteTitle = lookedUpTitle
+          this.lastSiteTitleAt = now
+        }
+      } finally {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle)
+        }
+      }
+    }
+    const siteTitle = this.lastSiteTitle || 'VoiceHub'
     return { fromName: this.smtpConfig?.fromName || '校园广播站', siteTitle, ...data }
   }
 }
