@@ -268,7 +268,7 @@ export default defineEventHandler(async (event) => {
           hideStudentInfo: updateData.hideStudentInfo ?? false,
           enablePlayTimeSelection: updateData.enablePlayTimeSelection ?? false,
           siteTitle: updateData.siteTitle ?? 'VoiceHub',
-          siteLogoUrl: updateData.siteLogoUrl ?? '/favicon.ico',
+          siteLogoUrl: updateData.siteLogoUrl ?? '/images/logo.png',
           schoolLogoHomeUrl: updateData.schoolLogoHomeUrl ?? null,
           schoolLogoPrintUrl: updateData.schoolLogoPrintUrl ?? null,
           siteDescription: updateData.siteDescription ?? '校园广播站点歌系统 - 让你的声音被听见',

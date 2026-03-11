@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
         .values({
           enablePlayTimeSelection: false,
           siteTitle: 'VoiceHub',
-          siteLogoUrl: '/favicon.ico',
+          siteLogoUrl: '/images/logo.png',
           schoolLogoHomeUrl: null,
           schoolLogoPrintUrl: null,
           siteDescription: '校园广播站点歌系统 - 让你的声音被听见',

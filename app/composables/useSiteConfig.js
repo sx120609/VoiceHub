@@ -47,7 +47,7 @@ export const useSiteConfig = () => {
       // 使用默认配置
       siteConfig.value = {
         siteTitle: '校园广播站点歌系统',
-        siteLogoUrl: '/favicon.ico',
+        siteLogoUrl: '/images/logo.png',
         schoolLogoHomeUrl: '',
         schoolLogoPrintUrl: '',
         siteDescription: '校园广播站点歌系统 - 让你的声音被听见',
@@ -65,7 +65,7 @@ export const useSiteConfig = () => {
 
   // 计算属性
   const siteTitle = computed(() => siteConfig.value.siteTitle || '校园广播站点歌系统')
-  const logoUrl = computed(() => siteConfig.value.siteLogoUrl || '/favicon.ico')
+  const logoUrl = computed(() => siteConfig.value.siteLogoUrl || '/images/logo.png')
   const schoolLogoHomeUrl = computed(() => siteConfig.value.schoolLogoHomeUrl || '')
   const schoolLogoPrintUrl = computed(() => siteConfig.value.schoolLogoPrintUrl || '')
   const description = computed(

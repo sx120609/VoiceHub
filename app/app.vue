@@ -38,7 +38,7 @@ const { logoUrl, initSiteConfig } = useSiteConfig()
 const normalizeFaviconUrl = (url) => {
   const value = (url || '').trim()
   if (!value) {
-    return `${appBaseURL}favicon.ico`
+    return `${appBaseURL}images/logo.png`
   }
 
   if (value.startsWith('http://')) {

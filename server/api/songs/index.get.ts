@@ -70,6 +70,8 @@ export default defineEventHandler(async (event) => {
 
     // 获取用户身份
     const user = event.context.user || null
+    const userId = user ? Number(user.id) : null
+    const hasValidUserId = Number.isInteger(userId) && (userId as number) > 0
     const isAdmin = user && ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(user.role)
     console.log('[Songs API] 用户认证状态:', {
       hasUser: !!user,
@@ -93,7 +95,7 @@ export default defineEventHandler(async (event) => {
       semester: semester || '',
       grade: grade || '',
       scope: scope || '',
-      userId: scope === 'mine' ? user?.id : undefined, // 如果 scope 为 mine，则将 userId 包含在缓存键中
+      userId: scope === 'mine' && hasValidUserId ? userId : undefined, // 如果 scope 为 mine，则将 userId 包含在缓存键中
       sortBy,
       sortOrder
     }
@@ -127,14 +129,14 @@ export default defineEventHandler(async (event) => {
       })
 
       // 如果用户已登录，需要添加用户特定的投票状态
-      if (user) {
+      if (hasValidUserId) {
         // 获取用户的投票状态
         const userVotesQuery = await db
           .select({
             songId: votes.songId
           })
           .from(votes)
-          .where(eq(votes.userId, user.id))
+          .where(eq(votes.userId, userId as number))
 
         const userVotedSongs = new Set(userVotesQuery.map((v) => v.songId))
 
@@ -146,7 +148,7 @@ export default defineEventHandler(async (event) => {
             updatedAt: songReplayRequests.updatedAt
           })
           .from(songReplayRequests)
-          .where(eq(songReplayRequests.userId, user.id))
+          .where(eq(songReplayRequests.userId, userId as number))
 
         const userReplayRequestsMap = new Map(userReplayRequestsQuery.map((r) => [r.songId, r]))
 
@@ -199,8 +201,8 @@ export default defineEventHandler(async (event) => {
       conditions.push(eq(users.grade, grade))
     }
 
-    if (scope === 'mine' && user) {
-      conditions.push(eq(songs.requesterId, user.id))
+    if (scope === 'mine' && hasValidUserId) {
+      conditions.push(eq(songs.requesterId, userId as number))
     }
 
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined
@@ -304,7 +306,7 @@ export default defineEventHandler(async (event) => {
       ])
     )
 
-    // 获取每首歌的重播申请状态（全局，不分用户，仅统计 PENDING）
+    // 获取每首歌的重播状态（全局，不分用户，统计 PENDING + FULFILLED）
     const songIds = songsData.map((s) => s.id)
     let replayRequestCounts = new Map()
     const replayRequestersMap = new Map()
@@ -317,7 +319,10 @@ export default defineEventHandler(async (event) => {
         })
         .from(songReplayRequests)
         .where(
-          and(inArray(songReplayRequests.songId, songIds), eq(songReplayRequests.status, 'PENDING'))
+          and(
+            inArray(songReplayRequests.songId, songIds),
+            inArray(songReplayRequests.status, ['PENDING', 'FULFILLED'])
+          )
         )
         .groupBy(songReplayRequests.songId)
 
@@ -336,7 +341,10 @@ export default defineEventHandler(async (event) => {
         .from(songReplayRequests)
         .innerJoin(users, eq(songReplayRequests.userId, users.id))
         .where(
-          and(inArray(songReplayRequests.songId, songIds), eq(songReplayRequests.status, 'PENDING'))
+          and(
+            inArray(songReplayRequests.songId, songIds),
+            inArray(songReplayRequests.status, ['PENDING', 'FULFILLED'])
+          )
         )
         .orderBy(desc(songReplayRequests.createdAt))
 
@@ -412,7 +420,7 @@ export default defineEventHandler(async (event) => {
     // 获取当前用户的重播申请
     const userReplayRequestedSongs = new Set()
     const userReplayRequestsMap = new Map() // 存储详细的重播申请信息
-    if (user) {
+    if (hasValidUserId) {
       const userReplayRequestsQuery = await db
         .select({
           songId: songReplayRequests.songId,
@@ -420,7 +428,7 @@ export default defineEventHandler(async (event) => {
           updatedAt: songReplayRequests.updatedAt
         })
         .from(songReplayRequests)
-        .where(eq(songReplayRequests.userId, user.id))
+        .where(eq(songReplayRequests.userId, userId as number))
 
       userReplayRequestsQuery.forEach((r) => {
         if (r.status === 'PENDING') {
@@ -539,7 +547,7 @@ export default defineEventHandler(async (event) => {
       }
 
       // 添加用户的重播申请详细状态
-      if (user && userReplayRequestsMap.has(song.id)) {
+      if (hasValidUserId && userReplayRequestsMap.has(song.id)) {
         const replayRequest = userReplayRequestsMap.get(song.id)
         songObject.replayRequestStatus = replayRequest.status
         songObject.replayRequestUpdatedAt = replayRequest.updatedAt
@@ -567,9 +575,9 @@ export default defineEventHandler(async (event) => {
       }
 
       // 如果用户已登录，添加投票状态
-      if (user) {
+      if (hasValidUserId) {
         const userVotes = songVotes.get(song.id) || []
-        songObject.voted = userVotes.includes(user.id)
+        songObject.voted = userVotes.map((voteUserId: any) => Number(voteUserId)).includes(userId as number)
       }
 
       // 添加期望播放时段相关字段
@@ -644,7 +652,7 @@ export default defineEventHandler(async (event) => {
     }
 
     console.log(
-      `[Songs API] 成功返回 ${result.data.songs.length} 首歌曲，用户类型: ${user ? '登录用户' : '未登录用户'}`
+      `[Songs API] 成功返回 ${result.data.songs.length} 首歌曲，用户类型: ${hasValidUserId ? '登录用户' : '未登录用户'}`
     )
 
     return result

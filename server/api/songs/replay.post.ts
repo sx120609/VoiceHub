@@ -4,10 +4,31 @@ import { cacheService } from '~~/server/services/cacheService'
 type ReplayAction = 'request' | 'cancel'
 
 const resolveReplayAction = (body: any): ReplayAction => {
-  if (body?.action === 'cancel' || body?.action === 'withdraw' || body?.cancel === true) {
+  if (
+    body?.action === 'cancel' ||
+    body?.action === 'withdraw' ||
+    body?.action === 'unrequest' ||
+    body?.cancel === true
+  ) {
     return 'cancel'
   }
   return 'request'
+}
+
+const normalizeSongId = (body: any): number | null => {
+  const songId = Number(body?.songId ?? body?.id)
+  if (!Number.isInteger(songId) || songId <= 0) {
+    return null
+  }
+  return songId
+}
+
+const normalizeUserId = (user: any): number | null => {
+  const userId = Number(user?.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return null
+  }
+  return userId
 }
 
 async function clearReplayRelatedCache() {
@@ -37,11 +58,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const songId = Number(body?.songId)
+  const songId = normalizeSongId(body)
   const action = resolveReplayAction(body)
+  const userId = normalizeUserId(user)
 
-  if (!Number.isInteger(songId) || songId <= 0) {
+  if (!songId) {
     throw createError({ statusCode: 400, message: '歌曲ID不能为空' })
+  }
+  if (!userId) {
+    throw createError({ statusCode: 401, message: '用户身份无效，请重新登录' })
   }
 
   if (action === 'cancel') {
@@ -51,7 +76,7 @@ export default defineEventHandler(async (event) => {
       .where(
         and(
           eq(songReplayRequests.songId, songId),
-          eq(songReplayRequests.userId, user.id),
+          eq(songReplayRequests.userId, userId),
           eq(songReplayRequests.status, 'PENDING')
         )
       )
@@ -64,7 +89,7 @@ export default defineEventHandler(async (event) => {
         .where(
           and(
             eq(songReplayRequests.songId, songId),
-            eq(songReplayRequests.userId, user.id),
+            eq(songReplayRequests.userId, userId),
             eq(songReplayRequests.status, 'PENDING')
           )
         )
@@ -116,7 +141,7 @@ export default defineEventHandler(async (event) => {
   const existingResult = await db
     .select()
     .from(songReplayRequests)
-    .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
+    .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, userId)))
     .limit(1)
   const existing = existingResult[0]
 
@@ -165,7 +190,7 @@ export default defineEventHandler(async (event) => {
       try {
         await db.insert(songReplayRequests).values({
           songId,
-          userId: user.id
+          userId
         })
         changed = true
       } catch (insertError: any) {

@@ -442,7 +442,7 @@ const saveConfig = async () => {
     const configToSave = {
       ...formData.value,
       siteTitle: (formData.value.siteTitle || '').trim() || '校园广播站点歌系统',
-      siteLogoUrl: (formData.value.siteLogoUrl || '').trim() || '/favicon.ico',
+      siteLogoUrl: (formData.value.siteLogoUrl || '').trim() || '/images/logo.png',
       submissionGuidelines:
         (formData.value.submissionGuidelines || '').trim() || defaultSubmissionGuidelines,
       // 确保根据限额类型处理空值

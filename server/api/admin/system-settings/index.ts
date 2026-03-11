@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
         .values({
           enablePlayTimeSelection: false,
           siteTitle: process.env.NUXT_PUBLIC_SITE_TITLE || 'VoiceHub',
-          siteLogoUrl: process.env.NUXT_PUBLIC_SITE_LOGO || '/favicon.ico',
+          siteLogoUrl: process.env.NUXT_PUBLIC_SITE_LOGO || '/images/logo.png',
           schoolLogoHomeUrl: null,
           schoolLogoPrintUrl: null,
           siteDescription:

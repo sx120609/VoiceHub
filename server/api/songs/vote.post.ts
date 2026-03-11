@@ -14,10 +14,31 @@ import { getClientIP } from '~~/server/utils/ip-utils'
 type VoteAction = 'vote' | 'unvote'
 
 const resolveVoteAction = (body: any): VoteAction => {
-  if (body?.action === 'unvote' || body?.cancel === true || body?.unvote === true) {
+  if (
+    body?.action === 'unvote' ||
+    body?.action === 'cancel' ||
+    body?.cancel === true ||
+    body?.unvote === true
+  ) {
     return 'unvote'
   }
   return 'vote'
+}
+
+const normalizeSongId = (body: any): number | null => {
+  const songId = Number(body?.songId ?? body?.id)
+  if (!Number.isInteger(songId) || songId <= 0) {
+    return null
+  }
+  return songId
+}
+
+const normalizeUserId = (user: any): number | null => {
+  const userId = Number(user?.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return null
+  }
+  return userId
 }
 
 const fetchVoteCount = async (songId: number) => {
@@ -47,13 +68,20 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const clientIP = getClientIP(event)
-  const songId = Number(body?.songId)
+  const songId = normalizeSongId(body)
   const action = resolveVoteAction(body)
+  const userId = normalizeUserId(user)
 
-  if (!Number.isInteger(songId) || songId <= 0) {
+  if (!songId) {
     throw createError({
       statusCode: 400,
       message: '歌曲ID不能为空'
+    })
+  }
+  if (!userId) {
+    throw createError({
+      statusCode: 401,
+      message: '用户身份无效，请重新登录'
     })
   }
 
@@ -71,7 +99,7 @@ export default defineEventHandler(async (event) => {
     const existingVoteResult = await db
       .select()
       .from(votes)
-      .where(and(eq(votes.songId, songId), eq(votes.userId, user.id)))
+      .where(and(eq(votes.songId, songId), eq(votes.userId, userId)))
       .limit(1)
     const existingVote = existingVoteResult[0]
 
@@ -115,7 +143,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    if (song.requesterId === user.id) {
+    if (song.requesterId === userId) {
       throw createError({
         statusCode: 400,
         message: '不允许自己给自己投票'
@@ -163,7 +191,7 @@ export default defineEventHandler(async (event) => {
     try {
       await db.insert(votes).values({
         songId,
-        userId: user.id
+        userId
       })
     } catch (insertError: any) {
       // 并发情况下唯一索引冲突，按已投票处理
@@ -185,13 +213,13 @@ export default defineEventHandler(async (event) => {
 
     const voteCount = await fetchVoteCount(songId)
 
-    if (song.requesterId !== user.id) {
-      createSongVotedNotification(songId, user.id, clientIP).catch(() => {
+    if (song.requesterId !== userId) {
+      createSongVotedNotification(songId, userId, clientIP).catch(() => {
         // 发送通知失败不影响主流程
       })
     }
-    recordSongVote(songId, clientIP, user.id)
-    recordUserVoteActivity(user.id, song.title)
+    recordSongVote(songId, clientIP, userId)
+    recordUserVoteActivity(userId, song.title)
     await clearVoteRelatedCache('投票')
 
     return {

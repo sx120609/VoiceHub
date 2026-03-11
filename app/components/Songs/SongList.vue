@@ -712,7 +712,7 @@ const displayedSongs = computed(() => {
   if (activeTab.value === 'mine') {
     result = result.filter((song) => isMySong(song))
   } else if (activeTab.value === 'replays') {
-    result = result.filter((song) => song.replayRequested)
+    result = result.filter((song) => song.replayRequested || song.replayRequestStatus === 'PENDING')
   }
 
   // 应用搜索过滤器
@@ -806,6 +806,14 @@ const getVoteButtonTitle = (song) => {
   return '点赞'
 }
 
+const resolveSongId = (song) => {
+  const songId = Number(song?.songId ?? song?.id)
+  if (!Number.isInteger(songId) || songId <= 0) {
+    return null
+  }
+  return songId
+}
+
 const handleVote = async (song) => {
   // 检查用户是否登录
   if (!isAuthenticated.value) {
@@ -856,27 +864,18 @@ const handleVote = async (song) => {
 
   voteInProgress.value = true
   try {
-    const targetSongId = Number(song?.songId ?? song?.id)
-    if (!Number.isInteger(targetSongId) || targetSongId <= 0) {
+    const targetSongId = resolveSongId(song)
+    if (!targetSongId) {
       if (window.$showNotification) {
         window.$showNotification('歌曲ID无效，无法点赞', 'error')
       }
       return
     }
 
-    if (isUnvote) {
-      // 如果已投票，则调用撤销投票
-      song.songId = targetSongId
-      song.id = targetSongId
-      song.unvote = true
-      emit('vote', song)
-    } else {
-      // 正常投票
-      song.songId = targetSongId
-      song.id = targetSongId
-      song.unvote = false
-      emit('vote', song)
-    }
+    emit('vote', {
+      songId: targetSongId,
+      action: isUnvote ? 'unvote' : 'vote'
+    })
   } catch (err) {
     // 投票处理失败
   } finally {
@@ -912,24 +911,36 @@ const handleWithdraw = (song) => {
 }
 
 const handleCancelReplay = (song) => {
+  const songId = resolveSongId(song)
+  if (!songId) return
+
   confirmDialog.value = {
     show: true,
     title: '取消重播申请',
     message: `确认取消歌曲《${song.title}》的重播申请吗？`,
     type: 'warning',
     action: 'cancelReplay',
-    data: song
+    data: {
+      songId,
+      title: song.title
+    }
   }
 }
 
 const handleRequestReplay = (song) => {
+  const songId = resolveSongId(song)
+  if (!songId) return
+
   confirmDialog.value = {
     show: true,
     title: '申请重播',
     message: `确认申请重播歌曲《${song.title}》吗？`,
     type: 'info',
     action: 'requestReplay',
-    data: song
+    data: {
+      songId,
+      title: song.title
+    }
   }
 }
 
