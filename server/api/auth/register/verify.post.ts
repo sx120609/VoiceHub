@@ -2,7 +2,7 @@ import { db, eq, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
-import { getClientIP } from '~~/server/utils/ip-utils'
+import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { verifyRegistrationActivationToken } from '~~/server/utils/registration-verification'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
       .set({
         emailVerified: true,
         lastLogin: getBeijingTime(),
-        lastLoginIp: getClientIP(event)
+        lastLoginIp: sanitizeStoredClientIP(getClientIP(event))
       })
       .where(eq(users.id, user.id))
   }

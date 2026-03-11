@@ -13,7 +13,7 @@ import {
   getUserBlockRemainingTime
 } from '../../services/securityService'
 import { getBeijingTime } from '~/utils/timeUtils'
-import { getClientIP } from '~~/server/utils/ip-utils'
+import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { isRegistrationEmailVerificationEnabled } from '~~/server/utils/registration-verification'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
@@ -205,7 +205,7 @@ export default defineEventHandler(async (event) => {
       .update(users)
       .set({
         lastLogin: getBeijingTime(),
-        lastLoginIp: clientIp
+        lastLoginIp: sanitizeStoredClientIP(clientIp)
       })
       .where(eq(users.id, user.id))
       .catch((err) => console.error('Error updating user login info:', err))

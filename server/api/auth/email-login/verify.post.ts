@@ -1,6 +1,6 @@
 import { db, eq, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
-import { getClientIP } from '~~/server/utils/ip-utils'
+import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { verifyPendingEmailLoginCode } from '~~/server/utils/email-login-verification'
@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
       .update(users)
       .set({
         lastLogin: getBeijingTime(),
-        lastLoginIp: clientIp
+        lastLoginIp: sanitizeStoredClientIP(clientIp)
       })
       .where(eq(users.id, user.id))
 

@@ -3,7 +3,7 @@ import { db, eq, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import { requireQQEmailOrNumber } from '~~/server/utils/qq-email'
 import { getBeijingTime } from '~/utils/timeUtils'
-import { getClientIP } from '~~/server/utils/ip-utils'
+import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { SmtpService } from '~~/server/services/smtpService'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { buildPublicAppUrl, getPublicOrigin } from '~~/server/utils/public-url'
@@ -69,6 +69,7 @@ export default defineEventHandler(async (event) => {
   try {
     const requireEmailVerification = await isRegistrationEmailVerificationEnabled()
     const clientIp = getClientIP(event)
+    const safeClientIp = sanitizeStoredClientIP(clientIp)
     const activationExpiresDays = getRegistrationActivationExpiresDays()
 
     const redirectOrigin = getPublicOrigin(event)
@@ -223,7 +224,7 @@ export default defineEventHandler(async (event) => {
         ...(!requireEmailVerification
           ? {
               lastLogin: now,
-              lastLoginIp: clientIp
+              lastLoginIp: safeClientIp
             }
           : {})
       })

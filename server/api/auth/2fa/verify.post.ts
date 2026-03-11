@@ -3,7 +3,7 @@ const { authenticator } = otplib
 import { db, userIdentities, eq, and, users } from '~/drizzle/db'
 import { twoFactorCodes } from '~~/server/utils/twoFactorStore'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
-import { getClientIP } from '~~/server/utils/ip-utils'
+import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { getBeijingTime } from '~/utils/timeUtils'
 
 export default defineEventHandler(async (event) => {
@@ -90,7 +90,7 @@ export default defineEventHandler(async (event) => {
   await db.update(users)
     .set({
       lastLogin: getBeijingTime(),
-      lastLoginIp: clientIp
+      lastLoginIp: sanitizeStoredClientIP(clientIp)
     })
     .where(eq(users.id, user.id))
     .catch((err) => console.error('Error updating user login info:', err))
