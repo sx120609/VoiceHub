@@ -63,7 +63,7 @@ ENV NODE_ENV=production \
 EXPOSE $PORT
 
 # 健康检查：连续失败后会主动终止 PID 1，触发 restart: unless-stopped 自动拉起
-HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=1 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
   CMD ["sh", "/app/scripts/container-healthcheck.sh"]
 
 # 启动命令：先执行数据库迁移，再启动应用
