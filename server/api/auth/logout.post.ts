@@ -1,3 +1,5 @@
+import { clearAuthTokenCookie } from '~~/server/utils/auth-cookie'
+
 export default defineEventHandler(async (event) => {
   try {
     console.log('[Auth] User logout requested')
@@ -17,16 +19,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // 清除cookie
-    const isSecure =
-      getRequestURL(event).protocol === 'https:' ||
-      getRequestHeader(event, 'x-forwarded-proto') === 'https'
-    setCookie(event, 'auth-token', '', {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/'
-    })
+    clearAuthTokenCookie(event)
 
     return {
       success: true,
@@ -37,13 +30,7 @@ export default defineEventHandler(async (event) => {
 
     // 出错时也要清除cookie
     try {
-      setCookie(event, 'auth-token', '', {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-        maxAge: 0,
-        path: '/'
-      })
+      clearAuthTokenCookie(event)
     } catch (cookieError) {
       console.error('Failed to clear cookie:', cookieError)
     }

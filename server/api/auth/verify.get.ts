@@ -5,6 +5,7 @@ import { executeRedisCommand, isRedisReady } from '../../utils/redis'
 import { eq } from 'drizzle-orm'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
+import { clearAuthTokenCookie } from '~~/server/utils/auth-cookie'
 
 // 用户认证缓存（永久缓存，登出或权限变更时主动失效）
 
@@ -23,6 +24,17 @@ export default defineEventHandler(async (event) => {
     // 验证JWT令牌
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number }
     const userId = decoded.userId
+    const tokenIssuedAt = typeof (decoded as any)?.iat === 'number' ? (decoded as any).iat : null
+    const isTokenOlderThanPassword = (passwordChangedAt: unknown) => {
+      if (!tokenIssuedAt || !passwordChangedAt) {
+        return false
+      }
+      const changedSeconds = Math.floor(new Date(String(passwordChangedAt)).getTime() / 1000)
+      if (!Number.isFinite(changedSeconds)) {
+        return false
+      }
+      return tokenIssuedAt < changedSeconds
+    }
 
     // 优先从Redis缓存获取用户认证状态
     if (isRedisReady()) {
@@ -42,6 +54,14 @@ export default defineEventHandler(async (event) => {
       })
 
       if (cachedUser) {
+        if (isTokenOlderThanPassword(cachedUser.passwordChangedAt)) {
+          clearAuthTokenCookie(event)
+          throw createError({
+            statusCode: 401,
+            message: '密码已修改，请重新登录'
+          })
+        }
+
         // 为缓存的用户数据添加字段
         const userWithDetails = {
           id: cachedUser.id,
@@ -99,6 +119,14 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 401,
         message: '用户不存在'
+      })
+    }
+
+    if (isTokenOlderThanPassword(dbUser.passwordChangedAt)) {
+      clearAuthTokenCookie(event)
+      throw createError({
+        statusCode: 401,
+        message: '密码已修改，请重新登录'
       })
     }
 

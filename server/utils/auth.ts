@@ -1,6 +1,7 @@
-import { getCookie, getHeader, setCookie, getRequestURL, getRequestHeader } from 'h3'
+import { getCookie, getHeader } from 'h3'
 import { JWTEnhanced } from './jwt-enhanced'
 import { db, eq, users } from '~/drizzle/db'
+import { clearAuthTokenCookie } from './auth-cookie'
 
 interface AuthResult {
   success: boolean
@@ -90,16 +91,7 @@ export async function verifyAdminAuth(event: any): Promise<AuthResult> {
       const passwordChangedTime = Math.floor(new Date(user.passwordChangedAt).getTime() / 1000)
       if (decoded.iat < passwordChangedTime) {
         // 主动清除Cookie
-        const isSecure =
-          getRequestURL(event).protocol === 'https:' ||
-          getRequestHeader(event, 'x-forwarded-proto') === 'https'
-        setCookie(event, 'auth-token', '', {
-          httpOnly: true,
-          secure: isSecure,
-          sameSite: 'lax',
-          maxAge: 0,
-          path: '/'
-        })
+        clearAuthTokenCookie(event)
         return {
           success: false,
           message: '密码已修改，请重新登录'
@@ -224,16 +216,7 @@ export async function verifyUserAuth(event: any): Promise<AuthResult> {
       const passwordChangedTime = Math.floor(new Date(user.passwordChangedAt).getTime() / 1000)
       if (decoded.iat < passwordChangedTime) {
         // 主动清除Cookie
-        const isSecure =
-          getRequestURL(event).protocol === 'https:' ||
-          getRequestHeader(event, 'x-forwarded-proto') === 'https'
-        setCookie(event, 'auth-token', '', {
-          httpOnly: true,
-          secure: isSecure,
-          sameSite: 'lax',
-          maxAge: 0,
-          path: '/'
-        })
+        clearAuthTokenCookie(event)
         return {
           success: false,
           message: '密码已修改，请重新登录'

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { recordLoginFailure, recordLoginSuccess } from '../../services/securityService'
 import { updateUserPassword } from '../../services/userService'
 import { getClientIP } from '~~/server/utils/ip-utils'
+import { clearAuthTokenCookie } from '~~/server/utils/auth-cookie'
 
 export default defineEventHandler(async (event) => {
   // 验证用户身份
@@ -91,16 +92,7 @@ export default defineEventHandler(async (event) => {
     recordLoginSuccess(userDetails.username, clientIp)
 
     // 立即清除认证 cookie，避免旧 token 在前端引发 401 连锁
-    const isSecure =
-      getRequestURL(event).protocol === 'https:' ||
-      getRequestHeader(event, 'x-forwarded-proto') === 'https'
-    setCookie(event, 'auth-token', '', {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/'
-    })
+    clearAuthTokenCookie(event)
 
     return {
       success: true,
