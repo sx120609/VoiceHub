@@ -3,6 +3,7 @@ import { db } from '~/drizzle/db'
 import { users } from '~/drizzle/schema'
 import { and, asc, desc, count, eq, ilike, or, sql } from 'drizzle-orm'
 import { normalizeRole } from '~~/server/utils/role'
+import { sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -119,6 +120,7 @@ export default defineEventHandler(async (event) => {
     // 处理用户列表，添加头像字段
     const formattedUsers = usersList.map((user) => ({
       ...user,
+      lastLoginIp: sanitizeStoredClientIP(user.lastLoginIp),
       role: normalizeRole(user.role) || user.role,
       avatar: user.identities?.[0]?.providerUsername
         ? `https://github.com/${user.identities[0].providerUsername}.png`

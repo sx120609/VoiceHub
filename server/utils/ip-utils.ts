@@ -2,12 +2,17 @@ import type { H3Event } from 'h3'
 import { getHeaders } from 'h3'
 import { isIP } from 'node:net'
 
-const TRUSTED_PROXY_IPS = new Set(
-  (process.env.TRUSTED_PROXY_IPS || '')
-    .split(',')
-    .map((v) => normalizeIP(v))
-    .filter((v): v is string => Boolean(v))
-)
+const DEFAULT_EXCLUDED_CLIENT_IPS = ['202.119.186.117']
+
+function createIPSet(values: string[]): Set<string> {
+  return new Set(values.map((v) => normalizeIP(v)).filter((v): v is string => Boolean(v)))
+}
+
+const TRUSTED_PROXY_IPS = createIPSet((process.env.TRUSTED_PROXY_IPS || '').split(','))
+const EXCLUDED_CLIENT_IPS = createIPSet([
+  ...DEFAULT_EXCLUDED_CLIENT_IPS,
+  ...(process.env.EXCLUDED_CLIENT_IPS || '').split(',')
+])
 
 function normalizeIP(raw: string | undefined | null): string | null {
   if (!raw) return null
@@ -72,6 +77,61 @@ function parseForwarded(raw: string | undefined): string[] {
   return ips
 }
 
+function getHeaderValue(headers: ReturnType<typeof getHeaders>, key: string): string | undefined {
+  const value = headers[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+function dedupeIPs(ips: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const ip of ips) {
+    if (seen.has(ip)) continue
+    seen.add(ip)
+    result.push(ip)
+  }
+  return result
+}
+
+function collectHeaderIPs(headers: ReturnType<typeof getHeaders>): string[] {
+  const xForwardedFor = parseIPList(getHeaderValue(headers, 'x-forwarded-for'))
+  const forwarded = parseForwarded(getHeaderValue(headers, 'forwarded'))
+  const xRealIP = parseIPList(getHeaderValue(headers, 'x-real-ip'))
+  const xClientIP = parseIPList(getHeaderValue(headers, 'x-client-ip'))
+  const xOriginalForwardedFor = parseIPList(getHeaderValue(headers, 'x-original-forwarded-for'))
+  const trueClientIP = parseIPList(getHeaderValue(headers, 'true-client-ip'))
+  const cfConnectingIP = parseIPList(getHeaderValue(headers, 'cf-connecting-ip'))
+  const xForwarded = parseIPList(getHeaderValue(headers, 'x-forwarded'))
+  const forwardedFor = parseIPList(getHeaderValue(headers, 'forwarded-for'))
+
+  return dedupeIPs([
+    ...xForwardedFor,
+    ...forwarded,
+    ...xRealIP,
+    ...xClientIP,
+    ...xOriginalForwardedFor,
+    ...trueClientIP,
+    ...cfConnectingIP,
+    ...xForwarded,
+    ...forwardedFor
+  ])
+}
+
+function isExcludedIP(ip: string): boolean {
+  return EXCLUDED_CLIENT_IPS.has(ip)
+}
+
+export function sanitizeStoredClientIP(ip: string | null | undefined): string | null {
+  if (!ip) return null
+  const raw = String(ip).trim()
+  if (!raw || raw.toLowerCase() === 'unknown') return null
+
+  const normalized = normalizeIP(raw)
+  if (!normalized) return raw
+  if (isExcludedIP(normalized)) return null
+  return normalized
+}
+
 function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split('.').map((n) => Number(n))
   if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return false
@@ -109,38 +169,27 @@ export function getClientIP(event: H3Event): string {
   const headers = getHeaders(event)
 
   const socketIP = normalizeIP(event.node.req.socket?.remoteAddress)
-  const xRealIP = normalizeIP((headers['x-real-ip'] as string | undefined) || '')
+  const headerIPs = collectHeaderIPs(headers)
 
-  const xForwardedFor = parseIPList(headers['x-forwarded-for'] as string | undefined)
-  const forwarded = parseForwarded(headers.forwarded as string | undefined)
+  if (headerIPs.length > 0) {
+    // 剔除已知代理IP、显式排除IP、以及当前连接端IP（通常为最近一层代理）
+    const filtered = headerIPs.filter(
+      (ip) => !TRUSTED_PROXY_IPS.has(ip) && !isExcludedIP(ip) && (!socketIP || ip !== socketIP)
+    )
 
-  const headerChain = [...xForwardedFor, ...forwarded]
-
-  if (headerChain.length > 0) {
-    // 可选：剔除已知代理IP（若未配置则不影响自动识别）
-    const filteredChain = headerChain.filter((ip) => !TRUSTED_PROXY_IPS.has(ip))
-
-    // 1) 优先使用链路首个公网IP（最常见即真实客户端IP）
-    for (const ip of filteredChain) {
-      if (!isPrivateIP(ip)) {
-        return ip
-      }
+    // 1) 优先使用链路中的首个公网IP
+    for (const ip of filtered) {
+      if (!isPrivateIP(ip)) return ip
     }
 
-    // 2) 无公网时，使用链路首个有效IP
-    if (filteredChain[0]) {
-      return filteredChain[0]
-    }
-
-    // 3) filtered 为空时退回原始链路首个
-    if (headerChain[0]) {
-      return headerChain[0]
-    }
+    // 2) 无公网IP时，使用首个可用IP
+    if (filtered[0]) return filtered[0]
   }
 
-  // 4) 兜底 x-real-ip / socket
-  if (xRealIP) return xRealIP
-  if (socketIP) return socketIP
+  // 3) 兜底 socketIP
+  if (socketIP && !TRUSTED_PROXY_IPS.has(socketIP) && !isExcludedIP(socketIP)) {
+    return socketIP
+  }
 
   return 'unknown'
 }

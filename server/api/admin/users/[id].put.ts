@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { updateUserPassword } from '~~/server/services/userService'
 import { normalizeEmail, requireQQEmail } from '~~/server/utils/qq-email'
 import { normalizeRole, normalizeRoleOrDefault } from '~~/server/utils/role'
+import { sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -260,7 +261,10 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      user: updatedUser[0],
+      user: {
+        ...updatedUser[0],
+        lastLoginIp: sanitizeStoredClientIP(updatedUser[0]?.lastLoginIp)
+      },
       message: '用户更新成功'
     }
   } catch (error) {
