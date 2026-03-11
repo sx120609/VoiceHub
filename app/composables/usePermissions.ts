@@ -22,12 +22,12 @@ export const usePermissions = () => {
 
     // 管理员可以访问的页面
     if (role === 'ADMIN') {
-      return ['overview', 'schedule', 'print', 'songs', 'users', 'data-analysis'].includes(page)
+      return ['overview', 'schedule', 'songs', 'users', 'data-analysis'].includes(page)
     }
 
     // 歌曲管理员可以访问的页面
     if (role === 'SONG_ADMIN') {
-      return ['schedule', 'print', 'songs'].includes(page)
+      return ['schedule', 'songs'].includes(page)
     }
 
     return false
@@ -44,7 +44,6 @@ export const usePermissions = () => {
         return [
           'overview',
           'schedule',
-          'print',
           'songs',
           'users',
           'notifications',
@@ -52,15 +51,13 @@ export const usePermissions = () => {
           'playtimes',
           'request-times',
           'semesters',
-          'blacklist',
           'site-config',
-          'database',
           'api-keys'
         ]
       case 'ADMIN':
-        return ['overview', 'schedule', 'print', 'songs', 'users', 'data-analysis']
+        return ['overview', 'schedule', 'songs', 'users', 'data-analysis']
       case 'SONG_ADMIN':
-        return ['schedule', 'print', 'songs']
+        return ['schedule', 'songs']
       default:
         return []
     }
@@ -97,9 +94,7 @@ export const usePermissions = () => {
 
   // 检查是否可以打印排期
   const canPrintSchedule = computed(() => {
-    if (!auth.user.value) return false
-    const role = auth.user.value.role
-    return ['SONG_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(role)
+    return false
   })
 
   return {

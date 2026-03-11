@@ -195,7 +195,6 @@ import {
   Clock,
   Zap,
   Bell,
-  Ban,
   ExternalLink,
   Inbox
 } from 'lucide-vue-next'
@@ -213,8 +212,7 @@ const stats = ref({
   usersChange: 0,
   requestsChange: 0,
   totalSchedules: 0,
-  currentSemester: '',
-  blacklistCount: 0
+  currentSemester: ''
 })
 
 const recentActivities = ref([])
@@ -275,11 +273,6 @@ const statusItems = computed(() => [
     value: stats.value.currentSemester || '未设置',
     active: !!stats.value.currentSemester
   },
-  {
-    label: '黑名单项目',
-    value: `${stats.value.blacklistCount} 项`,
-    active: stats.value.blacklistCount >= 0
-  },
   { label: '系统版本', value: `v${systemVersion.value}`, active: true }
 ])
 
@@ -287,8 +280,7 @@ const statusItems = computed(() => [
 const quickActions = [
   { label: '管理排期', icon: Calendar, id: 'schedule', primary: true },
   { label: '用户管理', icon: Users, id: 'users' },
-  { label: '发送通知', icon: Bell, id: 'notifications' },
-  { label: '黑名单管理', icon: Ban, id: 'blacklist' }
+  { label: '发送通知', icon: Bell, id: 'notifications' }
 ]
 
 const formatNumber = (num) => {

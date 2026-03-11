@@ -79,14 +79,6 @@
               <AdminScheduleManager />
             </div>
 
-            <!-- 打印排期 -->
-            <div
-              v-if="activeTab === 'print' && permissions.canAccessPage('print')"
-              class="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full"
-            >
-              <LazyAdminSchedulePrinter />
-            </div>
-
             <!-- 数据分析 -->
             <div
               v-if="activeTab === 'data-analysis' && permissions.canAccessPage('data-analysis')"
@@ -143,28 +135,12 @@
               <LazyAdminSemesterManager />
             </div>
 
-            <!-- 黑名单管理 -->
-            <div
-              v-if="activeTab === 'blacklist' && permissions.canAccessPage('blacklist')"
-              class="animate-in fade-in slide-in-from-bottom-4 duration-500"
-            >
-              <LazyAdminBlacklistManager />
-            </div>
-
             <!-- 站点配置 -->
             <div
               v-if="activeTab === 'site-config' && permissions.canAccessPage('site-config')"
               class="animate-in fade-in slide-in-from-bottom-4 duration-500"
             >
               <LazyAdminSiteConfigManager />
-            </div>
-
-            <!-- 数据库操作 -->
-            <div
-              v-if="activeTab === 'database' && permissions.canAccessPage('database')"
-              class="animate-in fade-in slide-in-from-bottom-4 duration-500"
-            >
-              <LazyAdminDatabaseManager />
             </div>
 
             <!-- API密钥管理 -->
@@ -228,16 +204,13 @@ const getPageTitle = () => {
     overview: '数据概览',
     songs: '歌曲管理',
     schedule: '排期管理',
-    print: '打印排期',
     users: '用户管理',
     notifications: '通知管理',
     'smtp-config': '邮件配置',
     playtimes: '播出时段',
     'request-times': '投稿管理',
     semesters: '学期管理',
-    blacklist: '黑名单管理',
-    'site-config': '站点配置',
-    database: '数据库操作'
+    'site-config': '站点配置'
   }
   return titles[activeTab.value] || '管理后台'
 }

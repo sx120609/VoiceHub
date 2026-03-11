@@ -118,7 +118,6 @@
 import {
   LayoutDashboard,
   CalendarDays,
-  Printer,
   Music2,
   BarChart3,
   Users,
@@ -129,9 +128,7 @@ import {
   Clock,
   FileEdit,
   BookOpen,
-  Ban,
   Globe,
-  Database,
   Lock
 } from 'lucide-vue-next'
 import logo from '~~/public/images/logo.png'
@@ -170,7 +167,6 @@ const menuGroups = [
     section: '内容管理',
     items: [
       { icon: CalendarDays, label: '排期管理', id: 'schedule' },
-      { icon: Printer, label: '打印排期', id: 'print' },
       { icon: Music2, label: '歌曲管理', id: 'songs' },
       { icon: BarChart3, label: '数据分析', id: 'data-analysis', permissionId: 'data-analysis' }
     ]
@@ -191,9 +187,7 @@ const menuGroups = [
       { icon: Clock, label: '播出时段', id: 'playtimes' },
       { icon: FileEdit, label: '投稿管理', id: 'request-times' },
       { icon: BookOpen, label: '学期管理', id: 'semesters' },
-      { icon: Ban, label: '黑名单管理', id: 'blacklist' },
-      { icon: Globe, label: '站点配置', id: 'site-config' },
-      { icon: Database, label: '数据库操作', id: 'database' }
+      { icon: Globe, label: '站点配置', id: 'site-config' }
     ]
   },
   {
