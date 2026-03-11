@@ -12,15 +12,32 @@ export default defineEventHandler(async (event) => {
   if (!user) {
     throw createError({
       statusCode: 401,
-      statusMessage: '未授权'
+      message: '未授权'
     })
   }
 
   const body = await readBody(event)
-  if (!body.currentPassword || !body.newPassword) {
+  const currentPassword = typeof body?.currentPassword === 'string' ? body.currentPassword : ''
+  const newPassword = typeof body?.newPassword === 'string' ? body.newPassword : ''
+
+  if (!currentPassword || !newPassword) {
     throw createError({
       statusCode: 400,
-      statusMessage: '当前密码和新密码都是必需的'
+      message: '当前密码和新密码都是必需的'
+    })
+  }
+
+  if (newPassword.length < 8) {
+    throw createError({
+      statusCode: 400,
+      message: '新密码长度至少为8位'
+    })
+  }
+
+  if (currentPassword === newPassword) {
+    throw createError({
+      statusCode: 400,
+      message: '新密码不能与当前密码相同'
     })
   }
 
@@ -41,12 +58,19 @@ export default defineEventHandler(async (event) => {
     if (!userDetails) {
       throw createError({
         statusCode: 404,
-        statusMessage: '用户不存在'
+        message: '用户不存在'
+      })
+    }
+
+    if (!userDetails.password) {
+      throw createError({
+        statusCode: 400,
+        message: '当前账号未设置密码，请联系管理员重置密码'
       })
     }
 
     // 验证当前密码
-    const isPasswordValid = await bcrypt.compare(body.currentPassword, userDetails.password)
+    const isPasswordValid = await bcrypt.compare(currentPassword, userDetails.password)
 
     if (!isPasswordValid) {
       // 记录安全事件
@@ -55,29 +79,32 @@ export default defineEventHandler(async (event) => {
 
       throw createError({
         statusCode: 400,
-        statusMessage: '当前密码不正确'
-      })
-    }
-
-    // 检查新密码是否与当前密码相同
-    const isSamePassword = await bcrypt.compare(body.newPassword, userDetails.password)
-    if (isSamePassword) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: '新密码不能与当前密码相同'
+        message: '当前密码不正确'
       })
     }
 
     // 更新密码
-    await updateUserPassword(user.id, body.newPassword)
+    await updateUserPassword(user.id, newPassword)
 
     // 记录成功的密码修改
     const clientIp = getClientIP(event)
     recordLoginSuccess(userDetails.username, clientIp)
 
+    // 立即清除认证 cookie，避免旧 token 在前端引发 401 连锁
+    const isSecure =
+      getRequestURL(event).protocol === 'https:' ||
+      getRequestHeader(event, 'x-forwarded-proto') === 'https'
+    setCookie(event, 'auth-token', '', {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/'
+    })
+
     return {
       success: true,
-      message: '密码修改成功'
+      message: '密码修改成功，请重新登录'
     }
   } catch (error: any) {
     // 已格式化的错误直接抛出
@@ -91,7 +118,7 @@ export default defineEventHandler(async (event) => {
     // 创建错误响应
     throw createError({
       statusCode: 500,
-      statusMessage: '修改密码失败: ' + (error.message || '未知错误')
+      message: '修改密码失败: ' + (error.message || '未知错误')
     })
   }
 })

@@ -35,6 +35,20 @@ export const useAuth = () => {
     isAdmin.value = false
   }
 
+  const clearAuthCookie = () => {
+    if (!import.meta.client) return
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
+    if (window.location.protocol === 'https:') {
+      document.cookie =
+        'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure'
+    }
+  }
+
+  const invalidateSessionLocally = () => {
+    clearAuthState()
+    clearAuthCookie()
+  }
+
   const setAuthState = (loggedInUser: User) => {
     const normalizedUser = {
       ...loggedInUser,
@@ -185,7 +199,7 @@ export const useAuth = () => {
       // 忽略登出错误
     }
 
-    clearAuthState()
+    invalidateSessionLocally()
 
     if (import.meta.client && redirect) {
       await navigateTo('/')
@@ -212,6 +226,7 @@ export const useAuth = () => {
     setInitialPassword,
     refreshUser,
     initAuth,
-    getAuthConfig
+    getAuthConfig,
+    invalidateSessionLocally
   }
 }

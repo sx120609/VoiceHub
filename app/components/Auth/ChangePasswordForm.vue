@@ -203,7 +203,6 @@ const props = defineProps({
 })
 
 const auth = useAuth()
-const router = useRouter()
 
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -323,9 +322,9 @@ const handleChangePassword = async () => {
         await auth.refreshUser()
 
         if (auth.isAdmin.value) {
-          router.push('/dashboard')
+          await navigateTo('/dashboard')
         } else {
-          router.push('/')
+          await navigateTo('/')
         }
       }, 2000)
     } else {
@@ -337,11 +336,11 @@ const handleChangePassword = async () => {
       newPassword.value = ''
       confirmPassword.value = ''
 
-      // 密码修改后登出
+      // 密码修改后立即清理本地会话，避免旧 token 触发 401 连锁错误
+      auth.invalidateSessionLocally()
       setTimeout(() => {
-        auth.logout()
-        router.push('/login')
-      }, 2000)
+        void navigateTo('/login')
+      }, 1500)
     }
   } catch (err) {
     // 提取错误信息，支持多种错误格式
