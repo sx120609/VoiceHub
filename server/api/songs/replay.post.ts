@@ -9,9 +9,10 @@ export default defineEventHandler(async (event) => {
 
   // 2. 读取请求体
   const body = await readBody(event)
-  const { songId, cancel, action } = body
+  const songId = Number(body?.songId)
+  const { cancel, action } = body
 
-  if (!songId) {
+  if (!songId || Number.isNaN(songId)) {
     throw createError({ statusCode: 400, message: '歌曲ID不能为空' })
   }
 
@@ -20,7 +21,13 @@ export default defineEventHandler(async (event) => {
     const existing = await db
       .select()
       .from(songReplayRequests)
-      .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
+      .where(
+        and(
+          eq(songReplayRequests.songId, songId),
+          eq(songReplayRequests.userId, user.id),
+          eq(songReplayRequests.status, 'PENDING')
+        )
+      )
       .limit(1)
 
     if (existing.length === 0) {
@@ -29,7 +36,13 @@ export default defineEventHandler(async (event) => {
 
     await db
       .delete(songReplayRequests)
-      .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
+      .where(
+        and(
+          eq(songReplayRequests.songId, songId),
+          eq(songReplayRequests.userId, user.id),
+          eq(songReplayRequests.status, 'PENDING')
+        )
+      )
 
     return { success: true, message: '已取消重播申请' }
   }
@@ -102,6 +115,17 @@ export default defineEventHandler(async (event) => {
         .where(eq(songReplayRequests.id, existingRequest.id))
 
       return { success: true, message: '重新申请重播成功' }
+    } else if (existingRequest.status === 'FULFILLED') {
+      await db
+        .update(songReplayRequests)
+        .set({
+          status: 'PENDING',
+          updatedAt: new Date(),
+          createdAt: new Date()
+        })
+        .where(eq(songReplayRequests.id, existingRequest.id))
+
+      return { success: true, message: '再次申请重播成功' }
     } else {
       throw createError({ statusCode: 400, message: '您已经申请过重播该歌曲' })
     }

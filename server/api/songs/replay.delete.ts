@@ -25,7 +25,13 @@ export default defineEventHandler(async (event) => {
   const existing = await db
     .select()
     .from(songReplayRequests)
-    .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
+    .where(
+      and(
+        eq(songReplayRequests.songId, songId),
+        eq(songReplayRequests.userId, user.id),
+        eq(songReplayRequests.status, 'PENDING')
+      )
+    )
     .limit(1)
 
   if (existing.length === 0) {
@@ -36,7 +42,13 @@ export default defineEventHandler(async (event) => {
   try {
     await db
       .delete(songReplayRequests)
-      .where(and(eq(songReplayRequests.songId, songId), eq(songReplayRequests.userId, user.id)))
+      .where(
+        and(
+          eq(songReplayRequests.songId, songId),
+          eq(songReplayRequests.userId, user.id),
+          eq(songReplayRequests.status, 'PENDING')
+        )
+      )
     return { success: true, message: '已取消重播申请' }
   } catch (error: any) {
     console.error('取消重播申请失败:', error)

@@ -153,7 +153,7 @@ export default defineEventHandler(async (event) => {
         // 为每首歌添加用户特定的状态
         cachedData.data.songs.forEach((song: any) => {
           song.voted = userVotedSongs.has(song.id)
-          song.replayRequested = userReplayRequestsMap.has(song.id)
+          song.replayRequested = userReplayRequestsMap.get(song.id)?.status === 'PENDING'
 
           // 注入重播申请详细状态
           if (userReplayRequestsMap.has(song.id)) {
@@ -423,7 +423,9 @@ export default defineEventHandler(async (event) => {
         .where(eq(songReplayRequests.userId, user.id))
 
       userReplayRequestsQuery.forEach((r) => {
-        userReplayRequestedSongs.add(r.songId)
+        if (r.status === 'PENDING') {
+          userReplayRequestedSongs.add(r.songId)
+        }
         userReplayRequestsMap.set(r.songId, {
           status: r.status,
           updatedAt: r.updatedAt

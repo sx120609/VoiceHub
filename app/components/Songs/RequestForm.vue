@@ -2544,7 +2544,7 @@ const handleRequestReplay = async (song) => {
   if (requestingReplay.value || !song) return
 
   // 如果已经申请过，不执行
-  if (song.replayRequested) {
+  if (song.replayRequested || song.replayRequestStatus === 'PENDING') {
     if (window.$showNotification) {
       window.$showNotification('该歌曲已申请过重播', 'info')
     }
@@ -2553,7 +2553,11 @@ const handleRequestReplay = async (song) => {
 
   requestingReplay.value = true
   try {
-    await songService.requestReplay(song.id)
+    const result = await songService.requestReplay(song.id)
+    if (!result) {
+      return
+    }
+
     // 刷新歌曲状态
     setTimeout(() => {
       songService.refreshSongsSilent().catch(console.error)
