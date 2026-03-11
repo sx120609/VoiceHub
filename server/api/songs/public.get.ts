@@ -41,6 +41,32 @@ export default defineEventHandler(async (event) => {
       .limit(1)
       .then((result) => result[0])
     const shouldHideStudentInfo = systemSettingsData?.hideStudentInfo ?? true
+    const CACHE_SCHEMA_VERSION = 'v2'
+
+    const hasAnonymousName = (schedulesList: any[]) =>
+      schedulesList.some((item: any) => {
+        const names: string[] = []
+        const requester = item?.song?.requester
+        if (typeof requester === 'string') names.push(requester)
+
+        const collaborators = Array.isArray(item?.song?.collaborators)
+          ? item.song.collaborators
+          : []
+        collaborators.forEach((c: any) => {
+          if (typeof c?.displayName === 'string') names.push(c.displayName)
+          if (typeof c?.name === 'string') names.push(c.name)
+        })
+
+        const replayRequesters = Array.isArray(item?.song?.replayRequesters)
+          ? item.song.replayRequesters
+          : []
+        replayRequesters.forEach((r: any) => {
+          if (typeof r?.displayName === 'string') names.push(r.displayName)
+          if (typeof r?.name === 'string') names.push(r.name)
+        })
+
+        return names.some((name) => name.includes('匿名') || name === '未知用户')
+      })
 
     // 初始化缓存服务
 
@@ -51,7 +77,9 @@ export default defineEventHandler(async (event) => {
     )
 
     // 构建缓存键
-    const cacheKey = semester ? `public_schedules:${semester}` : 'public_schedules:all'
+    const cacheKey = semester
+      ? `public_schedules:${CACHE_SCHEMA_VERSION}:${semester}`
+      : `public_schedules:${CACHE_SCHEMA_VERSION}:all`
 
     // 如果不绕过缓存，优先从Redis缓存获取排期数据
     if (!bypassCache && isRedisReady()) {
@@ -84,6 +112,23 @@ export default defineEventHandler(async (event) => {
     let cachedSchedules = null
     if (!bypassCache) {
       cachedSchedules = await cacheService.getSchedulesList()
+    }
+
+    if (cachedSchedules && cachedSchedules.length > 0) {
+      const cacheShapeValid = cachedSchedules.every(
+        (item: any) =>
+          item?.song &&
+          typeof item.song.requester === 'string' &&
+          Array.isArray(item.song.collaborators)
+      )
+      const cacheContainsAnonymous = hasAnonymousName(cachedSchedules)
+
+      if (!cacheShapeValid || cacheContainsAnonymous) {
+        console.log(
+          `[Cache] 跳过旧版/不完整排期缓存，cacheShapeValid=${cacheShapeValid}, cacheContainsAnonymous=${cacheContainsAnonymous}`
+        )
+        cachedSchedules = null
+      }
     }
 
     if (cachedSchedules && cachedSchedules.length > 0) {
@@ -141,6 +186,7 @@ export default defineEventHandler(async (event) => {
         },
         requester: {
           name: users.name,
+          username: users.username,
           grade: users.grade,
           class: users.class
         },
@@ -175,6 +221,7 @@ export default defineEventHandler(async (event) => {
       .select({
         id: users.id,
         name: users.name,
+        username: users.username,
         grade: users.grade,
         class: users.class
       })
@@ -183,11 +230,12 @@ export default defineEventHandler(async (event) => {
     // 创建姓名到用户数组的映射
     const nameToUsers = new Map()
     allUsers.forEach((user) => {
-      if (user.name) {
-        if (!nameToUsers.has(user.name)) {
-          nameToUsers.set(user.name, [])
+      const key = user.name || user.username
+      if (key) {
+        if (!nameToUsers.has(key)) {
+          nameToUsers.set(key, [])
         }
-        nameToUsers.get(user.name).push(user)
+        nameToUsers.get(key).push(user)
       }
     })
 
@@ -203,6 +251,7 @@ export default defineEventHandler(async (event) => {
           user: {
             id: users.id,
             name: users.name,
+            username: users.username,
             grade: users.grade,
             class: users.class
           }
@@ -260,6 +309,7 @@ export default defineEventHandler(async (event) => {
           user: {
             id: users.id,
             name: users.name,
+            username: users.username,
             grade: users.grade,
             class: users.class
           },
@@ -284,7 +334,7 @@ export default defineEventHandler(async (event) => {
         if (replayRequestersMap.get(r.songId).length < 5) {
           replayRequestersMap.get(r.songId).push({
             id: r.user.id,
-            name: r.user.name || '未知用户',
+            name: r.user.name || r.user.username || '未知用户',
             grade: r.user.grade,
             class: r.user.class,
             status: r.status
@@ -295,8 +345,9 @@ export default defineEventHandler(async (event) => {
 
     // 辅助函数：格式化显示名称
     const formatDisplayName = (userObj: any) => {
-      if (!userObj || !userObj.name) return '未知用户'
-      let displayName = userObj.name
+      if (!userObj) return '未知用户'
+      let displayName = userObj.name || userObj.username
+      if (!displayName) return '未知用户'
 
       const sameNameUsers = nameToUsers.get(displayName)
       if (sameNameUsers && sameNameUsers.length > 1) {
@@ -337,7 +388,7 @@ export default defineEventHandler(async (event) => {
       const collaborators = collaboratorsMap.get(schedule.song.id) || []
       const formattedCollaborators = collaborators.map((c: any) => ({
         id: c.id,
-        name: c.name,
+        name: c.name || c.username,
         displayName: formatDisplayName(c),
         grade: c.grade,
         class: c.class

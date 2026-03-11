@@ -31,8 +31,12 @@
           </div>
 
           <!-- 关闭按钮 -->
-          <button class="close-button" @click="closeModal">
-            <Icon :name="isMobile ? 'chevron-down' : 'x'" size="24" />
+          <button class="close-button" type="button" @click="closeModal">
+            <Icon
+              :name="isMobile ? 'chevron-down' : 'x'"
+              :color="isMobile ? '#2f4430' : '#1f2a1f'"
+              size="24"
+            />
           </button>
 
           <!-- 频谱可视化 (左侧边缘) -->
@@ -1108,7 +1112,7 @@ onUnmounted(() => {
   position: absolute;
   top: 2rem;
   right: 2rem;
-  z-index: 50;
+  z-index: 220;
   background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 50%;

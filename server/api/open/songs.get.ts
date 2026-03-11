@@ -39,6 +39,7 @@ export default defineEventHandler(async (event) => {
     const queryParams = {
       search: search || '',
       semester: semester || '',
+      displayNameSchemaVersion: 2,
       sortBy,
       sortOrder
     }
@@ -152,6 +153,7 @@ export default defineEventHandler(async (event) => {
         requester: {
           id: users.id,
           name: users.name,
+          username: users.username,
           grade: users.grade,
           class: users.class
         }
@@ -221,6 +223,7 @@ export default defineEventHandler(async (event) => {
       .select({
         id: users.id,
         name: users.name,
+        username: users.username,
         grade: users.grade,
         class: users.class
       })
@@ -229,18 +232,19 @@ export default defineEventHandler(async (event) => {
     // 创建姓名到用户数组的映射
     const nameToUsers = new Map()
     allUsers.forEach((u) => {
-      if (u.name) {
-        if (!nameToUsers.has(u.name)) {
-          nameToUsers.set(u.name, [])
+      const key = u.name || u.username
+      if (key) {
+        if (!nameToUsers.has(key)) {
+          nameToUsers.set(key, [])
         }
-        nameToUsers.get(u.name).push(u)
+        nameToUsers.get(key).push(u)
       }
     })
 
     // 转换数据格式
     let formattedSongs = songsData.map((song) => {
       // 处理投稿人姓名，如果是同名用户则添加后缀
-      let requesterName = song.requester?.name || '未知用户'
+      let requesterName = song.requester?.name || song.requester?.username || '未知用户'
 
       // 检查是否有同名用户
       const sameNameUsers = nameToUsers.get(requesterName)

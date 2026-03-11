@@ -96,6 +96,7 @@ export default defineEventHandler(async (event) => {
       grade: grade || '',
       scope: scope || '',
       userId: scope === 'mine' && hasValidUserId ? userId : undefined, // 如果 scope 为 mine，则将 userId 包含在缓存键中
+      displayNameSchemaVersion: 2,
       sortBy,
       sortOrder
     }
@@ -234,6 +235,7 @@ export default defineEventHandler(async (event) => {
         requester: {
           id: users.id,
           name: users.name,
+          username: users.username,
           grade: users.grade,
           class: users.class
         }
@@ -334,7 +336,8 @@ export default defineEventHandler(async (event) => {
           songId: songReplayRequests.songId,
           user: {
             id: users.id,
-            name: users.name
+            name: users.name,
+            username: users.username
           },
           createdAt: songReplayRequests.createdAt
         })
@@ -356,7 +359,7 @@ export default defineEventHandler(async (event) => {
         if (replayRequestersMap.get(r.songId).length < 3) {
           replayRequestersMap.get(r.songId).push({
             id: r.user.id,
-            name: r.user.name || '未知用户',
+            name: r.user.name || r.user.username || '未知用户',
             createdAt: r.createdAt
           })
         }
@@ -401,6 +404,7 @@ export default defineEventHandler(async (event) => {
       .select({
         id: users.id,
         name: users.name,
+        username: users.username,
         grade: users.grade,
         class: users.class
       })
@@ -409,11 +413,12 @@ export default defineEventHandler(async (event) => {
     // 创建姓名到用户数组的映射
     const nameToUsers = new Map()
     allUsers.forEach((u) => {
-      if (u.name) {
-        if (!nameToUsers.has(u.name)) {
-          nameToUsers.set(u.name, [])
+      const key = u.name || u.username
+      if (key) {
+        if (!nameToUsers.has(key)) {
+          nameToUsers.set(key, [])
         }
-        nameToUsers.get(u.name).push(u)
+        nameToUsers.get(key).push(u)
       }
     })
 
@@ -453,6 +458,7 @@ export default defineEventHandler(async (event) => {
           user: {
             id: users.id,
             name: users.name,
+            username: users.username,
             grade: users.grade,
             class: users.class
           }
@@ -478,8 +484,9 @@ export default defineEventHandler(async (event) => {
 
     // 辅助函数：格式化显示名称
     const formatDisplayName = (userObj: any) => {
-      if (!userObj || !userObj.name) return '未知用户'
-      let displayName = userObj.name
+      if (!userObj) return '未知用户'
+      let displayName = userObj.name || userObj.username
+      if (!displayName) return '未知用户'
 
       const sameNameUsers = nameToUsers.get(displayName)
       if (sameNameUsers && sameNameUsers.length > 1) {
@@ -504,7 +511,7 @@ export default defineEventHandler(async (event) => {
       const collaborators = collaboratorsMap.get(song.id) || []
       const formattedCollaborators = collaborators.map((c: MaskableUser) => ({
         id: c.id,
-        name: c.name,
+        name: c.name || c.username,
         displayName: formatDisplayName(c),
         grade: c.grade,
         class: c.class
@@ -514,7 +521,7 @@ export default defineEventHandler(async (event) => {
       const replayRequesters = (replayRequestersMap.get(song.id) || []) as MaskableUser[]
       const formattedReplayRequesters = replayRequesters.map((r: MaskableUser) => ({
         ...r,
-        displayName: r.name // 这里简化处理，因为 replayRequesters 之前没包含更多信息
+        displayName: formatDisplayName(r)
       }))
 
       // 创建基本歌曲对象

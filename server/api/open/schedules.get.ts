@@ -205,6 +205,7 @@ export default defineEventHandler(async (event) => {
         requester: {
           id: users.id,
           name: users.name,
+          username: users.username,
           grade: users.grade,
           class: users.class
         },
@@ -260,6 +261,7 @@ export default defineEventHandler(async (event) => {
           user: {
             id: users.id,
             name: users.name,
+            username: users.username,
             grade: users.grade,
             class: users.class
           }
@@ -279,6 +281,8 @@ export default defineEventHandler(async (event) => {
         }
       })
     }
+
+    const resolveDisplayName = (userObj: any) => userObj?.name || userObj?.username || '未知用户'
 
     // 格式化数据
     const formattedSchedules = schedulesData.map((schedule) => {
@@ -301,7 +305,7 @@ export default defineEventHandler(async (event) => {
           requestedAt: formatDateTime(schedule.song.createdAt),
           collaborators: collaborators.map((c: any) => ({
             id: c.id,
-            name: c.name,
+            name: resolveDisplayName(c),
             grade: c.grade,
             class: c.class
           }))
@@ -309,7 +313,7 @@ export default defineEventHandler(async (event) => {
         requester: schedule.requester
           ? {
               id: schedule.requester.id,
-              name: schedule.requester.name,
+              name: resolveDisplayName(schedule.requester),
               grade: schedule.requester.grade,
               class: schedule.requester.class
             }
