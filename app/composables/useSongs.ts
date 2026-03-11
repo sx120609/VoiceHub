@@ -137,6 +137,10 @@ export const useSongs = () => {
     }
   }
 
+  // 防止同一首歌在短时间内重复触发并发操作导致状态抖动
+  const votePendingSongIds = new Set<number>()
+  const replayPendingSongIds = new Set<number>()
+
   // 获取播放时段列表
   const fetchPlayTimes = async () => {
     loading.value = true
@@ -591,11 +595,15 @@ export const useSongs = () => {
 
     const { songId, action } = votePayload
     const isUnvote = action === 'unvote'
+    if (votePendingSongIds.has(songId)) {
+      return null
+    }
+    votePendingSongIds.add(songId)
+
     const targetSong: any = findSongById(songId)
     const previousVoted = !!targetSong?.voted
     const previousVoteCount = Math.max(0, Number(targetSong?.voteCount || 0))
 
-    loading.value = true
     error.value = ''
 
     try {
@@ -636,7 +644,7 @@ export const useSongs = () => {
       showNotification(errorMsg, 'error')
       return null
     } finally {
-      loading.value = false
+      votePendingSongIds.delete(songId)
     }
   }
 
@@ -819,6 +827,10 @@ export const useSongs = () => {
       showNotification('歌曲ID无效，无法申请重播', 'error')
       return null
     }
+    if (replayPendingSongIds.has(normalizedSongId)) {
+      return null
+    }
+    replayPendingSongIds.add(normalizedSongId)
 
     const targetSong: any = findSongById(normalizedSongId)
     const previousState = targetSong
@@ -830,7 +842,6 @@ export const useSongs = () => {
         }
       : null
 
-    loading.value = true
     error.value = ''
 
     try {
@@ -870,7 +881,7 @@ export const useSongs = () => {
       showNotification(errorMsg, 'error')
       return null
     } finally {
-      loading.value = false
+      replayPendingSongIds.delete(normalizedSongId)
     }
   }
 
@@ -893,6 +904,10 @@ export const useSongs = () => {
       showNotification('歌曲ID无效，无法取消重播申请', 'error')
       return null
     }
+    if (replayPendingSongIds.has(normalizedSongId)) {
+      return null
+    }
+    replayPendingSongIds.add(normalizedSongId)
 
     const targetSong: any = findSongById(normalizedSongId)
     const previousState = targetSong
@@ -904,7 +919,6 @@ export const useSongs = () => {
         }
       : null
 
-    loading.value = true
     error.value = ''
 
     try {
@@ -941,7 +955,7 @@ export const useSongs = () => {
       showNotification(errorMsg, 'error')
       return null
     } finally {
-      loading.value = false
+      replayPendingSongIds.delete(normalizedSongId)
     }
   }
 

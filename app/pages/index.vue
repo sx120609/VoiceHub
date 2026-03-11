@@ -769,6 +769,9 @@ const notificationTabRef = ref(null)
 const notificationTabKey = ref(0)
 
 let refreshInterval = null
+let interactionSyncTimer = null
+const votePendingSongIds = new Set()
+const replayPendingSongIds = new Set()
 
 // 添加通知相关变量
 const userNotifications = computed(() => notificationsService?.notifications?.value || [])
@@ -1202,6 +1205,10 @@ onUnmounted(() => {
   if (refreshInterval) {
     clearInterval(refreshInterval)
   }
+  if (interactionSyncTimer) {
+    clearTimeout(interactionSyncTimer)
+    interactionSyncTimer = null
+  }
 })
 
 // 实时计算歌曲总数
@@ -1296,10 +1303,22 @@ const resolveSongId = (payload) => {
   return songId
 }
 
-const syncSongsAfterInteraction = async () => {
+const scheduleSongsAfterInteraction = (delayMs = 1200) => {
   if (!songs) return
-  await songs.fetchSongs(true, undefined, true, true)
-  updateSongCounts()
+  if (interactionSyncTimer) {
+    clearTimeout(interactionSyncTimer)
+  }
+
+  interactionSyncTimer = setTimeout(async () => {
+    try {
+      await songs.fetchSongs(true, undefined, true, true)
+      updateSongCounts()
+    } catch (error) {
+      console.warn('交互后后台同步失败:', error)
+    } finally {
+      interactionSyncTimer = null
+    }
+  }, delayMs)
 }
 
 // 处理投票
@@ -1316,19 +1335,27 @@ const handleVote = async (payload) => {
       showNotification('歌曲ID无效，无法投票', 'error')
       return
     }
+    if (votePendingSongIds.has(targetSongId)) {
+      return
+    }
+    votePendingSongIds.add(targetSongId)
 
     const action =
       payload?.action === 'unvote' || payload?.unvote === true || payload?.cancel === true
         ? 'unvote'
         : 'vote'
 
-    const result = await songs.voteSong({
-      songId: targetSongId,
-      action
-    })
-    if (!result) return
+    try {
+      const result = await songs.voteSong({
+        songId: targetSongId,
+        action
+      })
+      if (!result) return
 
-    await syncSongsAfterInteraction()
+      scheduleSongsAfterInteraction()
+    } finally {
+      votePendingSongIds.delete(targetSongId)
+    }
   } catch (err) {
     // 不做任何处理，因为useSongs中已经处理了错误提示
     console.log('API错误已在useSongs中处理')
@@ -1348,11 +1375,19 @@ const handleCancelReplay = async (payload) => {
       showNotification('歌曲ID无效，无法取消重播申请', 'error')
       return
     }
+    if (replayPendingSongIds.has(songId)) {
+      return
+    }
+    replayPendingSongIds.add(songId)
 
-    const result = await songs.withdrawReplay(songId)
-    if (!result) return
+    try {
+      const result = await songs.withdrawReplay(songId)
+      if (!result) return
 
-    await syncSongsAfterInteraction()
+      scheduleSongsAfterInteraction()
+    } finally {
+      replayPendingSongIds.delete(songId)
+    }
   } catch (err) {
     console.log('API错误已在useSongs中处理')
   }
@@ -1371,11 +1406,19 @@ const handleRequestReplay = async (payload) => {
       showNotification('歌曲ID无效，无法申请重播', 'error')
       return
     }
+    if (replayPendingSongIds.has(songId)) {
+      return
+    }
+    replayPendingSongIds.add(songId)
 
-    const result = await songs.requestReplay(songId)
-    if (!result) return
+    try {
+      const result = await songs.requestReplay(songId)
+      if (!result) return
 
-    await syncSongsAfterInteraction()
+      scheduleSongsAfterInteraction()
+    } finally {
+      replayPendingSongIds.delete(songId)
+    }
   } catch (err) {
     console.log('API错误已在useSongs中处理')
   }
