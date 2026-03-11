@@ -21,7 +21,7 @@ SUCCESS_HTTP_REGEX="${SUCCESS_HTTP_REGEX:-^(2|3|4)[0-9][0-9]$}"
 CURL_SILENT_ERRORS="${CURL_SILENT_ERRORS:-1}"
 
 log() {
-  printf '%s %s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "[external-monitor]" "$*"
+  printf '%s %s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "[monitor]" "$*"
 }
 
 require_number() {
