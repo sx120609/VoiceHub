@@ -2,22 +2,40 @@
 
 set -eu
 
-# Login endpoint to probe
-CHECK_URL="${CHECK_URL:-http://127.0.0.1:3000/rareapp/api/auth/login}"
+# Optional shared base URL (e.g. https://organic.cpu.edu.cn/rareapp)
+MONITOR_BASE_URL="${MONITOR_BASE_URL:-}"
+if [ -n "$MONITOR_BASE_URL" ]; then
+  MONITOR_BASE_URL="${MONITOR_BASE_URL%/}"
+fi
+
+default_check_url="http://127.0.0.1:3000/rareapp/api/auth/login"
+default_check_url_2="http://127.0.0.1:3000/rareapp/"
+if [ -n "$MONITOR_BASE_URL" ]; then
+  default_check_url="${MONITOR_BASE_URL}/api/auth/login"
+  default_check_url_2="${MONITOR_BASE_URL}/"
+fi
+
+# Primary probe: login API
+CHECK_URL="${CHECK_URL:-$default_check_url}"
+# Secondary probe: public page (set empty to disable)
+CHECK_URL_2="${CHECK_URL_2:-$default_check_url_2}"
 
 # Probe behavior
 CHECK_METHOD="${CHECK_METHOD:-POST}"
 CHECK_BODY="${CHECK_BODY:-{\"username\":\"monitor_probe\",\"password\":\"invalid_password\"}}"
+CHECK_METHOD_2="${CHECK_METHOD_2:-GET}"
 REQUEST_TIMEOUT_SEC="${REQUEST_TIMEOUT_SEC:-4}"
 CHECK_INTERVAL_SEC="${CHECK_INTERVAL_SEC:-5}"
 
 # Restart behavior
 FAIL_THRESHOLD="${FAIL_THRESHOLD:-2}"
 PAUSE_AFTER_RESTART_SEC="${PAUSE_AFTER_RESTART_SEC:-30}"
-RESTART_CMD="${RESTART_CMD:-docker compose restart voicehub}"
+RESTART_CMD="${RESTART_CMD:-docker compose restart voicehub || docker-compose restart voicehub || docker restart voicehub}"
 
-# Consider 2xx/3xx/4xx as service alive; only network/5xx are treated as failures.
-SUCCESS_HTTP_REGEX="${SUCCESS_HTTP_REGEX:-^(2|3|4)[0-9][0-9]$}"
+# login API常见返回401/400（无效凭据）也代表服务存活；但不接受404/5xx
+SUCCESS_HTTP_REGEX="${SUCCESS_HTTP_REGEX:-^(200|400|401|403)$}"
+# 首页探针默认必须200
+SUCCESS_HTTP_REGEX_2="${SUCCESS_HTTP_REGEX_2:-^200$}"
 CURL_SILENT_ERRORS="${CURL_SILENT_ERRORS:-1}"
 
 log() {
@@ -35,7 +53,16 @@ require_number() {
   esac
 }
 
-probe_login() {
+probe_request() {
+  probe_url="$1"
+  probe_method="$2"
+  probe_body="$3"
+  probe_regex="$4"
+
+  if [ -z "$probe_url" ]; then
+    return 0
+  fi
+
   tmp_body="$(mktemp)"
   cleanup() {
     rm -f "$tmp_body"
@@ -47,19 +74,19 @@ probe_login() {
     curl_stderr="/dev/null"
   fi
 
-  method="$(printf '%s' "$CHECK_METHOD" | tr '[:lower:]' '[:upper:]')"
+  method="$(printf '%s' "$probe_method" | tr '[:lower:]' '[:upper:]')"
   if [ "$method" = "POST" ] || [ "$method" = "PUT" ] || [ "$method" = "PATCH" ]; then
     http_code="$(curl -sS -o "$tmp_body" -w '%{http_code}' \
       --max-time "$REQUEST_TIMEOUT_SEC" \
       -X "$method" \
       -H 'Content-Type: application/json' \
-      --data "$CHECK_BODY" \
-      "$CHECK_URL" 2>"$curl_stderr" || true)"
+      --data "$probe_body" \
+      "$probe_url" 2>"$curl_stderr" || true)"
   else
     http_code="$(curl -sS -o "$tmp_body" -w '%{http_code}' \
       --max-time "$REQUEST_TIMEOUT_SEC" \
       -X "$method" \
-      "$CHECK_URL" 2>"$curl_stderr" || true)"
+      "$probe_url" 2>"$curl_stderr" || true)"
   fi
 
   trap - EXIT INT TERM
@@ -69,7 +96,7 @@ probe_login() {
     return 1
   fi
 
-  if printf '%s' "$http_code" | grep -Eq "$SUCCESS_HTTP_REGEX"; then
+  if printf '%s' "$http_code" | grep -Eq "$probe_regex"; then
     return 0
   fi
 
@@ -92,20 +119,41 @@ if [ "$PAUSE_AFTER_RESTART_SEC" -lt 0 ]; then
 fi
 
 log "started"
-log "check_url=${CHECK_URL} interval=${CHECK_INTERVAL_SEC}s threshold=${FAIL_THRESHOLD} pause_after_restart=${PAUSE_AFTER_RESTART_SEC}s"
+log "check_url=${CHECK_URL} check_url_2=${CHECK_URL_2:-disabled} interval=${CHECK_INTERVAL_SEC}s threshold=${FAIL_THRESHOLD} pause_after_restart=${PAUSE_AFTER_RESTART_SEC}s"
 log "restart_cmd=${RESTART_CMD}"
 
 consecutive_failures=0
 
 while true; do
-  if probe_login; then
+  primary_ok=0
+  secondary_ok=0
+
+  if probe_request "$CHECK_URL" "$CHECK_METHOD" "$CHECK_BODY" "$SUCCESS_HTTP_REGEX"; then
+    primary_ok=1
+  fi
+  if probe_request "$CHECK_URL_2" "$CHECK_METHOD_2" "" "$SUCCESS_HTTP_REGEX_2"; then
+    secondary_ok=1
+  fi
+
+  if [ "$primary_ok" -eq 1 ] && [ "$secondary_ok" -eq 1 ]; then
     if [ "$consecutive_failures" -gt 0 ]; then
       log "probe recovered"
     fi
     consecutive_failures=0
   else
     consecutive_failures=$((consecutive_failures + 1))
-    log "probe failed (${consecutive_failures}/${FAIL_THRESHOLD})"
+    fail_parts=""
+    if [ "$primary_ok" -ne 1 ]; then
+      fail_parts="primary"
+    fi
+    if [ "$secondary_ok" -ne 1 ]; then
+      if [ -n "$fail_parts" ]; then
+        fail_parts="${fail_parts}+secondary"
+      else
+        fail_parts="secondary"
+      fi
+    fi
+    log "probe failed (${consecutive_failures}/${FAIL_THRESHOLD}) failed=${fail_parts}"
 
     if [ "$consecutive_failures" -ge "$FAIL_THRESHOLD" ]; then
       log "threshold reached, restarting container"
