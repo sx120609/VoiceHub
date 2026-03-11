@@ -212,9 +212,13 @@ class RedisPool {
       clearInterval(this.healthCheckInterval)
     }
 
-    this.healthCheckInterval = setInterval(async () => {
-      await this.performHealthCheck()
+    this.healthCheckInterval = setInterval(() => {
+      this.performHealthCheck().catch((error) => {
+        console.error('[Redis] 健康检查任务异常:', error)
+      })
     }, 30000) // 每30秒检查一次
+
+    this.healthCheckInterval.unref?.()
   }
 
   private stopHealthCheck() {

@@ -705,4 +705,12 @@ export function getSecurityStats() {
 }
 
 // 定期清理过期记录（每5分钟执行一次）
-setInterval(cleanupExpiredLocks, 5 * 60 * 1000)
+const securityCleanupTimer = setInterval(() => {
+  try {
+    cleanupExpiredLocks()
+  } catch (error) {
+    console.error('[Security] cleanupExpiredLocks 执行失败:', error)
+  }
+}, 5 * 60 * 1000)
+
+securityCleanupTimer.unref?.()

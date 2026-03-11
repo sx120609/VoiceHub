@@ -710,6 +710,7 @@ const notificationTabKey = ref(0)
 
 let refreshInterval = null
 let interactionSyncTimer = null
+let isRefreshRunning = false
 const votePendingSongIds = new Set()
 const replayPendingSongIds = new Set()
 
@@ -1108,6 +1109,16 @@ onMounted(async () => {
       console.log(`设置智能刷新间隔: ${intervalSeconds}秒`)
 
       refreshInterval = setInterval(async () => {
+        if (isRefreshRunning) {
+          return
+        }
+
+        // 页面进入后台时跳过轮询，避免无意义请求堆积
+        if (typeof document !== 'undefined' && document.hidden) {
+          return
+        }
+
+        isRefreshRunning = true
         try {
           if (isClientAuthenticated.value) {
             await Promise.allSettled([
@@ -1122,6 +1133,8 @@ onMounted(async () => {
           await updateSongCounts()
         } catch (error) {
           console.error('定期刷新失败:', error)
+        } finally {
+          isRefreshRunning = false
         }
       }, intervalMs)
     }

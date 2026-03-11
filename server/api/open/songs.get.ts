@@ -10,6 +10,13 @@ import { formatDateTime } from '~/utils/timeUtils'
 import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
 import { buildAdjustedVoteCountMap } from '~~/server/utils/vote-offset'
 
+const OPEN_API_DEBUG = process.env.OPEN_API_DEBUG === 'true'
+const debugLog = (...args: any[]) => {
+  if (OPEN_API_DEBUG) {
+    console.log(...args)
+  }
+}
+
 export default defineEventHandler(async (event) => {
   try {
     await autoArchivePastSchedules({ source: 'api/open/songs' })
@@ -50,7 +57,7 @@ export default defineEventHandler(async (event) => {
     // 尝试从普通API缓存获取基础数据
     const cachedSongsData = await cache.get<any>(normalApiCacheKey)
     if (cachedSongsData !== null) {
-      console.log(`[OpenAPI Cache] 使用普通API歌曲缓存数据: ${normalApiCacheKey}`)
+      debugLog(`[OpenAPI Cache] 使用普通API歌曲缓存数据: ${normalApiCacheKey}`)
 
       // 转换为开放API格式
       const songs = cachedSongsData.data?.songs || []
@@ -359,7 +366,7 @@ export default defineEventHandler(async (event) => {
     // 使用与普通API相同的缓存键格式（变量已在前面声明）
 
     await cache.set(normalApiCacheKey, normalApiResult, 180) // 3分钟缓存
-    console.log(
+    debugLog(
       `[OpenAPI Cache] 歌曲数据已缓存到普通API缓存: ${normalApiCacheKey}，数量: ${songsWithDetails.length}`
     )
 

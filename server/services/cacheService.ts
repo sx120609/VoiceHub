@@ -29,6 +29,7 @@ const refreshLocks = new Map<string, Promise<any>>()
 class CacheService {
   // 单例实例
   private static instance: CacheService | null = null
+  private refreshCleanupTimer: NodeJS.Timeout | null = null
 
   // 获取单例实例
   static getInstance(): CacheService {
@@ -526,14 +527,17 @@ class CacheService {
       return
     }
 
+    if (this.refreshCleanupTimer) {
+      return
+    }
+
     console.log('[Cache] 启动定期刷新任务')
 
     // 注意：移除了歌曲和排期的定期预热，改为按需缓存
 
     // 每小时清理过期的刷新锁
-    setInterval(
-      () => {
-        const now = Date.now()
+    this.refreshCleanupTimer = setInterval(() => {
+      try {
         for (const [key, promise] of refreshLocks.entries()) {
           // 检查Promise状态，如果已完成则清理
           Promise.race([promise, Promise.resolve('timeout')])
@@ -547,15 +551,23 @@ class CacheService {
             })
         }
         console.log(`[Cache] 清理刷新锁，当前锁数量: ${refreshLocks.size}`)
-      },
-      60 * 60 * 1000
-    )
+      } catch (error) {
+        console.error('[Cache] 清理刷新锁失败:', error)
+      }
+    }, 60 * 60 * 1000)
+
+    this.refreshCleanupTimer.unref?.()
   }
 
   // ==================== 系统设置相关缓存 ====================
 
   // 停止定期刷新任务（用于优雅关闭）
   stopPeriodicRefresh(): void {
+    if (this.refreshCleanupTimer) {
+      clearInterval(this.refreshCleanupTimer)
+      this.refreshCleanupTimer = null
+    }
+
     // 清理所有刷新锁
     refreshLocks.clear()
     console.log('[Cache] 定期刷新任务已停止')

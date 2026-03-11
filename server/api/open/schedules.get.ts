@@ -9,6 +9,13 @@ import { cacheService } from '~~/server/services/cacheService'
 import { executeRedisCommand, isRedisReady } from '~~/server/utils/redis'
 import { autoArchivePastSchedules } from '~~/server/services/scheduleAutoArchiveService'
 
+const OPEN_API_DEBUG = process.env.OPEN_API_DEBUG === 'true'
+const debugLog = (...args: any[]) => {
+  if (OPEN_API_DEBUG) {
+    console.log(...args)
+  }
+}
+
 export default defineEventHandler(async (event) => {
   try {
     await autoArchivePastSchedules({ source: 'api/open/schedules' })
@@ -16,14 +23,14 @@ export default defineEventHandler(async (event) => {
     const query = getQuery(event)
     const apiKey = event.context.apiKey
 
-    console.log(`[Schedules API] 接收到请求，API Key context: ${apiKey ? '存在' : '不存在'}`)
+    debugLog(`[Schedules API] 接收到请求，API Key context: ${apiKey ? '存在' : '不存在'}`)
     if (apiKey) {
-      console.log(`[Schedules API] API Key ID: ${apiKey.id}, 名称: ${apiKey.name}`)
+      debugLog(`[Schedules API] API Key ID: ${apiKey.id}, 名称: ${apiKey.name}`)
     }
 
     // API认证中间件已经验证了权限，这里只需要确保有API Key信息
     if (!apiKey) {
-      console.log(`[Schedules API] API认证失败 - 缺少API Key context`)
+      debugLog(`[Schedules API] API认证失败 - 缺少API Key context`)
       throw createError({
         statusCode: 401,
         message: 'API认证失败'
@@ -45,7 +52,7 @@ export default defineEventHandler(async (event) => {
     const cachedSchedules = await cacheService.getSchedulesList()
 
     if (cachedSchedules) {
-      console.log(`[OpenAPI Cache] 使用普通API缓存数据，数量: ${cachedSchedules.length}`)
+      debugLog(`[OpenAPI Cache] 使用普通API缓存数据，数量: ${cachedSchedules.length}`)
 
       // 如果指定了学期，过滤数据
       let filteredSchedules = cachedSchedules
@@ -99,7 +106,7 @@ export default defineEventHandler(async (event) => {
         const data = await client.get(redisCacheKey)
         if (data) {
           const parsedData = JSON.parse(data)
-          console.log(
+          debugLog(
             `[OpenAPI Cache] 使用Redis公共排期缓存: ${redisCacheKey}，数量: ${parsedData.length}`
           )
           return parsedData
@@ -308,7 +315,7 @@ export default defineEventHandler(async (event) => {
 
     // 将查询结果缓存到CacheService中，供普通API和开放API共享
     await cacheService.setSchedulesList(schedulesData)
-    console.log(`[OpenAPI Cache] 排期数据已缓存到CacheService，数量: ${schedulesData.length}`)
+    debugLog(`[OpenAPI Cache] 排期数据已缓存到CacheService，数量: ${schedulesData.length}`)
 
     // 可选：也缓存到开放API专用缓存（保留原有逻辑，但优先级较低）
     const cacheKey = openApiCache.generateKey('schedules', {
