@@ -10,12 +10,6 @@ services:
       - REDIS_URL=redis://default:your-redis-password-here@redis:6379
     depends_on:
       - postgres
-    healthcheck:
-      test: ['CMD-SHELL', 'sh /app/scripts/container-healthcheck.sh']
-      interval: 30s
-      timeout: 10s
-      start_period: 120s
-      retries: 3
     restart: unless-stopped
 
   postgres:

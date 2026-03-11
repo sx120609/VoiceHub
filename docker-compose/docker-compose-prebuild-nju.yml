@@ -9,12 +9,6 @@ services:
       - NODE_ENV=production
     depends_on:
       - postgres
-    healthcheck:
-      test: ['CMD-SHELL', 'sh /app/scripts/container-healthcheck.sh']
-      interval: 30s
-      timeout: 10s
-      start_period: 120s
-      retries: 3
     restart: unless-stopped
 
   postgres:
