@@ -439,7 +439,12 @@
     </Transition>
 
     <!-- 投票人员弹窗 -->
-    <VotersModal :show="showVotersModal" :song-id="selectedSongId" @close="closeVotersModal" />
+    <VotersModal
+      :show="showVotersModal"
+      :song-id="selectedSongId"
+      @close="closeVotersModal"
+      @updated="handleVotersUpdated"
+    />
 
     <!-- 下载歌曲对话框 -->
     <SongDownloadDialog
@@ -1188,6 +1193,24 @@ const showVoters = (songId) => {
 const closeVotersModal = () => {
   showVotersModal.value = false
   selectedSongId.value = null
+}
+
+// 投票人数更新后同步列表
+const handleVotersUpdated = (payload) => {
+  const songId = Number(payload?.songId)
+  const totalVotes = Number(payload?.totalVotes)
+  if (!Number.isInteger(songId) || songId <= 0) {
+    return
+  }
+
+  const targetSong = songs.value.find((song) => song.id === songId)
+  if (!targetSong) {
+    return
+  }
+
+  if (Number.isInteger(totalVotes) && totalVotes >= 0) {
+    targetSong.voteCount = totalVotes
+  }
 }
 
 // 打开下载对话框
