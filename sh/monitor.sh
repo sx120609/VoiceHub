@@ -111,6 +111,8 @@ SUCCESS_HTTP_REGEX="${SUCCESS_HTTP_REGEX:-^(200|400|401|403|429)$}"
 # 首页探针默认必须200
 SUCCESS_HTTP_REGEX_2="${SUCCESS_HTTP_REGEX_2:-^200$}"
 SECONDARY_REQUIRED="${SECONDARY_REQUIRED:-0}"
+# 是否打印每次检测结果（0=关闭，1=开启）
+MONITOR_LOG_EVERY_CHECK="${MONITOR_LOG_EVERY_CHECK:-0}"
 CURL_SILENT_ERRORS="${CURL_SILENT_ERRORS:-1}"
 
 log() {
@@ -188,6 +190,11 @@ require_number "CHECK_INTERVAL_SEC" "$CHECK_INTERVAL_SEC"
 require_number "FAIL_THRESHOLD" "$FAIL_THRESHOLD"
 require_number "PAUSE_AFTER_RESTART_SEC" "$PAUSE_AFTER_RESTART_SEC"
 
+if [ "$MONITOR_LOG_EVERY_CHECK" != "0" ] && [ "$MONITOR_LOG_EVERY_CHECK" != "1" ]; then
+  log "invalid value: MONITOR_LOG_EVERY_CHECK=${MONITOR_LOG_EVERY_CHECK}, fallback to 0"
+  MONITOR_LOG_EVERY_CHECK=0
+fi
+
 if [ "$FAIL_THRESHOLD" -lt 1 ]; then
   FAIL_THRESHOLD=1
 fi
@@ -231,11 +238,13 @@ while true; do
     fi
   fi
 
-  probe_status="fail"
-  if [ "$healthy_now" -eq 1 ]; then
-    probe_status="ok"
+  if [ "$MONITOR_LOG_EVERY_CHECK" = "1" ]; then
+    probe_status="fail"
+    if [ "$healthy_now" -eq 1 ]; then
+      probe_status="ok"
+    fi
+    log "probe result status=${probe_status} primary_ok=${primary_ok} primary_code=${primary_code} secondary_ok=${secondary_ok} secondary_code=${secondary_code} secondary_required=${SECONDARY_REQUIRED}"
   fi
-  log "probe result status=${probe_status} primary_ok=${primary_ok} primary_code=${primary_code} secondary_ok=${secondary_ok} secondary_code=${secondary_code} secondary_required=${SECONDARY_REQUIRED}"
 
   if [ "$healthy_now" -eq 1 ]; then
     if [ "$consecutive_failures" -gt 0 ]; then
