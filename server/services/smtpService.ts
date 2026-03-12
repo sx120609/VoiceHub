@@ -4,6 +4,7 @@ import { emailTemplates, systemSettings, users } from '~/drizzle/schema'
 import { and, eq, isNotNull } from 'drizzle-orm'
 import { getSiteTitle } from '~~/server/utils/siteUtils'
 import { formatIPForEmail } from '~~/server/utils/ip-utils'
+import { assertMailSendAllowed } from '~~/server/utils/mail-risk-control'
 
 const parseTimeoutEnv = (name: string, fallback: number) => {
   const raw = process.env[name]
@@ -20,6 +21,7 @@ const SMTP_DNS_TIMEOUT = parseTimeoutEnv('SMTP_DNS_TIMEOUT_MS', 8000)
 const SMTP_SEND_RETRY_DELAY_MS = parseTimeoutEnv('SMTP_SEND_RETRY_DELAY_MS', 300)
 const SITE_TITLE_CACHE_TTL_MS = parseTimeoutEnv('SMTP_SITE_TITLE_CACHE_TTL_MS', 300000)
 const SITE_TITLE_LOOKUP_TIMEOUT_MS = parseTimeoutEnv('SMTP_SITE_TITLE_LOOKUP_TIMEOUT_MS', 1500)
+const SMTP_DEBUG_RESPONSE = process.env.SMTP_DEBUG_RESPONSE === '1'
 
 export const formatSmtpErrorDetail = (error: any): string => {
   const message = error?.message || '未知错误'
@@ -355,6 +357,14 @@ export class SmtpService {
     textContent?: string,
     ipAddress?: string
   ): Promise<boolean> {
+    // 全局发信风控（频率/内容/收件人策略）
+    assertMailSendAllowed({
+      to,
+      subject,
+      htmlContent,
+      ipAddress
+    })
+
     // 确保配置已初始化
     if (!(await this.ensureInitialized())) {
       throw new Error('SMTP配置未初始化或无效')
@@ -546,7 +556,7 @@ export class SmtpService {
         return {
           success: false,
           message: '初始化SMTP配置失败',
-          detail: error instanceof Error ? error.message : '未知错误'
+          detail: SMTP_DEBUG_RESPONSE ? (error instanceof Error ? error.message : '未知错误') : undefined
         }
       }
     }
@@ -558,7 +568,7 @@ export class SmtpService {
       return {
         success: false,
         message: 'SMTP连接测试失败',
-        detail: formatSmtpErrorDetail(error)
+        detail: SMTP_DEBUG_RESPONSE ? formatSmtpErrorDetail(error) : undefined
       }
     }
   }
@@ -590,7 +600,7 @@ export class SmtpService {
       return {
         success: false,
         message: '测试邮件发送失败',
-        detail: formatSmtpErrorDetail(error)
+        detail: SMTP_DEBUG_RESPONSE ? formatSmtpErrorDetail(error) : undefined
       }
     }
   }

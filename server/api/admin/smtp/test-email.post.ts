@@ -1,7 +1,6 @@
 import {
   SmtpService,
-  buildSmtpTransporterConfig,
-  formatSmtpErrorDetail
+  buildSmtpTransporterConfig
 } from '~~/server/services/smtpService'
 import { getClientIP } from '~~/server/utils/ip-utils'
 import { db } from '~/drizzle/db'
@@ -21,6 +20,8 @@ const resolveSmtpPassword = async (password: string | null | undefined) => {
 
   return settingsResult[0]?.smtpPassword || null
 }
+
+const SMTP_DEBUG_RESPONSE = process.env.SMTP_DEBUG_RESPONSE === '1'
 
 export default defineEventHandler(async (event) => {
   // 检查请求方法
@@ -122,10 +123,13 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error) {
     console.error('发送测试邮件失败:', error)
-    return {
+    const response: { success: boolean; message: string; detail?: string } = {
       success: false,
-      message: '发送测试邮件失败',
-      detail: formatSmtpErrorDetail(error)
+      message: '发送测试邮件失败，请检查配置后重试'
     }
+    if (SMTP_DEBUG_RESPONSE && error instanceof Error) {
+      response.detail = error.message
+    }
+    return response
   }
 })

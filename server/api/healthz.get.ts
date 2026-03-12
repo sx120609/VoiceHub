@@ -11,10 +11,7 @@ export default defineEventHandler(async (event) => {
   return {
     status: connected ? 'ok' : 'error',
     database: {
-      connected,
-      latency: health.latency,
-      connectionStatus: health.connectionStatus
-    },
-    timestamp: new Date().toISOString()
+      connected
+    }
   }
 })
