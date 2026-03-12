@@ -162,7 +162,8 @@ export default defineNuxtConfig({
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           Pragma: 'no-cache',
           Expires: '0',
-          Connection: 'keep-alive'
+          Connection: 'keep-alive',
+          'X-Content-Type-Options': 'nosniff'
         }
       },
       // 静态资源文件缓存配置

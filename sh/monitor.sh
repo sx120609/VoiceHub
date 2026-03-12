@@ -87,7 +87,7 @@ if [ -n "$MONITOR_BASE_URL" ]; then
   fi
 fi
 
-# Primary probe: auth verify API (无副作用，不触发登录限流)
+# Primary probe: healthz API (无副作用，便于监控)
 CHECK_URL="${CHECK_URL:-$default_check_url}"
 # Secondary probe: public page (set empty to disable)
 CHECK_URL_2="${CHECK_URL_2:-$default_check_url_2}"
