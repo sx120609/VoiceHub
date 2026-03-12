@@ -196,11 +196,10 @@ probe_request() {
       "$probe_url" 2>"$curl_stderr" || true)"
   fi
 
-  trap - EXIT INT TERM
-  rm -f "$tmp_body"
-
   if [ -z "$http_code" ] || [ "$http_code" = "000" ]; then
     PROBE_LAST_CODE="000"
+    trap - EXIT INT TERM
+    cleanup
     return 1
   fi
 
@@ -208,15 +207,21 @@ probe_request() {
 
   if printf '%s' "$http_code" | grep -Eq "$probe_regex"; then
     if [ -n "$probe_body_regex" ]; then
-      normalized_body="$(tr -d '\r\n\t ' < "$tmp_body")"
+      normalized_body="$(tr -d '\r\n\t ' < "$tmp_body" 2>/dev/null || true)"
       if ! printf '%s' "$normalized_body" | grep -Eq "$probe_body_regex"; then
         PROBE_LAST_CODE="${http_code}:body_mismatch"
+        trap - EXIT INT TERM
+        cleanup
         return 1
       fi
     fi
+    trap - EXIT INT TERM
+    cleanup
     return 0
   fi
 
+  trap - EXIT INT TERM
+  cleanup
   return 1
 }
 
