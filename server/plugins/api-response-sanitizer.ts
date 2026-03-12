@@ -49,7 +49,8 @@ const sanitizeResponseBody = (
 
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('beforeResponse', (event, response) => {
-    const path = getRequestPath(event.node.req.url)
+    const requestUrl = event?.node?.req?.url || ''
+    const path = getRequestPath(requestUrl)
     if (!isApiPath(path)) {
       return
     }
@@ -77,7 +78,8 @@ export default defineNitroPlugin((nitroApp) => {
   })
 
   nitroApp.hooks.hook('error', (error, event) => {
-    const path = event ? getRequestPath(event.node.req.url) : ''
+    const requestUrl = event?.node?.req?.url || ''
+    const path = getRequestPath(requestUrl)
     const message = sanitizePublicMessage(
       extractRawErrorMessage(error),
       '服务暂时不可用，请稍后重试'

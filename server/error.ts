@@ -3,7 +3,9 @@ import { setResponseHeader } from 'h3'
 import { extractRawErrorMessage, getRequestPath, isApiPath, sanitizePublicMessage } from './utils/public-error'
 
 const errorHandler: NitroErrorHandler = async (error, event) => {
-  const requestPath = getRequestPath(event.node.req.url)
+  const requestUrl = event?.node?.req?.url || ''
+  const requestMethod = event?.node?.req?.method || 'UNKNOWN'
+  const requestPath = getRequestPath(requestUrl)
   const rawMessage = extractRawErrorMessage(error)
   const statusCode = Number.isFinite(error.statusCode) ? Number(error.statusCode) : 500
 
@@ -28,7 +30,7 @@ const errorHandler: NitroErrorHandler = async (error, event) => {
 
   console.error('Nitro Error Handler:', {
     url: requestPath,
-    method: event.node.req.method,
+    method: requestMethod,
     statusCode: finalStatusCode,
     error: rawMessage || 'unknown error',
     timestamp: new Date().toISOString()
@@ -41,7 +43,7 @@ const errorHandler: NitroErrorHandler = async (error, event) => {
     timestamp: new Date().toISOString()
   }
 
-  if (isApiPath(requestPath)) {
+  if (event && isApiPath(requestPath)) {
     setResponseHeader(event, 'content-type', 'application/json; charset=utf-8')
     setResponseHeader(event, 'x-content-type-options', 'nosniff')
     setResponseHeader(event, 'cache-control', 'no-store')
