@@ -1,6 +1,35 @@
 import { createTxSearchBody, txRequest } from '../../../utils/native_tx'
 import { decodeName, formatPlayTime, sizeFormate } from '../../../utils/native_common'
 
+const getErrorCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') {
+    return
+  }
+
+  const typedError = error as { code?: unknown; cause?: unknown }
+  if (typeof typedError.code === 'string') {
+    return typedError.code
+  }
+
+  return getErrorCode(typedError.cause)
+}
+
+const hasStatusCode = (error: unknown): error is { statusCode: number } => {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const typedError = error as { statusCode?: unknown }
+  return typeof typedError.statusCode === 'number'
+}
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const str = query.str as string
@@ -12,9 +41,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = createTxSearchBody(str, page, limit)
+  const txApiUrl = process.env.TX_API_URL || 'https://u.y.qq.com/cgi-bin/musicu.fcg'
 
   try {
-    const result: any = await txRequest('https://u.y.qq.com/cgi-bin/musicu.fcg', body)
+    const result: any = await txRequest(txApiUrl, body)
 
     if (result.code !== 0 || result.req?.code !== 0) {
       throw createError({ statusCode: 502, message: 'Tencent API Error' })
@@ -91,8 +121,18 @@ export default defineEventHandler(async (event) => {
       limit,
       source: 'tx'
     }
-  } catch (err) {
-    console.error(err)
-    throw createError({ statusCode: 500, message: 'Internal Server Error' })
+  } catch (err: unknown) {
+    if (hasStatusCode(err)) {
+      throw err
+    }
+
+    const errorCode = getErrorCode(err)
+    const isDnsError = errorCode === 'ENOTFOUND' || errorCode === 'EAI_AGAIN'
+    console.error('TX search failed:', { code: errorCode, message: getErrorMessage(err) })
+
+    throw createError({
+      statusCode: 502,
+      message: isDnsError ? 'Tencent API DNS resolution failed' : 'Tencent API request failed'
+    })
   }
 })
