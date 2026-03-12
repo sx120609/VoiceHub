@@ -1,4 +1,5 @@
 import { computed, ref, readonly } from 'vue'
+import { normalizeApiBase, normalizeAppBase, withApiBase } from '~/utils/baseUrl'
 
 const defaultSubmissionGuidelines = `1. 投稿时无需加入书名号
 2. 除DJ外，其他类型歌曲均接收（包括小语种）
@@ -26,6 +27,20 @@ const isLoaded = ref(false)
 const isLoading = ref(false)
 
 export const useSiteConfig = () => {
+  const runtimeConfig = useRuntimeConfig()
+  const appBaseURL = normalizeAppBase(runtimeConfig.app?.baseURL)
+  const apiBase = normalizeApiBase(runtimeConfig.public?.apiBase, runtimeConfig.app?.baseURL)
+
+  const withAppBasePath = (path) => {
+    if (!path || typeof path !== 'string') return path
+    if (!path.startsWith('/')) return path
+    const appBasePrefix = appBaseURL === '/' ? '' : appBaseURL.slice(0, -1)
+    if (appBasePrefix && path.startsWith(`${appBasePrefix}/`)) {
+      return path
+    }
+    return `${appBasePrefix}${path}`
+  }
+
   // 获取站点配置
   const fetchSiteConfig = async () => {
     if (isLoading.value) return
@@ -33,7 +48,7 @@ export const useSiteConfig = () => {
     try {
       isLoading.value = true
 
-      const response = await fetch('/api/site-config')
+      const response = await fetch(withApiBase('/api/site-config', apiBase))
       if (!response.ok) {
         throw new Error('获取站点配置失败')
       }
@@ -47,7 +62,7 @@ export const useSiteConfig = () => {
       // 使用默认配置
       siteConfig.value = {
         siteTitle: '校园广播站点歌系统',
-        siteLogoUrl: '/images/logo.png',
+        siteLogoUrl: withAppBasePath('/images/logo.png'),
         schoolLogoHomeUrl: '',
         schoolLogoPrintUrl: '',
         siteDescription: '校园广播站点歌系统 - 让你的声音被听见',
@@ -65,7 +80,7 @@ export const useSiteConfig = () => {
 
   // 计算属性
   const siteTitle = computed(() => siteConfig.value.siteTitle || '校园广播站点歌系统')
-  const logoUrl = computed(() => siteConfig.value.siteLogoUrl || '/images/logo.png')
+  const logoUrl = computed(() => siteConfig.value.siteLogoUrl || withAppBasePath('/images/logo.png'))
   const schoolLogoHomeUrl = computed(() => siteConfig.value.schoolLogoHomeUrl || '')
   const schoolLogoPrintUrl = computed(() => siteConfig.value.schoolLogoPrintUrl || '')
   const description = computed(
