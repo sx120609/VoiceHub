@@ -153,6 +153,7 @@ import { computed, onMounted, watch } from 'vue'
 import { ArrowLeft, User, Link as LinkIcon, Lock, Pencil } from 'lucide-vue-next'
 import { useAuth } from '~/composables/useAuth'
 import { useToast } from '~/composables/useToast'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 const auth = useAuth()
 const router = useRouter()
@@ -277,7 +278,7 @@ const saveDisplayName = async () => {
       console.warn('刷新用户信息失败（已忽略）:', refreshError)
     })
   } catch (error) {
-    const message = error?.data?.message || error?.message || '保存昵称失败'
+    const message = extractDisplayErrorMessage(error, '保存昵称失败')
     displayNameError.value = message
     showToast(message, 'error')
   } finally {

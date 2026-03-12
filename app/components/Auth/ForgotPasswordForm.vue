@@ -91,6 +91,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 const route = useRoute()
 const token = computed(() =>
@@ -131,7 +132,7 @@ const handleSendLink = async () => {
     })
     info.value = response?.message || '如果账号存在，重置链接已发送到邮箱'
   } catch (err: any) {
-    error.value = err?.data?.message || err?.message || '发送失败，请稍后重试'
+    error.value = extractDisplayErrorMessage(err, '发送失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -162,7 +163,7 @@ const handleResetPassword = async () => {
     info.value = '密码重置成功，2秒后跳转到登录页'
     setTimeout(() => navigateTo('/login'), 2000)
   } catch (err: any) {
-    error.value = err?.data?.message || err?.message || '重置失败，请重试'
+    error.value = extractDisplayErrorMessage(err, '重置失败，请重试')
   } finally {
     loading.value = false
   }

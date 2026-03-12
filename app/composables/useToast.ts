@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { sanitizeErrorMessage } from '~/utils/errorMessage'
 
 interface ToastMessage {
   id: number
@@ -16,10 +17,11 @@ export const useToast = () => {
     type: 'success' | 'error' | 'info' | 'warning' = 'info',
     duration = 3000
   ) => {
+    const normalizedMessage = sanitizeErrorMessage(message) || message
     const id = ++toastId
     const toast: ToastMessage = {
       id,
-      message,
+      message: normalizedMessage,
       type,
       duration
     }

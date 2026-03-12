@@ -1,5 +1,6 @@
 import { navigateTo, useState } from '#app'
 import type { User } from '~/types'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 interface LoginResponse {
   success: boolean
@@ -148,18 +149,7 @@ export const useAuth = () => {
         body: { currentPassword, newPassword }
       })
     } catch (error: any) {
-      // 处理FetchError，提取错误信息
-      if (error.data && error.data.statusMessage) {
-        throw new Error(error.data.statusMessage)
-      } else if (error.data && error.data.message) {
-        throw new Error(error.data.message)
-      } else if (error.statusMessage) {
-        throw new Error(error.statusMessage)
-      } else if (error.message) {
-        throw new Error(error.message)
-      } else {
-        throw new Error('密码修改失败，请重试')
-      }
+      throw new Error(extractDisplayErrorMessage(error, '密码修改失败，请重试'))
     } finally {
       loading.value = false
     }

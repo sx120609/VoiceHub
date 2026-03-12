@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { useAuth } from './useAuth'
 import { getGlobalDedup } from './useRequestDedup'
 import type { PlayTime, Schedule, Song } from '~/types'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 export const useSongs = () => {
   const { isAuthenticated, user, getAuthConfig, isAdmin, initAuth } = useAuth()
@@ -42,13 +43,7 @@ export const useSongs = () => {
   }
 
   const resolveErrorMessage = (err: any, fallback: string) => {
-    return (
-      err?.data?.message ||
-      err?.data?.statusMessage ||
-      err?.statusMessage ||
-      err?.message ||
-      fallback
-    )
+    return extractDisplayErrorMessage(err, fallback)
   }
 
   const findSongById = (songId: number) => {
@@ -166,7 +161,7 @@ export const useSongs = () => {
 
       return response
     } catch (err: any) {
-      error.value = err.message || '获取播放时段失败'
+      error.value = extractDisplayErrorMessage(err, '获取播放时段失败')
       return { enabled: false, playTimes: [] }
     } finally {
       loading.value = false
@@ -228,7 +223,7 @@ export const useSongs = () => {
         console.warn('API返回的数据格式不正确:', response)
       }
     } catch (err: any) {
-      error.value = err.message || '获取歌曲列表失败'
+      error.value = extractDisplayErrorMessage(err, '获取歌曲列表失败')
     } finally {
       if (!silent) {
         loading.value = false
@@ -341,7 +336,7 @@ export const useSongs = () => {
       // 直接从排期数据中提取歌曲信息，避免重复请求
       publicSongs.value = extractSongsFromSchedules(processedData)
     } catch (err: any) {
-      error.value = err.message || '获取排期失败'
+      error.value = extractDisplayErrorMessage(err, '获取排期失败')
     } finally {
       if (!silent) {
         loading.value = false
@@ -560,7 +555,7 @@ export const useSongs = () => {
 
       return data
     } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '点歌失败'
+      const errorMsg = extractDisplayErrorMessage(err, '点歌失败')
       // 如果是重复投稿错误，只显示通知而不设置全局错误
       if (errorMsg.includes('已经在列表中') || errorMsg.includes('不能重复投稿')) {
         showNotification(errorMsg, 'info')
@@ -683,7 +678,7 @@ export const useSongs = () => {
       showNotification(message, 'success')
       return data
     } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '撤回歌曲失败'
+      const errorMsg = extractDisplayErrorMessage(err, '撤回歌曲失败')
       error.value = errorMsg
       showNotification(errorMsg, 'error')
       return null
@@ -718,7 +713,7 @@ export const useSongs = () => {
       showNotification('歌曲已成功删除！', 'success')
       return data
     } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '删除歌曲失败'
+      const errorMsg = extractDisplayErrorMessage(err, '删除歌曲失败')
       error.value = errorMsg
       showNotification(errorMsg, 'error')
       return null
@@ -753,7 +748,7 @@ export const useSongs = () => {
       showNotification('歌曲已成功标记为已播放！', 'success')
       return data
     } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '标记歌曲失败'
+      const errorMsg = extractDisplayErrorMessage(err, '标记歌曲失败')
       error.value = errorMsg
       showNotification(errorMsg, 'error')
       return null
@@ -788,7 +783,7 @@ export const useSongs = () => {
       showNotification('歌曲已成功撤回已播放状态！', 'success')
       return data
     } catch (err: any) {
-      const errorMsg = err.data?.message || err.message || '撤回歌曲已播放状态失败'
+      const errorMsg = extractDisplayErrorMessage(err, '撤回歌曲已播放状态失败')
       error.value = errorMsg
       showNotification(errorMsg, 'error')
       return null

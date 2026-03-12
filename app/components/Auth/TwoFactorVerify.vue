@@ -109,6 +109,7 @@
 import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
 import { Loader2, AlertCircle } from 'lucide-vue-next'
 import { useToast } from '~/composables/useToast'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 const props = defineProps<{
   show: boolean
@@ -190,7 +191,7 @@ const sendEmailCode = async () => {
     // 发送成功后自动聚焦验证码输入框
     nextTick(() => inputRef.value?.focus())
   } catch (err: any) {
-    error.value = err.data?.message || err.message || '发送失败'
+    error.value = extractDisplayErrorMessage(err, '发送失败')
   } finally {
     sending.value = false
   }
@@ -208,7 +209,7 @@ const handleVerify = async () => {
     
     emit('success', response)
   } catch (err: any) {
-    error.value = err.data?.message || err.message || '验证失败'
+    error.value = extractDisplayErrorMessage(err, '验证失败')
     code.value = '' // 出错清空
   } finally {
     loading.value = false

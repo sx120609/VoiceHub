@@ -193,6 +193,7 @@
 import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import { getProviderDisplayName } from '~/utils/oauth'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 const route = useRoute()
 const router = useRouter()
@@ -325,7 +326,7 @@ const submitText = computed(() => {
 })
 
 const extractErrorMessage = (err: any, fallback: string) => {
-  return err?.data?.message || err?.message || fallback
+  return extractDisplayErrorMessage(err, fallback)
 }
 
 const extractQQPrefixFromEmail = (email: string): string => {

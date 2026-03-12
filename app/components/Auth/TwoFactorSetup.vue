@@ -120,6 +120,7 @@
 import { ref } from 'vue'
 import { ShieldCheck, X, Copy, Loader2 } from 'lucide-vue-next'
 import { useToast } from '~/composables/useToast'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 const props = defineProps<{
   initialEnabled?: boolean
@@ -158,7 +159,7 @@ const startSetup = async () => {
       verificationCode.value = ''
     }
   } catch (err: any) {
-    showToast(err.data?.message || err.message || '获取验证码失败', 'error')
+    showToast(extractDisplayErrorMessage(err, '获取验证码失败'), 'error')
   } finally {
     loading.value = false
   }
@@ -199,7 +200,7 @@ const enable2FA = async () => {
     isEnabled.value = true
     cancelSetup()
   } catch (err: any) {
-    showToast(err.data?.message || err.message || '验证失败', 'error')
+    showToast(extractDisplayErrorMessage(err, '验证失败'), 'error')
   } finally {
     loading.value = false
   }
@@ -228,7 +229,7 @@ const disable2FA = async (password: string) => {
     isEnabled.value = false
     showDisableConfirm.value = false
   } catch (err: any) {
-    showToast(err.data?.message || err.message || '关闭失败', 'error')
+    showToast(extractDisplayErrorMessage(err, '关闭失败'), 'error')
   } finally {
     loading.value = false
   }

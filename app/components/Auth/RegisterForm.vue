@@ -134,6 +134,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuth } from '~/composables/useAuth'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 const auth = useAuth()
 const route = useRoute()
@@ -224,7 +225,7 @@ const handleRegister = async () => {
 
     await goAfterLogin()
   } catch (err: any) {
-    error.value = err?.data?.message || err?.message || '注册失败，请稍后重试'
+    error.value = extractDisplayErrorMessage(err, '注册失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -250,7 +251,7 @@ const handleResend = async () => {
     verificationSent.value = true
     info.value = '激活链接已发送，请查收邮箱'
   } catch (err: any) {
-    error.value = err?.data?.message || err?.message || '重发激活链接失败，请稍后重试'
+    error.value = extractDisplayErrorMessage(err, '重发激活链接失败，请稍后重试')
   } finally {
     resending.value = false
   }

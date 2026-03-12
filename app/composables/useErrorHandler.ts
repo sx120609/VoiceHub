@@ -1,5 +1,6 @@
 import { useAuth } from './useAuth'
 import { normalizeAppBase, stripAppBaseFromPath } from '~/utils/baseUrl'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 // 防抖机制
 let isHandling401 = false
@@ -28,13 +29,7 @@ export const useErrorHandler = () => {
 
       if (isLoginPage) {
         // 在登录页面，解析错误信息
-        let errorMessage = '登录失败'
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message
-        } else if (error?.message) {
-          errorMessage = error.message
-        }
+        const errorMessage = extractDisplayErrorMessage(error, '登录失败')
 
         console.log('登录失败:', errorMessage)
 
@@ -54,13 +49,7 @@ export const useErrorHandler = () => {
 
         console.log('检测到401错误，清除认证状态并跳转到登录页')
 
-        let errorMessage = '认证失败，请重新登录'
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message
-        } else if (error?.message) {
-          errorMessage = error.message
-        }
+        const errorMessage = extractDisplayErrorMessage(error, '认证失败，请重新登录')
 
         console.log('认证错误:', errorMessage)
 
