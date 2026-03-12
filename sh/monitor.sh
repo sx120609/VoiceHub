@@ -74,12 +74,12 @@ if [ -n "$MONITOR_BASE_URL" ]; then
   MONITOR_BASE_URL="${MONITOR_BASE_URL%/}"
 fi
 
-default_check_url="http://127.0.0.1:3000/rareapp/api/auth/verify"
+default_check_url="http://127.0.0.1:3000/rareapp/api/system/status"
 default_check_url_2="http://127.0.0.1:3000/rareapp/"
 if [ -n "$MONITOR_BASE_URL" ]; then
   base_host="$(extract_url_host "$MONITOR_BASE_URL")"
   if [ "$MONITOR_ALLOW_PUBLIC" = "1" ] || is_private_probe_host "$base_host"; then
-    default_check_url="${MONITOR_BASE_URL}/api/auth/verify"
+    default_check_url="${MONITOR_BASE_URL}/api/system/status"
     default_check_url_2="${MONITOR_BASE_URL}/"
   else
     printf '%s %s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "[monitor]" \
@@ -106,10 +106,37 @@ FAIL_THRESHOLD="${FAIL_THRESHOLD:-2}"
 PAUSE_AFTER_RESTART_SEC="${PAUSE_AFTER_RESTART_SEC:-30}"
 RESTART_CMD="${RESTART_CMD:-docker compose restart voicehub || docker-compose restart voicehub || docker restart voicehub}"
 
-# 401/403/429 也代表服务存活（未登录、权限不足、限流）
-SUCCESS_HTTP_REGEX="${SUCCESS_HTTP_REGEX:-^(200|400|401|403|429)$}"
+if [ -n "${SUCCESS_HTTP_REGEX:-}" ]; then
+  SUCCESS_HTTP_REGEX="$SUCCESS_HTTP_REGEX"
+else
+  case "$CHECK_URL" in
+    */api/system/status|*/api/system/status\?*)
+      SUCCESS_HTTP_REGEX='^200$'
+      ;;
+    *)
+      # 兼容其他探针：401/403/429 也代表服务存活（未登录、权限不足、限流）
+      SUCCESS_HTTP_REGEX='^(200|400|401|403|429)$'
+      ;;
+  esac
+fi
+
+if [ -n "${CHECK_BODY_REGEX:-}" ]; then
+  CHECK_BODY_REGEX="$CHECK_BODY_REGEX"
+else
+  case "$CHECK_URL" in
+    */api/system/status|*/api/system/status\?*)
+      # 去空白后的 JSON 必须包含 status=ok 且 database.connected=true
+      CHECK_BODY_REGEX='"status":"ok".*"database":\{.*"connected":true'
+      ;;
+    *)
+      CHECK_BODY_REGEX=""
+      ;;
+  esac
+fi
+
 # 首页探针默认必须200
 SUCCESS_HTTP_REGEX_2="${SUCCESS_HTTP_REGEX_2:-^200$}"
+CHECK_BODY_REGEX_2="${CHECK_BODY_REGEX_2:-}"
 SECONDARY_REQUIRED="${SECONDARY_REQUIRED:-0}"
 # 是否打印每次检测结果（0=关闭，1=开启）
 MONITOR_LOG_EVERY_CHECK="${MONITOR_LOG_EVERY_CHECK:-0}"
@@ -135,6 +162,7 @@ probe_request() {
   probe_method="$2"
   probe_body="$3"
   probe_regex="$4"
+  probe_body_regex="$5"
 
   PROBE_LAST_CODE="000"
   if [ -z "$probe_url" ]; then
@@ -179,6 +207,13 @@ probe_request() {
   PROBE_LAST_CODE="$http_code"
 
   if printf '%s' "$http_code" | grep -Eq "$probe_regex"; then
+    if [ -n "$probe_body_regex" ]; then
+      normalized_body="$(tr -d '\r\n\t ' < "$tmp_body")"
+      if ! printf '%s' "$normalized_body" | grep -Eq "$probe_body_regex"; then
+        PROBE_LAST_CODE="${http_code}:body_mismatch"
+        return 1
+      fi
+    fi
     return 0
   fi
 
@@ -207,7 +242,7 @@ fi
 
 log "started"
 log "check_url=${CHECK_URL} check_url_2=${CHECK_URL_2:-disabled} interval=${CHECK_INTERVAL_SEC}s threshold=${FAIL_THRESHOLD} pause_after_restart=${PAUSE_AFTER_RESTART_SEC}s"
-log "secondary_required=${SECONDARY_REQUIRED} success_regex=${SUCCESS_HTTP_REGEX} success_regex_2=${SUCCESS_HTTP_REGEX_2}"
+log "secondary_required=${SECONDARY_REQUIRED} success_regex=${SUCCESS_HTTP_REGEX} body_regex=${CHECK_BODY_REGEX:-none} success_regex_2=${SUCCESS_HTTP_REGEX_2} body_regex_2=${CHECK_BODY_REGEX_2:-none}"
 log "restart_cmd=${RESTART_CMD}"
 
 consecutive_failures=0
@@ -218,11 +253,11 @@ while true; do
   primary_code="000"
   secondary_code="000"
 
-  if probe_request "$CHECK_URL" "$CHECK_METHOD" "$CHECK_BODY" "$SUCCESS_HTTP_REGEX"; then
+  if probe_request "$CHECK_URL" "$CHECK_METHOD" "$CHECK_BODY" "$SUCCESS_HTTP_REGEX" "$CHECK_BODY_REGEX"; then
     primary_ok=1
   fi
   primary_code="$PROBE_LAST_CODE"
-  if probe_request "$CHECK_URL_2" "$CHECK_METHOD_2" "" "$SUCCESS_HTTP_REGEX_2"; then
+  if probe_request "$CHECK_URL_2" "$CHECK_METHOD_2" "" "$SUCCESS_HTTP_REGEX_2" "$CHECK_BODY_REGEX_2"; then
     secondary_ok=1
   fi
   secondary_code="$PROBE_LAST_CODE"
