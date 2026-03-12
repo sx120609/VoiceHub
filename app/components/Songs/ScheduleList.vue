@@ -1487,41 +1487,7 @@ const getMusicUrl = async (song) => {
     console.log('[ScheduleList] 统一音源选择获取音乐URL成功')
     return result.url
   }
-  console.warn('[ScheduleList] 统一音源选择未返回有效链接，回退到直接调用 vkeys')
-
-  // 回退到 vkeys
-  let apiUrl
-  if (platform === 'netease') {
-    apiUrl = `https://api.vkeys.cn/v2/music/netease?id=${musicId}&quality=${quality}`
-  } else if (platform === 'tencent') {
-    apiUrl = `https://api.vkeys.cn/v2/music/tencent?id=${musicId}&quality=${quality}`
-  } else {
-    throw new Error('不支持的音乐平台')
-  }
-
-  const response = await fetch(apiUrl, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error('vkeys API请求失败')
-  }
-
-  const data = await response.json()
-  if (data.code === 200 && data.data && data.data.url) {
-    // 将HTTP URL改为HTTPS
-    let url = data.data.url
-    if (url.startsWith('http://')) {
-      url = url.replace('http://', 'https://')
-    }
-    console.log('[ScheduleList] vkeys API获取音乐URL成功')
-    return url
-  }
-
-  throw new Error('所有音源都无法获取音乐播放链接')
+  throw new Error(result?.error || '所有音源都无法获取音乐播放链接')
 }
 
 // 判断当前是否正在播放指定ID的歌曲

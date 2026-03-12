@@ -70,38 +70,5 @@ export async function getMusicUrl(
   if (platform === 'bilibili') {
     throw new Error(backupResult.error || '获取哔哩哔哩播放链接失败')
   }
-
-  // 回退到 vkeys
-  let apiUrl: string
-  if (platform === 'netease' || platform === 'netease-podcast') {
-    apiUrl = `https://api.vkeys.cn/v2/music/netease?id=${musicId}&quality=${quality}`
-  } else if (platform === 'tencent') {
-    apiUrl = `https://api.vkeys.cn/v2/music/tencent?id=${musicId}&quality=${quality}`
-  } else {
-    throw new Error('不支持的音乐平台')
-  }
-
-  const response = await fetch(apiUrl, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`vkeys API请求失败: ${response.status} ${response.statusText}`)
-  }
-
-  const data = await response.json()
-  if (data.code === 200 && data.data && data.data.url) {
-    // 将HTTP URL改为HTTPS
-    let url = data.data.url
-    if (url.startsWith('http://')) {
-      url = url.replace('http://', 'https://')
-    }
-    return url
-  }
-
-  // vkeys API返回了响应但没有有效的播放链接
-  throw new Error('vkeys API返回的播放链接无效')
+  throw new Error(backupResult.error || '无法通过服务端音源代理获取播放链接')
 }

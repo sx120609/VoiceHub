@@ -30,6 +30,137 @@ export const useMusicSources = () => {
   // 音源状态
   const sourceStatus = ref<Record<string, SourceStatus>>({})
 
+  const isAbsoluteHttpUrl = (url: string) => /^https?:\/\//i.test(url)
+
+  const normalizePort = (protocol: string, port: string) => {
+    if (port) return port
+    if (protocol === 'https:') return '443'
+    if (protocol === 'http:') return '80'
+    return ''
+  }
+
+  const resolveProxyTarget = (url: string) => {
+    if (!isAbsoluteHttpUrl(url)) {
+      return null
+    }
+
+    try {
+      const parsedUrl = new URL(url)
+      const matchedSource = config.value.sources.find((source) => {
+        try {
+          const sourceUrl = new URL(source.baseUrl)
+          return (
+            sourceUrl.protocol === parsedUrl.protocol &&
+            sourceUrl.hostname === parsedUrl.hostname &&
+            normalizePort(sourceUrl.protocol, sourceUrl.port) ===
+              normalizePort(parsedUrl.protocol, parsedUrl.port)
+          )
+        } catch {
+          return false
+        }
+      })
+
+      if (!matchedSource) {
+        return null
+      }
+
+      return {
+        source: matchedSource.id,
+        path: parsedUrl.pathname,
+        q: parsedUrl.search.replace(/^\?/, '')
+      }
+    } catch {
+      return null
+    }
+  }
+
+  const fetchSourceJson = async (
+    url: string,
+    options: {
+      timeout?: number
+      headers?: Record<string, string>
+      signal?: AbortSignal
+    } = {}
+  ): Promise<any> => {
+    const proxyTarget = resolveProxyTarget(url)
+    if (import.meta.client && proxyTarget) {
+      return await $fetch('/api/music/proxy', {
+        retry: 0,
+        params: {
+          ...proxyTarget,
+          responseType: 'json',
+          timeout: options.timeout || config.value.timeout
+        }
+      })
+    }
+
+    return await $fetch(url, {
+      retry: 0,
+      timeout: options.timeout,
+      headers: options.headers,
+      signal: options.signal
+    })
+  }
+
+  const fetchSourceText = async (
+    url: string,
+    options: {
+      timeout?: number
+      headers?: Record<string, string>
+      signal?: AbortSignal
+    } = {}
+  ): Promise<string> => {
+    const proxyTarget = resolveProxyTarget(url)
+    if (import.meta.client && proxyTarget) {
+      return await $fetch('/api/music/proxy', {
+        retry: 0,
+        params: {
+          ...proxyTarget,
+          responseType: 'text',
+          timeout: options.timeout || config.value.timeout
+        }
+      })
+    }
+
+    return await $fetch(url, {
+      retry: 0,
+      timeout: options.timeout,
+      headers: options.headers,
+      signal: options.signal,
+      responseType: 'text'
+    })
+  }
+
+  const resolveSourceFinalUrl = async (
+    url: string,
+    options: {
+      timeout?: number
+      headers?: Record<string, string>
+    } = {}
+  ): Promise<string> => {
+    const proxyTarget = resolveProxyTarget(url)
+    if (import.meta.client && proxyTarget) {
+      const result = await $fetch<{ url?: string }>('/api/music/proxy', {
+        retry: 0,
+        params: {
+          ...proxyTarget,
+          responseType: 'resolve',
+          timeout: options.timeout || config.value.timeout
+        }
+      })
+      return result?.url || ''
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: options.headers,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(options.timeout || config.value.timeout)
+    })
+
+    return response.ok ? response.url : ''
+  }
+
   /**
    * 使用 Meting API 获取歌曲信息
    * @param id 歌曲ID
@@ -47,7 +178,7 @@ export const useMusicSources = () => {
     try {
       const metingUrl = `${source.baseUrl}/?server=netease&type=song&id=${id}`
 
-      const response = await $fetch(metingUrl, {
+      const response = await fetchSourceJson(metingUrl, {
         timeout: source.timeout || 8000,
         headers: source.headers
       })
@@ -92,9 +223,20 @@ export const useMusicSources = () => {
         validatedUrl = url.replace('http://', 'https://')
       }
 
-      // 使用HEAD请求检查链接可用性，避免下载整个文件
+      // 客户端跨域校验会被浏览器拦截，前端直接放行，交给服务端链路兜底
+      if (import.meta.client && isAbsoluteHttpUrl(validatedUrl)) {
+        return {
+          valid: true,
+          duration: 0
+        }
+      }
+
+      // 使用轻量 GET + Range 请求检查链接可用性，避免完整下载
       const response = await fetch(validatedUrl, {
-        method: 'HEAD',
+        method: 'GET',
+        headers: {
+          Range: 'bytes=0-0'
+        },
         signal: AbortSignal.timeout(5000) // 5秒超时
       })
 
@@ -165,6 +307,7 @@ export const useMusicSources = () => {
     try {
       console.log(`[searchNativeMusic] Requesting ${platform} search: ${params.keywords}`)
       const response: any = await $fetch(url, {
+        retry: 0,
         params: {
           str: params.keywords,
           page: Math.floor((params.offset || 0) / (params.limit || 30)) + 1,
@@ -486,7 +629,7 @@ export const useMusicSources = () => {
               ...source.headers
             } as Record<string, string>)
 
-      response = await $fetch(finalUrl, {
+      response = await fetchSourceJson(finalUrl, {
         timeout: source.timeout || config.value.timeout,
         signal,
         headers: requestHeaders
@@ -510,7 +653,7 @@ export const useMusicSources = () => {
 
         try {
           console.log(`[${source.name}] 备用请求URL:`, fallbackUrl)
-          response = await $fetch(fallbackUrl, {
+          response = await fetchSourceJson(fallbackUrl, {
             timeout: source.timeout || config.value.timeout,
             signal,
             headers: {
@@ -622,7 +765,7 @@ export const useMusicSources = () => {
     }
 
     try {
-      const response = await $fetch(url, {
+      const response = await fetchSourceJson(url, {
         timeout: source.timeout || config.value.timeout,
         headers: {
           'Content-Type': 'application/json',
@@ -674,10 +817,12 @@ export const useMusicSources = () => {
       }
 
       // 直接调用/song/detail接口获取歌曲详情
-      const response = await $fetch(`${neteaseSource.baseUrl}/song/detail`, {
-        params: { ids: id },
-        timeout: neteaseSource.timeout || 8000
-      })
+      const response = await fetchSourceJson(
+        `${neteaseSource.baseUrl}/song/detail?ids=${encodeURIComponent(String(id))}`,
+        {
+          timeout: neteaseSource.timeout || 8000
+        }
+      )
 
       // 从响应中提取封面URL
       return response.songs?.[0]?.al?.picUrl || ''
@@ -847,7 +992,7 @@ export const useMusicSources = () => {
             const endpoint = type === 'tencent' ? 'tencent' : 'netease'
             const vkeysUrl = `${source.baseUrl}/${endpoint}?id=${idParam}&quality=${vkeysQuality}`
 
-            const vkeysResp = await $fetch(vkeysUrl, { timeout: source.timeout || 8000 })
+            const vkeysResp = await fetchSourceJson(vkeysUrl, { timeout: source.timeout || 8000 })
 
             if (vkeysResp?.code === 200 && vkeysResp?.data?.url) {
               url = String(vkeysResp.data.url)
@@ -856,7 +1001,7 @@ export const useMusicSources = () => {
             // Vkeys v3：先获取歌曲信息与音质列表，再按可用音质选择并调用 v2 获取可播放URL
             try {
               const infoUrl = `${source.baseUrl}/tencent/song/info?id=${encodeURIComponent(idParam)}`
-              const infoResp = await $fetch(infoUrl, { timeout: source.timeout || 8000 })
+              const infoResp = await fetchSourceJson(infoUrl, { timeout: source.timeout || 8000 })
 
               // v3 成功码为 0
               if (typeof infoResp?.code !== 'number' || infoResp.code !== 0 || !infoResp?.data) {
@@ -919,7 +1064,7 @@ export const useMusicSources = () => {
               }
 
               const v2Url = `${v2Source.baseUrl}/tencent?id=${idParam}&quality=${selectedQuality}`
-              const v2Resp = await $fetch(v2Url, { timeout: v2Source.timeout || 8000 })
+              const v2Resp = await fetchSourceJson(v2Url, { timeout: v2Source.timeout || 8000 })
               if (v2Resp?.code === 200 && v2Resp?.data?.url) {
                 url = String(v2Resp.data.url)
               } else {
@@ -929,7 +1074,7 @@ export const useMusicSources = () => {
                   if (!hasQuality) continue
 
                   const altUrl = `${v2Source.baseUrl}/tencent?id=${idParam}&quality=${q}`
-                  const altResp = await $fetch(altUrl, { timeout: v2Source.timeout || 8000 })
+                  const altResp = await fetchSourceJson(altUrl, { timeout: v2Source.timeout || 8000 })
                   if (altResp?.code === 200 && altResp?.data?.url) {
                     url = String(altResp.data.url)
                     break
@@ -958,14 +1103,13 @@ export const useMusicSources = () => {
                 const metingUrl = `${source.baseUrl}/?server=netease&type=url&id=${idParam}`
 
                 // 对于 Meting API，我们需要处理重定向
-                const response = await fetch(metingUrl, {
-                  method: 'GET',
-                  headers: source.headers || {},
-                  redirect: 'follow'
+                const resolvedUrl = await resolveSourceFinalUrl(metingUrl, {
+                  timeout: source.timeout || 8000,
+                  headers: source.headers || {}
                 })
 
-                if (response.ok && response.url) {
-                  url = response.url
+                if (resolvedUrl) {
+                  url = resolvedUrl
                 }
               }
             } catch (error: any) {
@@ -1000,10 +1144,18 @@ export const useMusicSources = () => {
               params.cookie = cookie
             }
 
-            const response = await $fetch(`${source.baseUrl}/song/url/v1`, {
-              params,
-              timeout: source.timeout || 8000
+            const query = new URLSearchParams()
+            Object.entries(params).forEach(([key, value]) => {
+              if (value !== undefined && value !== null) {
+                query.append(key, String(value))
+              }
             })
+            const response = await fetchSourceJson(
+              `${source.baseUrl}/song/url/v1?${query.toString()}`,
+              {
+                timeout: source.timeout || 8000
+              }
+            )
 
             if (response?.code === 200 && Array.isArray(response.data) && response.data[0]?.url) {
               url = response.data[0].url as string
@@ -1066,19 +1218,22 @@ export const useMusicSources = () => {
         if (platform !== 'netease' || !neteaseSource) return
         try {
           const [lrcResp, yrcResp, ttmlResp] = await Promise.allSettled([
-            $fetch(`${neteaseSource.baseUrl}/lyric`, {
-              params: { id: id.toString() },
+            fetchSourceJson(`${neteaseSource.baseUrl}/lyric?id=${encodeURIComponent(id.toString())}`, {
               timeout: neteaseSource.timeout || 8000
             }),
-            $fetch(`${neteaseSource.baseUrl}/lyric/new`, {
-              params: { id: id.toString() },
-              timeout: neteaseSource.timeout || 8000
-            }),
+            fetchSourceJson(
+              `${neteaseSource.baseUrl}/lyric/new?id=${encodeURIComponent(id.toString())}`,
+              {
+                timeout: neteaseSource.timeout || 8000
+              }
+            ),
             // 尝试获取 TTML 歌词
-            $fetch(`${neteaseSource.baseUrl}/lyric/ttml`, {
-              params: { id: id.toString() },
-              timeout: neteaseSource.timeout || 8000
-            }).catch(() => null)
+            fetchSourceJson(
+              `${neteaseSource.baseUrl}/lyric/ttml?id=${encodeURIComponent(id.toString())}`,
+              {
+                timeout: neteaseSource.timeout || 8000
+              }
+            ).catch(() => null)
           ])
 
           if (lrcResp.status === 'fulfilled' && lrcResp.value?.code === 200) {
@@ -1135,7 +1290,7 @@ export const useMusicSources = () => {
             return
           }
 
-          const resp = await $fetch(url, {
+          const resp = await fetchSourceJson(url, {
             timeout: vkeysSource.timeout || 8000,
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -1202,7 +1357,7 @@ export const useMusicSources = () => {
         for (const metingSource of metingSources) {
           try {
             const metingUrl = `${metingSource.baseUrl}/?server=netease&type=lrc&id=${id}`
-            const resp = await $fetch(metingUrl, {
+            const resp = await fetchSourceText(metingUrl, {
               timeout: metingSource.timeout || 8000,
               headers: metingSource.headers
             })
@@ -1458,10 +1613,12 @@ export const useMusicSources = () => {
         if (songIds.length > 0) {
           try {
             // 批量获取歌曲详情，包含封面信息
-            detailResponse = await $fetch(`${neteaseSource.baseUrl}/song/detail`, {
-              params: { ids: songIds.join(',') },
-              timeout: neteaseSource.timeout || 8000
-            })
+            detailResponse = await fetchSourceJson(
+              `${neteaseSource.baseUrl}/song/detail?ids=${encodeURIComponent(songIds.join(','))}`,
+              {
+                timeout: neteaseSource.timeout || 8000
+              }
+            )
             console.log(`[transformNeteaseResponse] 批量获取详情成功`)
           } catch (error) {
             console.warn(
@@ -1686,7 +1843,7 @@ export const useMusicSources = () => {
         const url = `${source.baseUrl}/dj/program?rid=${radioId}&limit=${limit}&offset=${offset}${cookieParam}`
         console.log(`[getDjPrograms] Requesting: ${url}`)
 
-        const response: any = await $fetch(url, {
+        const response: any = await fetchSourceJson(url, {
           timeout: source.timeout || 8000
         })
 

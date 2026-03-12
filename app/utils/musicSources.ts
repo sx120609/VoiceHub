@@ -114,7 +114,7 @@ export interface SongDetailResult {
  * 包含主音源 Vkeys 和两个网易云备用音源端点
  */
 export const MUSIC_SOURCE_CONFIG: MusicSourceConfig = {
-  primarySource: 'netease-backup-1',
+  primarySource: 'netease-backup-2',
   enableFailover: true,
   timeout: 10000,
   retryAttempts: 2,

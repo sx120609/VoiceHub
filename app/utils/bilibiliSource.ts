@@ -44,6 +44,7 @@ export async function getBilibiliTrackUrl(id: string, cid?: string) {
       params.cid = cid
     }
     const data = await $fetch('/api/bilibili/playurl', {
+      retry: 0,
       params
     })
     return data
@@ -56,6 +57,7 @@ export async function getBilibiliTrackUrl(id: string, cid?: string) {
 export async function searchBilibili(keyword: string) {
   try {
     const data = await $fetch<any[]>('/api/bilibili/search', {
+      retry: 0,
       params: { keyword }
     })
     return data || []

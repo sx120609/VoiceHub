@@ -218,6 +218,32 @@ const showLoginModal = () => {
   emit('show-login')
 }
 
+const postNeteaseProxy = async (path: string, q: string, body: Record<string, any>) => {
+  const sources = ['netease-backup-2', 'netease-backup-1']
+  let lastError: any
+
+  for (const source of sources) {
+    try {
+      return await $fetch('/api/music/proxy', {
+        method: 'POST',
+        retry: 0,
+        params: {
+          source,
+          path,
+          q,
+          responseType: 'json',
+          timeout: 12000
+        },
+        body
+      })
+    } catch (error: any) {
+      lastError = error
+    }
+  }
+
+  throw lastError || new Error('网易云代理请求失败')
+}
+
 // 获取网易云音乐Cookie
 const getNeteaseCookie = () => {
   if (import.meta.client) {
@@ -236,22 +262,16 @@ const getQQMusicUrl = async (strMediaMid: string, quality: number): Promise<stri
     throw new Error('缺少歌曲ID (strMediaMid)')
   }
 
-  // 使用vkeys API获取QQ音乐链接
-  const apiUrl = `https://api.vkeys.cn/v2/music/tencent?id=${strMediaMid}&quality=${quality}`
-
-  // console.log('请求URL:', apiUrl)
-
-  const response = await fetch(apiUrl, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+  const data: any = await $fetch('/api/music/proxy', {
+    retry: 0,
+    params: {
+      source: 'vkeys',
+      path: '/tencent',
+      q: `id=${encodeURIComponent(strMediaMid)}&quality=${encodeURIComponent(String(quality))}`,
+      responseType: 'json',
+      timeout: 10000
     }
   })
-
-  if (!response.ok) {
-    throw new Error(`获取链接失败: ${response.status}`)
-  }
-
-  const data = await response.json()
   // console.log('API响应:', data)
 
   if (data.code === 200 && data.data && data.data.url) {
@@ -327,7 +347,7 @@ const detectAudioType = async (blob: Blob): Promise<string | null> => {
 const downloadAudio = async (url: string): Promise<{ blob: Blob; ext: string }> => {
   uploadStatus.value = '正在下载音频'
 
-  const response = await fetch(url)
+  const response = await fetch(`/api/music/file?url=${encodeURIComponent(url)}`)
   if (!response.ok) {
     throw new Error(`下载失败: ${response.status}`)
   }
@@ -406,8 +426,6 @@ const uploadToNetease = async (audioBlob: Blob, filename: string) => {
   const fileSize = audioBlob.size
   const cookie = getNeteaseCookie()
 
-  const baseApiUrl = 'https://api.voicehub.lao-shui.top'
-
   // 获取文件扩展名
   const ext = filename.split('.').pop()?.toLowerCase() || 'mp3'
 
@@ -423,23 +441,12 @@ const uploadToNetease = async (audioBlob: Blob, filename: string) => {
 
   // 1. 获取上传凭证
   uploadStatus.value = '正在获取上传凭证'
-  const tokenUrl = `${baseApiUrl}/cloud/upload/token?time=${Date.now()}`
-
-  // 使用POST请求，适配 api-enhanced-2 接口
-  const tokenRes = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      cookie,
-      md5,
-      fileSize,
-      filename
-    })
+  const tokenData: any = await postNeteaseProxy('/cloud/upload/token', `time=${Date.now()}`, {
+    cookie,
+    md5,
+    fileSize,
+    filename
   })
-
-  const tokenData = await tokenRes.json()
 
   if (tokenData.code !== 200) {
     throw new Error(`获取凭证失败: ${tokenData.msg || tokenData.code}`)
@@ -488,27 +495,17 @@ const uploadToNetease = async (audioBlob: Blob, filename: string) => {
 
   // 3. 完成上传（导入/发布）
   uploadStatus.value = '正在保存云盘信息'
-
-  const completeUrl = `${baseApiUrl}/cloud/upload/complete?time=${Date.now()}`
-  const completeRes = await fetch(completeUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      cookie,
-      md5,
-      songId,
-      resourceId,
-      filename,
-      song: songName.value,
-      artist: artistName.value,
-      album: albumName.value,
-      bitrate: 999000
-    })
+  const completeData: any = await postNeteaseProxy('/cloud/upload/complete', `time=${Date.now()}`, {
+    cookie,
+    md5,
+    songId,
+    resourceId,
+    filename,
+    song: songName.value,
+    artist: artistName.value,
+    album: albumName.value,
+    bitrate: 999000
   })
-
-  const completeData = await completeRes.json()
 
   if (completeData.code !== 200) {
     if (completeData.code === 502 || completeData.code === 526) {

@@ -14,15 +14,6 @@ const getErrorCode = (error: unknown): string | undefined => {
   return getErrorCode(typedError.cause)
 }
 
-const hasStatusCode = (error: unknown): error is { statusCode: number } => {
-  if (!error || typeof error !== 'object') {
-    return false
-  }
-
-  const typedError = error as { statusCode?: unknown }
-  return typeof typedError.statusCode === 'number'
-}
-
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message
@@ -47,7 +38,17 @@ export default defineEventHandler(async (event) => {
     const result: any = await txRequest(txApiUrl, body)
 
     if (result.code !== 0 || result.req?.code !== 0) {
-      throw createError({ statusCode: 502, message: 'Tencent API Error' })
+      console.warn('TX search returned non-zero code', {
+        code: result.code,
+        reqCode: result.req?.code
+      })
+      return {
+        list: [],
+        total: 0,
+        page,
+        limit,
+        source: 'tx'
+      }
     }
 
     const rawList = result.req.data.body.item_song || []
@@ -122,17 +123,15 @@ export default defineEventHandler(async (event) => {
       source: 'tx'
     }
   } catch (err: unknown) {
-    if (hasStatusCode(err)) {
-      throw err
-    }
-
     const errorCode = getErrorCode(err)
-    const isDnsError = errorCode === 'ENOTFOUND' || errorCode === 'EAI_AGAIN'
     console.error('TX search failed:', { code: errorCode, message: getErrorMessage(err) })
 
-    throw createError({
-      statusCode: 502,
-      message: isDnsError ? 'Tencent API DNS resolution failed' : 'Tencent API request failed'
-    })
+    return {
+      list: [],
+      total: 0,
+      page,
+      limit,
+      source: 'tx'
+    }
   }
 })

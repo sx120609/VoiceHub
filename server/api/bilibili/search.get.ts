@@ -2,7 +2,7 @@
  * Bilibili 搜索接口
  * 代码参考 https://github.com/ljk743121/Sound-of-experiment/blob/v4/server/utils/plugins/bilibili.ts
  */
-import { defineEventHandler, getQuery, createError } from 'h3'
+import { defineEventHandler, getQuery } from 'h3'
 
 interface SongInfo {
   id: number
@@ -145,9 +145,6 @@ export default defineEventHandler(async (event) => {
     return results
   } catch (error: any) {
     console.error('Bilibili search error:', error)
-    throw createError({
-      statusCode: 500,
-      statusMessage: error.message || 'Bilibili search failed'
-    })
+    return []
   }
 })

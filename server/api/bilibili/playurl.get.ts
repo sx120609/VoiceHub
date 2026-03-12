@@ -87,9 +87,10 @@ export default defineEventHandler(async (event) => {
       throw new Error('获取歌曲链接失败')
     }
   } catch (error: any) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch bilibili track url'
-    })
+    console.error('Bilibili playurl error:', error)
+    return {
+      url: '',
+      pay: false
+    }
   }
 })

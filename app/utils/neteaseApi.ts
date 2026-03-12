@@ -1,4 +1,7 @@
-const BASE_URL = 'https://api.voicehub.lao-shui.top'
+const NETEASE_PROXY_SOURCES = ['netease-backup-2', 'netease-backup-1']
+const NETEASE_PROXY_TIMEOUT = 10000
+
+const normalizeEndpoint = (endpoint) => (endpoint.startsWith('/') ? endpoint : `/${endpoint}`)
 
 export function normalizeNeteaseResponse(data) {
   if (!data || typeof data !== 'object') {
@@ -32,6 +35,7 @@ export function normalizeNeteaseResponse(data) {
 }
 
 export async function fetchNetease(endpoint, params = {}, cookie) {
+  const path = normalizeEndpoint(endpoint)
   const query = new URLSearchParams()
   for (const key in params) {
     if (params[key] !== undefined && params[key] !== null) {
@@ -43,9 +47,31 @@ export async function fetchNetease(endpoint, params = {}, cookie) {
   }
   query.append('timestamp', Date.now().toString())
 
-  const url = `${BASE_URL}${endpoint}?${query.toString()}`
-  const response = await fetch(url)
-  const raw = await response.json()
+  let raw
+  let lastError
+
+  for (const source of NETEASE_PROXY_SOURCES) {
+    try {
+      raw = await $fetch('/api/music/proxy', {
+        retry: 0,
+        params: {
+          source,
+          path,
+          q: query.toString(),
+          responseType: 'json',
+          timeout: NETEASE_PROXY_TIMEOUT
+        }
+      })
+      break
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  if (!raw) {
+    throw lastError || new Error('网易云代理请求失败')
+  }
+
   return normalizeNeteaseResponse(raw)
 }
 
