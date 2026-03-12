@@ -3,7 +3,6 @@ import { generateBindingToken } from '~~/server/utils/oauth-token'
 import { db, eq, userIdentities } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import { getOAuthStrategy } from '~~/server/utils/oauth-strategies'
-import { isUserBlocked, getUserBlockRemainingTime } from '~~/server/services/securityService'
 
 export default defineEventHandler(async (event) => {
   const provider = getRouterParam(event, 'provider')
@@ -125,13 +124,6 @@ async function handleUserLoginOrBind(
       return sendRedirect(
         event,
         `/auth/error?code=ACCOUNT_WITHDRAWN&message=${encodeURIComponent('账号已注销')}`
-      )
-    }
-    if (isUserBlocked(user.id)) {
-      const remaining = getUserBlockRemainingTime(user.id)
-      return sendRedirect(
-        event,
-        `/auth/error?code=ACCOUNT_BLOCKED&message=${encodeURIComponent(`账户处于风险控制期，请在 ${remaining} 分钟后重试`)}`
       )
     }
 

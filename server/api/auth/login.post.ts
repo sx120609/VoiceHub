@@ -1,17 +1,6 @@
 import bcrypt from 'bcrypt'
 import { db, eq, or, users } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
-import {
-  getAccountLockRemainingTime,
-  getIPBlockRemainingTime,
-  isAccountLocked,
-  isIPBlocked,
-  recordLoginFailure,
-  recordLoginSuccess,
-  recordAccountIpLogin,
-  blockUser,
-  getUserBlockRemainingTime
-} from '../../services/securityService'
 import { getBeijingTime } from '~/utils/timeUtils'
 import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { isRegistrationEmailVerificationEnabled } from '~~/server/utils/registration-verification'
@@ -25,14 +14,6 @@ export default defineEventHandler(async (event) => {
       statusCode: 401,
       message: '账号或密码错误'
     })
-
-  const safeRecordLoginFailure = (username: string, ip: string) => {
-    try {
-      recordLoginFailure(username, ip)
-    } catch (securityError) {
-      console.error('[Login] 记录登录失败状态异常:', securityError)
-    }
-  }
 
   try {
     const body = await readBody(event)
@@ -75,24 +56,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 检查IP是否被限制
-    if (isIPBlocked(clientIp)) {
-      const remainingTime = getIPBlockRemainingTime(clientIp)
-      throw createError({
-        statusCode: 423,
-        message: `您的IP地址已被限制访问，请在 ${remainingTime} 分钟后重试`
-      })
-    }
-
-    // 检查账户是否被锁定
-    if (isAccountLocked(rawAccount)) {
-      const remainingTime = getAccountLockRemainingTime(rawAccount)
-      throw createError({
-        statusCode: 423,
-        message: `账户已被锁定，请在 ${remainingTime} 分钟后重试`
-      })
-    }
-
     // 查找用户
     const userResult = await db
       .select({
@@ -121,8 +84,6 @@ export default defineEventHandler(async (event) => {
     const user = userResult[0] || null
 
     if (!user) {
-      // 记录登录失败（用户不存在）
-      safeRecordLoginFailure(rawAccount, clientIp)
       throw normalizeLoginFailureError()
     }
     const normalizedRole = normalizeRoleOrDefault(user.role, 'USER')
@@ -139,8 +100,6 @@ export default defineEventHandler(async (event) => {
     }
 
     if (!isPasswordValid) {
-      // 记录登录失败（密码错误）
-      safeRecordLoginFailure(rawAccount, clientIp)
       throw normalizeLoginFailureError()
     }
 
@@ -175,29 +134,6 @@ export default defineEventHandler(async (event) => {
     if (normalizedRole !== 'USER' && !user.emailVerified) {
       await db.update(users).set({ emailVerified: true }).where(eq(users.id, user.id))
       user.emailVerified = true
-    }
-
-    try {
-      recordLoginSuccess(rawAccount, clientIp)
-    } catch (securityError) {
-      console.error('[Login] 记录登录成功状态异常:', securityError)
-    }
-
-    let ipSwitchExceeded = false
-    try {
-      ipSwitchExceeded = recordAccountIpLogin(rawAccount, clientIp)
-    } catch (securityError) {
-      console.error('[Login] 账号IP切换风控检测异常:', securityError)
-      ipSwitchExceeded = false
-    }
-    if (ipSwitchExceeded) {
-      blockUser(user.id)
-      const ipRemain = getIPBlockRemainingTime(clientIp)
-      const userRemain = getUserBlockRemainingTime(user.id)
-      throw createError({
-        statusCode: 423,
-        message: `检测到同一账号短期多IP登录，当前IP限制 ${ipRemain} 分钟，账户保护 ${userRemain} 分钟`
-      })
     }
 
     // 更新登录信息

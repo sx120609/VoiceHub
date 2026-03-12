@@ -1,7 +1,6 @@
 import { JWTEnhanced } from '../utils/jwt-enhanced'
 import { db, users } from '~/drizzle/db'
 import { eq } from 'drizzle-orm'
-import { isUserBlocked, getUserBlockRemainingTime } from '../services/securityService'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
 import { clearAuthTokenCookie } from '~~/server/utils/auth-cookie'
 
@@ -228,21 +227,6 @@ export default defineEventHandler(async (event) => {
       role: normalizeRoleOrDefault(user.role, 'USER')
     }
     event.context.user = normalizedUser
-
-    if (isUserBlocked(normalizedUser.id)) {
-      delete event.context.user
-      const remaining = getUserBlockRemainingTime(normalizedUser.id)
-      if (isOptionalAuthRoute) {
-        return
-      }
-      return sendError(
-        event,
-        createError({
-          statusCode: 401,
-          message: `账户处于风险控制期，请在 ${remaining} 分钟后重试`
-        })
-      )
-    }
 
     // 检查管理员专用路由
     if (

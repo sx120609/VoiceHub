@@ -2,12 +2,6 @@ import bcrypt from 'bcrypt'
 import { db, eq, users, userIdentities } from '~/drizzle/db'
 import { JWTEnhanced } from '~~/server/utils/jwt-enhanced'
 import { verifyBindingToken } from '~~/server/utils/oauth-token'
-import {
-  isAccountLocked,
-  recordLoginFailure,
-  recordLoginSuccess
-} from '~~/server/services/securityService'
-import { getClientIP } from '~~/server/utils/ip-utils'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -26,25 +20,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '无效的绑定令牌' })
   }
 
-  const clientIp = getClientIP(event)
-
-  // 验证用户凭据
-  if (isAccountLocked(username)) {
-    throw createError({ statusCode: 423, message: '账户已被锁定，请稍后重试' })
-  }
-
   const user = await db.query.users.findFirst({
     where: eq(users.username, username)
   })
 
   if (!user) {
-    recordLoginFailure(username, clientIp)
     throw createError({ statusCode: 401, message: '用户名或密码错误' })
   }
 
   const valid = await bcrypt.compare(password, user.password)
   if (!valid) {
-    recordLoginFailure(username, clientIp)
     throw createError({ statusCode: 401, message: '用户名或密码错误' })
   }
 
@@ -82,8 +67,6 @@ export default defineEventHandler(async (event) => {
       throw e
     }
   }
-
-  recordLoginSuccess(username, clientIp)
 
   // 登录
   const token = JWTEnhanced.generateToken(user.id, user.role)
