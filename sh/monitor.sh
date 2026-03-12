@@ -74,12 +74,12 @@ if [ -n "$MONITOR_BASE_URL" ]; then
   MONITOR_BASE_URL="${MONITOR_BASE_URL%/}"
 fi
 
-default_check_url="http://127.0.0.1:3000/rareapp/api/system/status"
+default_check_url="http://127.0.0.1:3000/rareapp/api/healthz"
 default_check_url_2="http://127.0.0.1:3000/rareapp/"
 if [ -n "$MONITOR_BASE_URL" ]; then
   base_host="$(extract_url_host "$MONITOR_BASE_URL")"
   if [ "$MONITOR_ALLOW_PUBLIC" = "1" ] || is_private_probe_host "$base_host"; then
-    default_check_url="${MONITOR_BASE_URL}/api/system/status"
+    default_check_url="${MONITOR_BASE_URL}/api/healthz"
     default_check_url_2="${MONITOR_BASE_URL}/"
   else
     printf '%s %s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "[monitor]" \
@@ -110,7 +110,7 @@ if [ -n "${SUCCESS_HTTP_REGEX:-}" ]; then
   SUCCESS_HTTP_REGEX="$SUCCESS_HTTP_REGEX"
 else
   case "$CHECK_URL" in
-    */api/system/status|*/api/system/status\?*)
+    */api/healthz|*/api/healthz\?|*/api/system/status|*/api/system/status\?*)
       SUCCESS_HTTP_REGEX='^200$'
       ;;
     *)
@@ -124,7 +124,7 @@ if [ -n "${CHECK_BODY_REGEX:-}" ]; then
   CHECK_BODY_REGEX="$CHECK_BODY_REGEX"
 else
   case "$CHECK_URL" in
-    */api/system/status|*/api/system/status\?*)
+    */api/healthz|*/api/healthz\?|*/api/system/status|*/api/system/status\?*)
       # 去空白后的 JSON 必须包含 status=ok 且 database.connected=true
       CHECK_BODY_REGEX='"status":"ok".*"database":\{.*"connected":true'
       ;;

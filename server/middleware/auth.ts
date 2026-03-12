@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
 
   // 公共API路径
   const publicApiPaths = [
+    '/api/healthz',
     '/api/auth/login',
     '/api/auth/email-login/',
     '/api/auth/forgot-password/',
