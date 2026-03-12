@@ -1,6 +1,8 @@
 import { computed, ref, readonly } from 'vue'
 import { normalizeApiBase, normalizeAppBase, withApiBase } from '~/utils/baseUrl'
 
+const SITE_CONFIG_CACHE_KEY = 'voicehub:site-config:v1'
+
 const defaultSubmissionGuidelines = `1. 投稿时无需加入书名号
 2. 除DJ外，其他类型歌曲均接收（包括小语种）
 3. 禁止投递含有违规内容的歌曲
@@ -31,6 +33,27 @@ export const useSiteConfig = () => {
   const appBaseURL = normalizeAppBase(runtimeConfig.app?.baseURL)
   const apiBase = normalizeApiBase(runtimeConfig.public?.apiBase, runtimeConfig.app?.baseURL)
 
+  const readSiteConfigCache = () => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = window.localStorage.getItem(SITE_CONFIG_CACHE_KEY)
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      return parsed && typeof parsed === 'object' ? parsed : null
+    } catch {
+      return null
+    }
+  }
+
+  const writeSiteConfigCache = (data) => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(SITE_CONFIG_CACHE_KEY, JSON.stringify(data))
+    } catch {
+      // 忽略缓存写入异常（如隐私模式）
+    }
+  }
+
   const applySiteConfig = (data) => {
     if (!data || typeof data !== 'object') return false
     siteConfig.value = {
@@ -38,6 +61,7 @@ export const useSiteConfig = () => {
       ...data
     }
     isLoaded.value = true
+    writeSiteConfigCache(siteConfig.value)
     return true
   }
 
@@ -50,6 +74,19 @@ export const useSiteConfig = () => {
     }
     return `${appBasePrefix}${path}`
   }
+
+  const buildDefaultSiteConfig = () => ({
+    siteTitle: '校园广播站点歌系统',
+    siteLogoUrl: withAppBasePath('/images/logo.png'),
+    schoolLogoHomeUrl: '',
+    schoolLogoPrintUrl: '',
+    siteDescription: '校园广播站点歌系统 - 让你的声音被听见',
+    submissionGuidelines: defaultSubmissionGuidelines,
+    icpNumber: '',
+    gonganNumber: '',
+    enableReplayRequests: false,
+    enableRegistrationEmailVerification: false
+  })
 
   // 获取站点配置
   const fetchSiteConfig = async () => {
@@ -67,21 +104,11 @@ export const useSiteConfig = () => {
       applySiteConfig(data)
     } catch (error) {
       console.error('获取站点配置失败:', error)
-
-      // 使用默认配置
-      siteConfig.value = {
-        siteTitle: '校园广播站点歌系统',
-        siteLogoUrl: withAppBasePath('/images/logo.png'),
-        schoolLogoHomeUrl: '',
-        schoolLogoPrintUrl: '',
-        siteDescription: '校园广播站点歌系统 - 让你的声音被听见',
-        submissionGuidelines: defaultSubmissionGuidelines,
-        icpNumber: '',
-        gonganNumber: '',
-        enableReplayRequests: false,
-        enableRegistrationEmailVerification: false
+      // 优先保留已有配置（可能来自SSR或本地缓存），避免瞬间回退为默认logo
+      if (!isLoaded.value) {
+        siteConfig.value = buildDefaultSiteConfig()
+        isLoaded.value = true
       }
-      isLoaded.value = true
     } finally {
       isLoading.value = false
     }
@@ -109,6 +136,10 @@ export const useSiteConfig = () => {
   // 初始化配置（仅在客户端执行）
   const initSiteConfig = async () => {
     if (typeof window !== 'undefined' && !isLoaded.value) {
+      const cached = readSiteConfigCache()
+      if (cached) {
+        applySiteConfig(cached)
+      }
       await fetchSiteConfig()
     }
   }

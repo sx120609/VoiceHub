@@ -33,7 +33,17 @@ const route = useRoute()
 const appBaseURL = normalizeAppBase(config.app.baseURL)
 const apiBase = normalizeApiBase(config.public.apiBase, config.app.baseURL)
 
-const { logoUrl, initSiteConfig } = useSiteConfig()
+const { siteTitle, logoUrl, initSiteConfig, hydrateSiteConfig } = useSiteConfig()
+
+// SSR阶段直接读取站点配置，避免首屏/页签先显示默认标题与默认logo
+if (import.meta.server) {
+  try {
+    const ssrSiteConfig = await $fetch('/api/site-config')
+    hydrateSiteConfig(ssrSiteConfig)
+  } catch {
+    // 失败时保持默认值，由客户端重试
+  }
+}
 
 const normalizeFaviconUrl = (url) => {
   const value = (url || '').trim()
@@ -67,6 +77,7 @@ const normalizeFaviconUrl = (url) => {
 const faviconHref = computed(() => normalizeFaviconUrl(logoUrl.value))
 
 useHead(() => ({
+  title: siteTitle.value || '校园广播站点歌系统',
   link: [
     {
       key: 'dynamic-favicon',
