@@ -1,7 +1,28 @@
 <template>
   <div class="home">
-    <div class="ellipse-effect" />
-    <div class="main-content">
+    <Transition name="home-loader-fade">
+      <div v-if="showInitialLoader" class="home-loader">
+        <div class="home-loader-card">
+          <img
+            v-if="loaderLogoUrl"
+            :src="loaderLogoUrl"
+            alt="Site Logo"
+            class="home-loader-logo"
+          >
+          <div v-else class="home-loader-mark">♪</div>
+          <h1 class="home-loader-title">{{ loaderTitle || '正在进入站点' }}</h1>
+          <p class="home-loader-text">
+            {{ loaderTitle ? '正在加载首页资源...' : '正在同步站点配置...' }}
+          </p>
+          <div class="home-loader-bar">
+            <span class="home-loader-bar-inner" />
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <div v-if="!showInitialLoader" class="ellipse-effect" />
+    <div v-if="!showInitialLoader" class="main-content">
       <div class="top-bar">
         <div class="logo-section">
           <NuxtLink class="logo-link" to="/">
@@ -614,6 +635,7 @@ const router = useRouter()
 
 // 站点配置
 const {
+  siteConfig,
   siteTitle,
   logoUrl,
   description: siteDescription,
@@ -657,6 +679,9 @@ const unreadNotificationCount = ref(0)
 const songCount = ref(0)
 const scheduleCount = ref(0)
 const isRequestOpen = ref(true)
+const showInitialLoader = ref(true)
+const HOME_LOADER_MIN_MS = 600
+const homeLoaderStartedAt = Date.now()
 
 // 弹窗状态
 const showRequestModal = ref(false)
@@ -997,6 +1022,18 @@ const getCurrentDate = () => {
 // RequestForm组件引用
 const requestFormRef = ref(null)
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const hideInitialLoader = async () => {
+  if (!showInitialLoader.value) return
+  const elapsed = Date.now() - homeLoaderStartedAt
+  const waitMs = Math.max(0, HOME_LOADER_MIN_MS - elapsed)
+  if (waitMs > 0) {
+    await sleep(waitMs)
+  }
+  showInitialLoader.value = false
+}
+
 const loadHomeBootstrap = async () => {
   try {
     const response = await $fetch('/api/bootstrap/home')
@@ -1111,34 +1148,39 @@ onMounted(async () => {
       document.title = `首页 | ${siteTitle.value}`
     }
 
-    // 初始化数据：使用 allSettled，避免单个接口失败导致首页整体崩溃
+    // 第一阶段：首屏必需数据（完成后立即展示页面）
     if (isClientAuthenticated.value) {
-      const tasks = [loadNotifications(), fetchNotificationSettings()]
-
+      const coreTasks = []
       if (!hasBootstrapSongs) {
-        tasks.push(songs.fetchSongs())
+        coreTasks.push(songs.fetchSongs())
       }
       if (!hasBootstrapPublicSchedules) {
-        tasks.push(songs.fetchPublicSchedules())
+        coreTasks.push(songs.fetchPublicSchedules())
       }
-
-      await Promise.allSettled(tasks)
-
+      if (coreTasks.length > 0) {
+        await Promise.allSettled(coreTasks)
+      }
       await checkPasswordChangeRequired(currentUser)
     } else {
-      const tasks = []
+      const coreTasks = []
       if (!hasBootstrapSongs) {
-        tasks.push(songs.fetchSongs())
+        coreTasks.push(songs.fetchSongs())
       }
       if (!hasBootstrapPublicSchedules) {
-        tasks.push(songs.fetchPublicSchedules())
+        coreTasks.push(songs.fetchPublicSchedules())
       }
-      if (tasks.length > 0) {
-        await Promise.allSettled(tasks)
+      if (coreTasks.length > 0) {
+        await Promise.allSettled(coreTasks)
       }
     }
 
     await updateSongCounts()
+    await hideInitialLoader()
+
+    // 第二阶段：非首屏必需数据，页面可见后再加载
+    if (isClientAuthenticated.value) {
+      await Promise.allSettled([loadNotifications(), fetchNotificationSettings()])
+    }
 
     const setupRefreshInterval = () => {
       if (refreshInterval) {
@@ -1192,6 +1234,8 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('首页初始化失败:', error)
+  } finally {
+    await hideInitialLoader()
   }
 })
 
@@ -1234,6 +1278,9 @@ const resolveLogoSrc = (url, fallback = '') => {
   }
   return value
 }
+
+const loaderTitle = computed(() => (siteConfig.value?.siteTitle || '').trim())
+const loaderLogoUrl = computed(() => resolveLogoSrc(siteConfig.value?.siteLogoUrl || ''))
 
 // 顶部站点Logo优先使用后台配置
 const proxiedSiteLogoUrl = computed(() => resolveLogoSrc(logoUrl.value, logo))
@@ -1609,6 +1656,105 @@ if (
   display: flex;
   flex-direction: column;
   min-height: 100vh; /* 确保至少占满视口 */
+}
+
+.home-loader {
+  min-height: calc(100vh - 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-loader-card {
+  width: min(92vw, 420px);
+  padding: 2rem 1.75rem;
+  border-radius: 20px;
+  border: 1px solid rgba(47, 125, 79, 0.16);
+  background: linear-gradient(160deg, #fbfdf8 0%, #f2f7eb 70%, #edf4e3 100%);
+  box-shadow:
+    0 16px 40px rgba(31, 42, 31, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.home-loader-logo {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.6rem;
+  box-shadow: 0 6px 16px rgba(31, 42, 31, 0.1);
+}
+
+.home-loader-mark {
+  width: 84px;
+  height: 84px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(47, 125, 79, 0.34);
+}
+
+.home-loader-title {
+  margin-top: 0.35rem;
+  color: #1f2a1f;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.home-loader-text {
+  color: #6b7d6b;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.home-loader-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(47, 125, 79, 0.14);
+  overflow: hidden;
+  margin-top: 0.45rem;
+}
+
+.home-loader-bar-inner {
+  display: block;
+  height: 100%;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2f7d4f 0%, #5fb17e 100%);
+  animation: loader-progress 1.2s ease-in-out infinite;
+}
+
+.home-loader-fade-enter-active,
+.home-loader-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+
+.home-loader-fade-enter-from,
+.home-loader-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes loader-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+  50% {
+    transform: translateX(48%);
+  }
+  100% {
+    transform: translateX(210%);
+  }
 }
 
 .main-content {
