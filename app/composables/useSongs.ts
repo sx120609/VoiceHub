@@ -22,6 +22,66 @@ export const useSongs = () => {
   const playTimeEnabled = useState('songs-store:play-time-enabled', () => false)
   const songCount = useState('songs-store:song-count', () => 0)
 
+  const applyPlayTimesResponse = (response: any) => {
+    playTimeEnabled.value = !!response?.enabled
+
+    if (response?.playTimes && Array.isArray(response.playTimes)) {
+      playTimes.value = response.playTimes.map((pt: any) => ({
+        id: pt.id,
+        name: pt.name,
+        startTime: pt.startTime || undefined,
+        endTime: pt.endTime || undefined,
+        enabled: pt.enabled,
+        description: pt.description || undefined
+      }))
+      return
+    }
+
+    playTimes.value = []
+  }
+
+  const applySongsResponse = (response: any) => {
+    if (response && response.success && response.data && Array.isArray(response.data.songs)) {
+      songs.value = response.data.songs as Song[]
+      return true
+    }
+
+    songs.value = []
+    console.warn('API返回的数据格式不正确:', response)
+    return false
+  }
+
+  const processPublicSchedules = (data: any[]) => {
+    return data.map((schedule: any) => {
+      // 处理歌曲属性
+      if (schedule.song && schedule.song.played === undefined) {
+        schedule.song.played = false
+      }
+
+      // 处理播放时间属性
+      let processedPlayTime = null
+      if (schedule.playTime) {
+        processedPlayTime = {
+          ...schedule.playTime,
+          startTime: schedule.playTime.startTime || undefined,
+          endTime: schedule.playTime.endTime || undefined
+        }
+      }
+
+      // 返回符合Schedule类型的对象
+      return {
+        ...schedule,
+        playTime: processedPlayTime
+      } as Schedule
+    })
+  }
+
+  const applyPublicSchedules = (data: any[]) => {
+    const processedData = processPublicSchedules(Array.isArray(data) ? data : [])
+    publicSchedules.value = processedData
+    publicSongs.value = extractSongsFromSchedules(processedData)
+  }
+
   // 显示通知
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     // 使用全局通知
@@ -143,21 +203,7 @@ export const useSongs = () => {
 
     try {
       const response = await $fetch('/api/play-times')
-      playTimeEnabled.value = response.enabled
-
-      // 确保类型兼容性
-      if (response.playTimes && Array.isArray(response.playTimes)) {
-        playTimes.value = response.playTimes.map((pt) => ({
-          id: pt.id,
-          name: pt.name,
-          startTime: pt.startTime || undefined,
-          endTime: pt.endTime || undefined,
-          enabled: pt.enabled,
-          description: pt.description || undefined
-        }))
-      } else {
-        playTimes.value = []
-      }
+      applyPlayTimesResponse(response)
 
       return response
     } catch (err: any) {
@@ -215,13 +261,7 @@ export const useSongs = () => {
         Object.keys(requestParams).length > 0 ? requestParams : undefined
       )
 
-      // 正确解析API返回的数据结构
-      if (response && response.success && response.data && Array.isArray(response.data.songs)) {
-        songs.value = response.data.songs as Song[]
-      } else {
-        songs.value = []
-        console.warn('API返回的数据格式不正确:', response)
-      }
+      applySongsResponse(response)
     } catch (err: any) {
       error.value = extractDisplayErrorMessage(err, '获取歌曲列表失败')
     } finally {
@@ -307,34 +347,7 @@ export const useSongs = () => {
         requestParams
       )
 
-      // 确保每个排期的歌曲都有played属性，并处理null/undefined转换
-      const processedData = data.map((schedule: any) => {
-        // 处理歌曲属性
-        if (schedule.song && schedule.song.played === undefined) {
-          schedule.song.played = false
-        }
-
-        // 处理播放时间属性
-        let processedPlayTime = null
-        if (schedule.playTime) {
-          processedPlayTime = {
-            ...schedule.playTime,
-            startTime: schedule.playTime.startTime || undefined,
-            endTime: schedule.playTime.endTime || undefined
-          }
-        }
-
-        // 返回符合Schedule类型的对象
-        return {
-          ...schedule,
-          playTime: processedPlayTime
-        } as Schedule
-      })
-
-      publicSchedules.value = processedData
-
-      // 直接从排期数据中提取歌曲信息，避免重复请求
-      publicSongs.value = extractSongsFromSchedules(processedData)
+      applyPublicSchedules(data)
     } catch (err: any) {
       error.value = extractDisplayErrorMessage(err, '获取排期失败')
     } finally {
@@ -1050,6 +1063,34 @@ export const useSongs = () => {
     }
   }
 
+  const hydrateFromBootstrap = (bootstrapData: any) => {
+    if (!bootstrapData || typeof bootstrapData !== 'object') {
+      return false
+    }
+
+    if (bootstrapData.playTimes) {
+      applyPlayTimesResponse(bootstrapData.playTimes)
+    }
+
+    if (bootstrapData.songs) {
+      applySongsResponse(bootstrapData.songs)
+    }
+
+    if (Array.isArray(bootstrapData.publicSchedules)) {
+      applyPublicSchedules(bootstrapData.publicSchedules)
+    }
+
+    if (
+      bootstrapData.songCount &&
+      typeof bootstrapData.songCount === 'object' &&
+      typeof bootstrapData.songCount.count === 'number'
+    ) {
+      songCount.value = bootstrapData.songCount.count
+    }
+
+    return true
+  }
+
   // 初始化加载
   const initialize = async () => {
     await fetchPlayTimes()
@@ -1077,6 +1118,7 @@ export const useSongs = () => {
     fetchPublicSchedules,
     fetchPlayTimes,
     fetchSongCount,
+    hydrateFromBootstrap,
     refreshSongsSilent,
     refreshSchedulesSilent,
     checkSimilarSongs,

@@ -31,6 +31,16 @@ export const useSiteConfig = () => {
   const appBaseURL = normalizeAppBase(runtimeConfig.app?.baseURL)
   const apiBase = normalizeApiBase(runtimeConfig.public?.apiBase, runtimeConfig.app?.baseURL)
 
+  const applySiteConfig = (data) => {
+    if (!data || typeof data !== 'object') return false
+    siteConfig.value = {
+      ...siteConfig.value,
+      ...data
+    }
+    isLoaded.value = true
+    return true
+  }
+
   const withAppBasePath = (path) => {
     if (!path || typeof path !== 'string') return path
     if (!path.startsWith('/')) return path
@@ -54,8 +64,7 @@ export const useSiteConfig = () => {
       }
 
       const data = await response.json()
-      siteConfig.value = data
-      isLoaded.value = true
+      applySiteConfig(data)
     } catch (error) {
       console.error('获取站点配置失败:', error)
 
@@ -110,6 +119,10 @@ export const useSiteConfig = () => {
     await fetchSiteConfig()
   }
 
+  const hydrateSiteConfig = (data) => {
+    return applySiteConfig(data)
+  }
+
   return {
     siteConfig: readonly(siteConfig),
     isLoaded: readonly(isLoaded),
@@ -127,6 +140,7 @@ export const useSiteConfig = () => {
     enableRegistrationEmailVerification,
     fetchSiteConfig,
     initSiteConfig,
-    refreshSiteConfig
+    refreshSiteConfig,
+    hydrateSiteConfig
   }
 }

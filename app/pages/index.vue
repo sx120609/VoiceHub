@@ -620,7 +620,8 @@ const {
   guidelines: submissionGuidelines,
   icp: icpNumber,
   schoolLogoHomeUrl,
-  initSiteConfig
+  initSiteConfig,
+  hydrateSiteConfig
 } = useSiteConfig()
 
 const auth = useAuth()
@@ -996,6 +997,26 @@ const getCurrentDate = () => {
 // RequestForm组件引用
 const requestFormRef = ref(null)
 
+const loadHomeBootstrap = async () => {
+  try {
+    const response = await $fetch('/api/bootstrap/home')
+    const bootstrapData = response?.data
+    if (!bootstrapData || typeof bootstrapData !== 'object') {
+      return null
+    }
+
+    if (bootstrapData.siteConfig) {
+      hydrateSiteConfig(bootstrapData.siteConfig)
+    }
+
+    songs.hydrateFromBootstrap(bootstrapData)
+    return bootstrapData
+  } catch (error) {
+    console.warn('聚合端点加载失败，回退到分散请求:', error)
+    return null
+  }
+}
+
 // 旧的showNotification函数已移除，使用全局通知系统
 
 // 更新歌曲数量统计（优化版本，避免重复请求）
@@ -1032,8 +1053,16 @@ watch(
 // 在组件挂载后初始化认证和歌曲（只会在客户端执行）
 onMounted(async () => {
   try {
-    // 初始化站点配置
-    await initSiteConfig()
+    // 优先使用聚合端点，减少首屏请求数量
+    const bootstrapData = await loadHomeBootstrap()
+    const hasBootstrapSiteConfig = !!bootstrapData?.siteConfig
+    const hasBootstrapSongs = !!bootstrapData?.songs?.success
+    const hasBootstrapPublicSchedules = Array.isArray(bootstrapData?.publicSchedules)
+
+    // 聚合端点不可用时回退到原有逻辑
+    if (!hasBootstrapSiteConfig) {
+      await initSiteConfig()
+    }
 
     // 初始化认证状态并获取用户信息
     const currentUser = await auth.initAuth()
@@ -1084,16 +1113,29 @@ onMounted(async () => {
 
     // 初始化数据：使用 allSettled，避免单个接口失败导致首页整体崩溃
     if (isClientAuthenticated.value) {
-      await Promise.allSettled([
-        songs.fetchSongs(),
-        songs.fetchPublicSchedules(),
-        loadNotifications(),
-        fetchNotificationSettings()
-      ])
+      const tasks = [loadNotifications(), fetchNotificationSettings()]
+
+      if (!hasBootstrapSongs) {
+        tasks.push(songs.fetchSongs())
+      }
+      if (!hasBootstrapPublicSchedules) {
+        tasks.push(songs.fetchPublicSchedules())
+      }
+
+      await Promise.allSettled(tasks)
 
       await checkPasswordChangeRequired(currentUser)
     } else {
-      await Promise.allSettled([songs.fetchSongs(), songs.fetchPublicSchedules()])
+      const tasks = []
+      if (!hasBootstrapSongs) {
+        tasks.push(songs.fetchSongs())
+      }
+      if (!hasBootstrapPublicSchedules) {
+        tasks.push(songs.fetchPublicSchedules())
+      }
+      if (tasks.length > 0) {
+        await Promise.allSettled(tasks)
+      }
     }
 
     await updateSongCounts()
