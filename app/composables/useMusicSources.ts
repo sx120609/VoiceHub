@@ -29,6 +29,23 @@ export const useMusicSources = () => {
 
   // 音源状态
   const sourceStatus = ref<Record<string, SourceStatus>>({})
+  const SOURCE_ERROR_COOLDOWN_MS = 2 * 60 * 1000
+
+  const isSourceInCooldown = (sourceId: string) => {
+    const status = sourceStatus.value[sourceId]
+    if (!status || status.status !== 'error') {
+      return false
+    }
+
+    const lastCheckTime =
+      status.lastCheck instanceof Date ? status.lastCheck.getTime() : new Date(status.lastCheck as any).getTime()
+
+    if (!Number.isFinite(lastCheckTime)) {
+      return false
+    }
+
+    return Date.now() - lastCheckTime < SOURCE_ERROR_COOLDOWN_MS
+  }
 
   const isAbsoluteHttpUrl = (url: string) => /^https?:\/\//i.test(url)
 
@@ -477,8 +494,11 @@ export const useMusicSources = () => {
         console.log('网易云音乐平台搜索，优先使用netease-backup系列音源')
       }
 
+      const candidateSources = sourcesToTry.filter((source) => !isSourceInCooldown(source.id))
+      const effectiveSources = candidateSources.length > 0 ? candidateSources : sourcesToTry
+
       // 按选定的顺序尝试每个音源
-      for (const source of sourcesToTry) {
+      for (const source of effectiveSources) {
         // 在每次尝试前检查请求是否已被取消
         if (signal?.aborted) {
           throw new DOMException('搜索请求已被取消', 'AbortError')
@@ -505,7 +525,7 @@ export const useMusicSources = () => {
           errors.push(error) // 收集错误
 
           // 如果不是最后一个音源，继续尝试下一个
-          if (source !== sourcesToTry[sourcesToTry.length - 1]) {
+          if (source !== effectiveSources[effectiveSources.length - 1]) {
             console.log(`继续尝试下一个音源...`)
           }
         }
@@ -513,7 +533,9 @@ export const useMusicSources = () => {
 
       // 若为QQ音乐平台，尝试完腾讯源后允许作为最后手段切换到其他平台
       if (params.platform === 'tencent') {
-        const otherSources = enabledSources.filter((s) => s.id !== 'vkeys-v3' && s.id !== 'vkeys')
+        const otherSources = enabledSources.filter(
+          (s) => s.id !== 'vkeys-v3' && s.id !== 'vkeys' && !isSourceInCooldown(s.id)
+        )
         if (otherSources.length) {
           console.log('QQ音乐平台所有专用源失败，作为最后手段尝试其他平台音源')
           for (const source of otherSources) {
@@ -702,8 +724,10 @@ export const useMusicSources = () => {
    */
   const getSongDetail = async (params: SongDetailParams): Promise<SongDetailResult> => {
     const enabledSources = getEnabledSources()
+    const candidateSources = enabledSources.filter((source) => !isSourceInCooldown(source.id))
+    const effectiveSources = candidateSources.length > 0 ? candidateSources : enabledSources
 
-    for (const source of enabledSources) {
+    for (const source of effectiveSources) {
       try {
         const result = await getSongDetailWithSource(source, params)
 
@@ -969,8 +993,11 @@ export const useMusicSources = () => {
         })
       }
 
+      const candidateSources = sourcesToTry.filter(({ source }) => !isSourceInCooldown(source.id))
+      const effectiveSources = candidateSources.length > 0 ? candidateSources : sourcesToTry
+
       // 逐个尝试音源
-      for (const { source, type } of sourcesToTry) {
+      for (const { source, type } of effectiveSources) {
         try {
           let url: string | null = null
 

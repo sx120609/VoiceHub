@@ -22,6 +22,10 @@ const normalizeRole = (role?: string | null): string => {
   return 'USER'
 }
 
+const AUTH_VERIFY_UNAUTH_COOLDOWN_MS = 30 * 1000
+let initAuthInFlight: Promise<User | null> | null = null
+let lastUnauthVerifyAt = 0
+
 export const useAuth = () => {
   const user = useState<User | null>('user', () => null)
   const token = useState<string | null>('token', () => null)
@@ -48,6 +52,8 @@ export const useAuth = () => {
   const invalidateSessionLocally = () => {
     clearAuthState()
     clearAuthCookie()
+    lastUnauthVerifyAt = Date.now()
+    initAuthInFlight = null
   }
 
   const setAuthState = (loggedInUser: User) => {
@@ -59,6 +65,7 @@ export const useAuth = () => {
     user.value = normalizedUser
     isAuthenticated.value = true
     isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(normalizedUser.role)
+    lastUnauthVerifyAt = 0
   }
 
   const initAuth = async () => {
@@ -72,40 +79,65 @@ export const useAuth = () => {
       return user.value
     }
 
-    try {
-      const data = await $fetch<{ user: User }>('/api/auth/verify', {
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      })
+    const hasAuthTokenCookie = document.cookie.includes('auth-token=')
 
-      if (data && data.user) {
-        user.value = {
-          ...data.user,
-          role: normalizeRole(data.user.role)
-        }
-        isAuthenticated.value = true
-        isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(user.value.role)
-        token.value = 'cookie-based'
-        return user.value
-      } else {
-        clearAuthState()
-        return null
-      }
-    } catch (error: any) {
-      const hadAuth = isAuthenticated.value
-      
-      // 只有当之前是已认证状态，且接口明确返回401（Token无效/过期），才进行清理和跳转
-      if (hadAuth && error.statusCode === 401) {
-         clearAuthState()
-         // Token失效，重定向到登录页
-         await navigateTo('/login?error=SessionExpired')
-      } else if (!hadAuth && error.statusCode === 401) {
-        // 未登录状态下的 401，仅确保状态清理，不跳转
-        clearAuthState()
-      }
+    // 明确未登录态下做冷却，避免在短时间内反复打 /api/auth/verify
+    if (
+      !isAuthenticated.value &&
+      !hasAuthTokenCookie &&
+      Date.now() - lastUnauthVerifyAt < AUTH_VERIFY_UNAUTH_COOLDOWN_MS
+    ) {
       return null
     }
+
+    // 单飞：并发只发一次 verify 请求
+    if (initAuthInFlight) {
+      return await initAuthInFlight
+    }
+
+    initAuthInFlight = (async () => {
+      try {
+        const data = await $fetch<{ user: User }>('/api/auth/verify', {
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+
+        if (data && data.user) {
+          user.value = {
+            ...data.user,
+            role: normalizeRole(data.user.role)
+          }
+          isAuthenticated.value = true
+          isAdmin.value = ['ADMIN', 'SUPER_ADMIN', 'SONG_ADMIN'].includes(user.value.role)
+          token.value = 'cookie-based'
+          lastUnauthVerifyAt = 0
+          return user.value
+        } else {
+          clearAuthState()
+          lastUnauthVerifyAt = Date.now()
+          return null
+        }
+      } catch (error: any) {
+        const hadAuth = isAuthenticated.value
+
+        // 只有当之前是已认证状态，且接口明确返回401（Token无效/过期），才进行清理和跳转
+        if (hadAuth && error.statusCode === 401) {
+          clearAuthState()
+          // Token失效，重定向到登录页
+          await navigateTo('/login?error=SessionExpired')
+        } else if (!hadAuth && error.statusCode === 401) {
+          // 未登录状态下的 401，仅确保状态清理，不跳转，并启用冷却
+          clearAuthState()
+          lastUnauthVerifyAt = Date.now()
+        }
+        return null
+      } finally {
+        initAuthInFlight = null
+      }
+    })()
+
+    return await initAuthInFlight
   }
 
   const login = async (username: string, password: string) => {

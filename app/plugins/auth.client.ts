@@ -4,6 +4,7 @@ import {
   stripAppBaseFromPath,
   withApiBase
 } from '~/utils/baseUrl'
+import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 export default defineNuxtPlugin((nuxtApp) => {
   if (!import.meta.client) {
@@ -16,9 +17,25 @@ export default defineNuxtPlugin((nuxtApp) => {
   const apiBase = normalizeApiBase(runtimeConfig.public.apiBase, appBaseURL)
   const originalFetch = window.fetch
   const errorHandler = useErrorHandler()
+  const auth = useAuth()
   const isApiRequest = (request: string) =>
     request.startsWith('/api') || request === apiBase || request.startsWith(`${apiBase}/`)
   const normalizeApiRequest = (request: string) => withApiBase(request, apiBase)
+  const getRequestUrlString = (request: RequestInfo | URL | any): string => {
+    if (typeof request === 'string') return request
+    if (request instanceof URL) return request.toString()
+    if (typeof Request !== 'undefined' && request instanceof Request) return request.url
+    return ''
+  }
+  const isAuthVerifyRequest = (requestUrl: string) => {
+    if (!requestUrl) return false
+    try {
+      const url = requestUrl.startsWith('http') ? new URL(requestUrl) : new URL(requestUrl, window.location.origin)
+      return url.pathname.endsWith('/api/auth/verify')
+    } catch {
+      return requestUrl.includes('/api/auth/verify')
+    }
+  }
   const isAuthPage = () => {
     const currentPath = stripAppBaseFromPath(window.location.pathname, appBaseURL)
     return currentPath === '/login' || currentPath === '/register'
@@ -53,10 +70,16 @@ export default defineNuxtPlugin((nuxtApp) => {
       }
     }
 
+    const requestUrl = getRequestUrlString(nextInput)
     const response = await originalFetch(nextInput, init)
 
     // 检查是否为401错误
     if (response.status === 401) {
+      // 未登录状态下的 /api/auth/verify 属于正常探测，不触发全局401处理
+      if (isAuthVerifyRequest(requestUrl) && !auth.isAuthenticated.value) {
+        return response
+      }
+
       // 如果在登录页面，解析错误响应体并抛出具体错误信息
       if (isAuthPage()) {
         try {
@@ -78,7 +101,6 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   // 初始化认证状态
   nuxtApp.hook('app:created', async () => {
-    const auth = useAuth()
     await auth.initAuth()
 
     // 拦截$fetch请求，确保cookie会被发送
@@ -87,6 +109,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       nuxtApp.$fetch = async function (request: any, options: any = {}) {
         const normalizedRequest =
           typeof request === 'string' ? normalizeApiRequest(request) : request
+        const requestUrl = getRequestUrlString(normalizedRequest)
 
         // 为所有API请求确保cookie会被发送
         if (typeof normalizedRequest === 'string' && isApiRequest(normalizedRequest)) {
@@ -100,22 +123,14 @@ export default defineNuxtPlugin((nuxtApp) => {
         } catch (error: any) {
           // 检查是否为401错误
           if (error?.status === 401 || error?.statusCode === 401) {
+            // 未登录状态下的 /api/auth/verify 属于正常探测，不触发全局401处理
+            if (isAuthVerifyRequest(requestUrl) && !auth.isAuthenticated.value) {
+              throw error
+            }
+
             // 如果在登录页面，解析错误信息并抛出具体错误
             if (isAuthPage()) {
-              // 从error对象中提取具体错误信息，过滤掉网络请求信息
-              let errorMessage =
-                error?.data?.message || error?.message || '登录失败，请检查账号密码'
-
-              // 如果错误信息包含网络请求格式（如 [POST] "/api/auth/login": <no response>），则提取纯净的错误信息
-              if (typeof errorMessage === 'string') {
-                // 匹配并移除网络请求前缀格式
-                const cleanMessage = errorMessage
-                  .replace(/^\[\w+\]\s+"[^"]+":\s+(<no response>\s+)?/, '')
-                  .trim()
-                errorMessage = cleanMessage || '登录失败，请检查账号密码'
-              }
-
-              const newError = new Error(errorMessage)
+              const newError = new Error(extractDisplayErrorMessage(error, '登录失败，请检查账号密码'))
               throw newError
             }
 

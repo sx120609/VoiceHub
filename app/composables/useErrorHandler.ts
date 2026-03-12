@@ -4,17 +4,19 @@ import { extractDisplayErrorMessage } from '~/utils/errorMessage'
 
 // 防抖机制
 let isHandling401 = false
-const lastHandle401Time = 0
+let lastHandle401Time = 0
 const HANDLE_401_DEBOUNCE_TIME = 2000
 
 export const useErrorHandler = () => {
   // 处理401认证失效错误
   const handle401Error = async (error: any) => {
     // 防抖机制
-    if (isHandling401) {
+    const now = Date.now()
+    if (isHandling401 || now - lastHandle401Time < HANDLE_401_DEBOUNCE_TIME) {
       return
     }
 
+    lastHandle401Time = now
     isHandling401 = true
 
     try {

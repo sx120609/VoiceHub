@@ -156,7 +156,50 @@ export default defineNuxtConfig({
     timing: true,
     // 增加请求超时时间
     routeRules: {
-      // 完全禁用所有API路由的缓存，确保每次都请求数据库
+      // 对公共只读接口启用短时缓存，降低高并发下的网关压力
+      '/api/site-config': {
+        headers: {
+          'Cache-Control': 'public, max-age=60, s-maxage=120, stale-while-revalidate=300',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      },
+      '/api/system/location': {
+        headers: {
+          'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=600',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      },
+      '/api/songs/public': {
+        headers: {
+          'Cache-Control': 'public, max-age=15, s-maxage=30, stale-while-revalidate=60',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      },
+      '/api/schedules/public': {
+        headers: {
+          'Cache-Control': 'public, max-age=15, s-maxage=30, stale-while-revalidate=60',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      },
+      '/api/songs/count': {
+        headers: {
+          'Cache-Control': 'public, max-age=15, s-maxage=30, stale-while-revalidate=60',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      },
+      '/api/play-times': {
+        headers: {
+          'Cache-Control': 'public, max-age=60, s-maxage=120, stale-while-revalidate=300',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      },
+      '/api/semesters/current': {
+        headers: {
+          'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=1200',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      },
+      // 默认禁用所有其他 API 路由缓存（上方公共只读接口已单独放开）
       '/api/**': {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
