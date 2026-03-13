@@ -1,13 +1,51 @@
 <template>
-  <div v-if="totalPages > 1" class="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 pt-4">
-    <!-- 分页信息 -->
-    <div class="text-[10px] font-black text-zinc-700 uppercase tracking-[0.2em] order-2 sm:order-1">
-      第 {{ currentPage }} 页 · 共 {{ totalPages }} 页
-      <span v-if="totalItems !== null"> (共 {{ totalItems }} {{ itemName }})</span>
+  <div v-if="totalPages > 1" class="px-2 pt-4">
+    <!-- 移动端紧凑分页 -->
+    <div class="sm:hidden flex items-center justify-center gap-2 mb-3">
+      <button
+        :disabled="currentPage === 1"
+        class="w-9 h-9 rounded-xl border border-emerald-200 bg-white text-emerald-700 flex items-center justify-center disabled:opacity-35"
+        title="首页"
+        @click="goToPage(1)"
+      >
+        <ChevronsLeft :size="16" />
+      </button>
+
+      <button
+        :disabled="currentPage === 1"
+        class="w-9 h-9 rounded-xl border border-emerald-200 bg-white text-emerald-700 flex items-center justify-center disabled:opacity-35"
+        title="上一页"
+        @click="goToPage(currentPage - 1)"
+      >
+        <ChevronLeft :size="16" />
+      </button>
+
+      <div class="min-w-[92px] h-9 px-3 rounded-xl bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center gap-1">
+        <span>{{ currentPage }}</span>
+        <span class="opacity-80">/</span>
+        <span class="opacity-90">{{ totalPages }}</span>
+      </div>
+
+      <button
+        :disabled="currentPage === totalPages"
+        class="w-9 h-9 rounded-xl border border-emerald-200 bg-white text-emerald-700 flex items-center justify-center disabled:opacity-35"
+        title="下一页"
+        @click="goToPage(currentPage + 1)"
+      >
+        <ChevronRight :size="16" />
+      </button>
+
+      <button
+        :disabled="currentPage === totalPages"
+        class="w-9 h-9 rounded-xl border border-emerald-200 bg-white text-emerald-700 flex items-center justify-center disabled:opacity-35"
+        title="尾页"
+        @click="goToPage(totalPages)"
+      >
+        <ChevronsRight :size="16" />
+      </button>
     </div>
 
-    <!-- 分页控制 -->
-    <div class="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
+    <div class="hidden sm:flex items-center justify-center gap-2">
       <!-- 首页 -->
       <button
         :disabled="currentPage === 1"
@@ -28,7 +66,6 @@
         <ChevronLeft :size="18" />
       </button>
 
-      <!-- 当前页码/按钮组 (移动端隐藏，只显示当前页) -->
       <div class="flex items-center gap-2">
         <button
           v-for="page in displayedPages"
@@ -83,6 +120,12 @@
           跳转
         </button>
       </div>
+    </div>
+
+    <!-- 分页信息 -->
+    <div class="text-center text-[13px] sm:text-[10px] font-black text-zinc-700 tracking-[0.06em] sm:tracking-[0.2em] mt-1 sm:mt-3">
+      第 {{ currentPage }} 页 · 共 {{ totalPages }} 页
+      <span v-if="totalItems !== null"> (共 {{ totalItems }} {{ itemName }})</span>
     </div>
   </div>
 </template>
