@@ -1293,6 +1293,11 @@ watch(
       return
     }
 
+    if (!import.meta.client || typeof Image === 'undefined') {
+      loaderDisplayLogoUrl.value = newLogoUrl
+      return
+    }
+
     const img = new Image()
     img.onload = () => {
       loaderDisplayLogoUrl.value = newLogoUrl
