@@ -1294,7 +1294,7 @@ watch(
     }
 
     if (!import.meta.client || typeof Image === 'undefined') {
-      loaderDisplayLogoUrl.value = newLogoUrl
+      loaderDisplayLogoUrl.value = ''
       return
     }
 

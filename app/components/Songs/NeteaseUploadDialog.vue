@@ -218,22 +218,22 @@ const showLoginModal = () => {
   emit('show-login')
 }
 
-const postNeteaseProxy = async (path: string, q: string, body: Record<string, any>) => {
-  const sources = ['netease-backup-2', 'netease-backup-1']
+const NETEASE_DIRECT_BASE_URLS = ['https://ncmapi.zcy.life:443', 'https://api.voicehub.lao-shui.top:443']
+
+const buildDirectRequestUrl = (baseUrl: string, path: string, q: string) => {
+  const normalizedBase = baseUrl.replace(/\/+$/, '')
+  return q ? `${normalizedBase}${path}?${q}` : `${normalizedBase}${path}`
+}
+
+const postNeteaseDirect = async (path: string, q: string, body: Record<string, any>) => {
   let lastError: any
 
-  for (const source of sources) {
+  for (const baseUrl of NETEASE_DIRECT_BASE_URLS) {
     try {
-      return await $fetch('/api/music/proxy', {
+      return await $fetch(buildDirectRequestUrl(baseUrl, path, q), {
         method: 'POST',
         retry: 0,
-        params: {
-          source,
-          path,
-          q,
-          responseType: 'json',
-          timeout: 12000
-        },
+        timeout: 12000,
         body
       })
     } catch (error: any) {
@@ -241,7 +241,7 @@ const postNeteaseProxy = async (path: string, q: string, body: Record<string, an
     }
   }
 
-  throw lastError || new Error('网易云代理请求失败')
+  throw lastError || new Error('网易云请求失败')
 }
 
 // 获取网易云音乐Cookie
@@ -262,14 +262,12 @@ const getQQMusicUrl = async (strMediaMid: string, quality: number): Promise<stri
     throw new Error('缺少歌曲ID (strMediaMid)')
   }
 
-  const data: any = await $fetch('/api/music/proxy', {
+  const data: any = await $fetch('https://api.vkeys.cn/v2/music/tencent', {
     retry: 0,
+    timeout: 10000,
     params: {
-      source: 'vkeys',
-      path: '/tencent',
-      q: `id=${encodeURIComponent(strMediaMid)}&quality=${encodeURIComponent(String(quality))}`,
-      responseType: 'json',
-      timeout: 10000
+      id: strMediaMid,
+      quality
     }
   })
   // console.log('API响应:', data)
@@ -441,7 +439,7 @@ const uploadToNetease = async (audioBlob: Blob, filename: string) => {
 
   // 1. 获取上传凭证
   uploadStatus.value = '正在获取上传凭证'
-  const tokenData: any = await postNeteaseProxy('/cloud/upload/token', `time=${Date.now()}`, {
+  const tokenData: any = await postNeteaseDirect('/cloud/upload/token', `time=${Date.now()}`, {
     cookie,
     md5,
     fileSize,
@@ -495,7 +493,7 @@ const uploadToNetease = async (audioBlob: Blob, filename: string) => {
 
   // 3. 完成上传（导入/发布）
   uploadStatus.value = '正在保存云盘信息'
-  const completeData: any = await postNeteaseProxy('/cloud/upload/complete', `time=${Date.now()}`, {
+  const completeData: any = await postNeteaseDirect('/cloud/upload/complete', `time=${Date.now()}`, {
     cookie,
     md5,
     songId,

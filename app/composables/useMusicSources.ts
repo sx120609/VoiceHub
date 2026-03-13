@@ -49,48 +49,6 @@ export const useMusicSources = () => {
 
   const isAbsoluteHttpUrl = (url: string) => /^https?:\/\//i.test(url)
 
-  const normalizePort = (protocol: string, port: string) => {
-    if (port) return port
-    if (protocol === 'https:') return '443'
-    if (protocol === 'http:') return '80'
-    return ''
-  }
-
-  const resolveProxyTarget = (url: string) => {
-    if (!isAbsoluteHttpUrl(url)) {
-      return null
-    }
-
-    try {
-      const parsedUrl = new URL(url)
-      const matchedSource = config.value.sources.find((source) => {
-        try {
-          const sourceUrl = new URL(source.baseUrl)
-          return (
-            sourceUrl.protocol === parsedUrl.protocol &&
-            sourceUrl.hostname === parsedUrl.hostname &&
-            normalizePort(sourceUrl.protocol, sourceUrl.port) ===
-              normalizePort(parsedUrl.protocol, parsedUrl.port)
-          )
-        } catch {
-          return false
-        }
-      })
-
-      if (!matchedSource) {
-        return null
-      }
-
-      return {
-        source: matchedSource.id,
-        path: parsedUrl.pathname,
-        q: parsedUrl.search.replace(/^\?/, '')
-      }
-    } catch {
-      return null
-    }
-  }
-
   const fetchSourceJson = async (
     url: string,
     options: {
@@ -99,18 +57,6 @@ export const useMusicSources = () => {
       signal?: AbortSignal
     } = {}
   ): Promise<any> => {
-    const proxyTarget = resolveProxyTarget(url)
-    if (import.meta.client && proxyTarget) {
-      return await $fetch('/api/music/proxy', {
-        retry: 0,
-        params: {
-          ...proxyTarget,
-          responseType: 'json',
-          timeout: options.timeout || config.value.timeout
-        }
-      })
-    }
-
     return await $fetch(url, {
       retry: 0,
       timeout: options.timeout,
@@ -127,18 +73,6 @@ export const useMusicSources = () => {
       signal?: AbortSignal
     } = {}
   ): Promise<string> => {
-    const proxyTarget = resolveProxyTarget(url)
-    if (import.meta.client && proxyTarget) {
-      return await $fetch('/api/music/proxy', {
-        retry: 0,
-        params: {
-          ...proxyTarget,
-          responseType: 'text',
-          timeout: options.timeout || config.value.timeout
-        }
-      })
-    }
-
     return await $fetch(url, {
       retry: 0,
       timeout: options.timeout,
@@ -155,19 +89,6 @@ export const useMusicSources = () => {
       headers?: Record<string, string>
     } = {}
   ): Promise<string> => {
-    const proxyTarget = resolveProxyTarget(url)
-    if (import.meta.client && proxyTarget) {
-      const result = await $fetch<{ url?: string }>('/api/music/proxy', {
-        retry: 0,
-        params: {
-          ...proxyTarget,
-          responseType: 'resolve',
-          timeout: options.timeout || config.value.timeout
-        }
-      })
-      return result?.url || ''
-    }
-
     const response = await fetch(url, {
       method: 'GET',
       headers: options.headers,
