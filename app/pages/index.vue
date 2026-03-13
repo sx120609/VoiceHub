@@ -3,13 +3,15 @@
     <Transition name="home-loader-fade">
       <div v-if="showInitialLoader" class="home-loader">
         <div class="home-loader-card">
-          <img
-            v-if="loaderLogoUrl"
-            :src="loaderLogoUrl"
-            alt="Site Logo"
-            class="home-loader-logo"
-          >
-          <div v-else class="home-loader-mark">♪</div>
+          <div class="home-loader-logo-shell">
+            <img
+              v-if="loaderDisplayLogoUrl"
+              :src="loaderDisplayLogoUrl"
+              alt="Site Logo"
+              class="home-loader-logo"
+            >
+            <div v-else class="home-loader-logo-skeleton" />
+          </div>
           <h1 class="home-loader-title">{{ loaderTitle || '正在进入站点' }}</h1>
           <p class="home-loader-text">
             {{ loaderTitle ? '正在加载首页资源...' : '正在同步站点配置...' }}
@@ -1281,6 +1283,27 @@ const resolveLogoSrc = (url, fallback = '') => {
 
 const loaderTitle = computed(() => (siteConfig.value?.siteTitle || '').trim())
 const loaderLogoUrl = computed(() => resolveLogoSrc(siteConfig.value?.siteLogoUrl || ''))
+const loaderDisplayLogoUrl = ref('')
+
+watch(
+  loaderLogoUrl,
+  (newLogoUrl) => {
+    if (!newLogoUrl) {
+      loaderDisplayLogoUrl.value = ''
+      return
+    }
+
+    const img = new Image()
+    img.onload = () => {
+      loaderDisplayLogoUrl.value = newLogoUrl
+    }
+    img.onerror = () => {
+      loaderDisplayLogoUrl.value = ''
+    }
+    img.src = newLogoUrl
+  },
+  { immediate: true }
+)
 
 // 顶部站点Logo优先使用后台配置
 const proxiedSiteLogoUrl = computed(() => resolveLogoSrc(logoUrl.value, logo))
@@ -1680,27 +1703,31 @@ if (
   gap: 0.75rem;
 }
 
-.home-loader-logo {
+.home-loader-logo-shell {
   width: 84px;
   height: 84px;
-  object-fit: contain;
   border-radius: 16px;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.85);
-  padding: 0.6rem;
   box-shadow: 0 6px 16px rgba(31, 42, 31, 0.1);
 }
 
-.home-loader-mark {
-  width: 84px;
-  height: 84px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(180deg, #2f7d4f 0%, #3f9a65 100%);
-  color: #fff;
-  font-size: 1.8rem;
-  font-weight: 700;
-  box-shadow: 0 10px 22px rgba(47, 125, 79, 0.34);
+.home-loader-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.6rem;
+  display: block;
+}
+
+.home-loader-logo-skeleton {
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(110deg, rgba(47, 125, 79, 0.1) 8%, rgba(47, 125, 79, 0.24) 18%, rgba(47, 125, 79, 0.1) 33%),
+    #eef4e8;
+  background-size: 200% 100%;
+  animation: logo-skeleton-shimmer 1.3s linear infinite;
 }
 
 .home-loader-title {
@@ -1754,6 +1781,12 @@ if (
   }
   100% {
     transform: translateX(210%);
+  }
+}
+
+@keyframes logo-skeleton-shimmer {
+  to {
+    background-position-x: -200%;
   }
 }
 
