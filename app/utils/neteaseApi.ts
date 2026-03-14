@@ -1,12 +1,4 @@
-const NETEASE_DIRECT_BASE_URLS = ['https://ncmapi.zcy.life:443', 'https://api.voicehub.lao-shui.top:443']
-const NETEASE_PROXY_TIMEOUT = 10000
-
-const normalizeEndpoint = (endpoint) => (endpoint.startsWith('/') ? endpoint : `/${endpoint}`)
-
-const buildRequestUrl = (baseUrl, path, queryString) => {
-  const normalizedBase = baseUrl.replace(/\/+$/, '')
-  return queryString ? `${normalizedBase}${path}?${queryString}` : `${normalizedBase}${path}`
-}
+const BASE_URL = '/api/api-enhanced/netease'
 
 export function normalizeNeteaseResponse(data) {
   if (!data || typeof data !== 'object') {
@@ -17,12 +9,12 @@ export function normalizeNeteaseResponse(data) {
     }
   }
 
-  // 检查是否已经是标准格式 { code: 200, data: ... }
+  // 已是标准响应结构时直接返回
   if (data.code === 200 && data.data) {
     return {
       code: data.code,
       message: data.message || '',
-      body: data.data // 将 data 字段映射为 body
+      body: data.data // 统一映射到 body
     }
   }
 
@@ -40,7 +32,6 @@ export function normalizeNeteaseResponse(data) {
 }
 
 export async function fetchNetease(endpoint, params = {}, cookie) {
-  const path = normalizeEndpoint(endpoint)
   const query = new URLSearchParams()
   for (const key in params) {
     if (params[key] !== undefined && params[key] !== null) {
@@ -52,25 +43,9 @@ export async function fetchNetease(endpoint, params = {}, cookie) {
   }
   query.append('timestamp', Date.now().toString())
 
-  let raw
-  let lastError
-
-  for (const baseUrl of NETEASE_DIRECT_BASE_URLS) {
-    try {
-      raw = await $fetch(buildRequestUrl(baseUrl, path, query.toString()), {
-        retry: 0,
-        timeout: NETEASE_PROXY_TIMEOUT
-      })
-      break
-    } catch (error) {
-      lastError = error
-    }
-  }
-
-  if (!raw) {
-    throw lastError || new Error('网易云请求失败')
-  }
-
+  const url = `${BASE_URL}${endpoint}?${query.toString()}`
+  const response = await fetch(url)
+  const raw = await response.json()
   return normalizeNeteaseResponse(raw)
 }
 

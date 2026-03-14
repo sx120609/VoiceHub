@@ -121,7 +121,6 @@
 <script lang="ts" setup>
 import { onUnmounted, ref, watch } from 'vue'
 import Icon from '~/components/UI/Icon.vue'
-import { fetchNetease } from '~/utils/neteaseApi'
 
 interface Props {
   show: boolean
@@ -134,9 +133,11 @@ const emit = defineEmits<{
   (e: 'login-success', data: { cookie: string; user: any }): void
 }>()
 
+const BASE_URL = '/api/api-enhanced/netease'
+
 const qrImg = ref('')
 const loading = ref(false)
-const status = ref(0) // 800: expired, 801: waiting, 802: scanned, 803: success
+const status = ref(0) // 800已过期、801待扫码、802已扫码、803登录成功
 const isExpired = ref(false)
 let timer: any = null
 let unikey = ''
@@ -160,31 +161,23 @@ const initLogin = async () => {
   status.value = 0
 
   try {
-    // 1. Get Key
-    const keyRes = await fetchNetease('/login/qr/key')
-    const unikeyValue = keyRes?.body?.data?.unikey
-    if (keyRes?.code !== 200 || !unikeyValue) {
-      throw new Error(keyRes?.message || '获取登录二维码 key 失败')
-    }
-    unikey = unikeyValue
+    // 获取二维码登录密钥
+    const keyRes = await fetch(`${BASE_URL}/login/qr/key?timestamp=${Date.now()}`)
+    const keyData = await keyRes.json()
+    unikey = keyData.data.unikey
 
-    // 2. Create QR
-    const qrRes = await fetchNetease('/login/qr/create', {
-      key: unikey,
-      qrimg: 'true',
-      ua: 'pc'
-    })
-    const qrImgValue = qrRes?.body?.data?.qrimg
-    if (qrRes?.code !== 200 || !qrImgValue) {
-      throw new Error(qrRes?.message || '生成登录二维码失败')
-    }
-    qrImg.value = qrImgValue
+    // 生成二维码
+    const qrRes = await fetch(
+      `${BASE_URL}/login/qr/create?key=${unikey}&qrimg=true&timestamp=${Date.now()}&ua=pc`
+    )
+    const qrData = await qrRes.json()
+    qrImg.value = qrData.data.qrimg
     status.value = 801
 
-    // 3. Start Polling
+    // 启动轮询
     timer = setInterval(checkStatus, 3000)
   } catch (err) {
-    console.error('Failed to init login:', err)
+    console.error('初始化登录失败:', err)
     status.value = 0
   } finally {
     loading.value = false
@@ -195,24 +188,20 @@ const checkStatus = async () => {
   if (!unikey) return
 
   try {
-    const res = await fetchNetease('/login/qr/check', {
-      key: unikey,
-      ua: 'pc'
-    })
-    const code = Number(res?.code || 0)
-    status.value = code
+    const res = await fetch(
+      `${BASE_URL}/login/qr/check?key=${unikey}&timestamp=${Date.now()}&ua=pc`
+    )
+    const data = await res.json()
+    status.value = data.code
 
-    if (code === 800) {
+    if (data.code === 800) {
       // 已过期
       isExpired.value = true
       stopPolling()
-    } else if (code === 803) {
+    } else if (data.code === 803) {
       // 登录成功
       stopPolling()
-      const cookie = res?.body?.cookie || res?.body?.data?.cookie
-      if (!cookie) {
-        throw new Error('登录成功但未返回 cookie')
-      }
+      const cookie = data.cookie
       await handleLoginSuccess(cookie)
     }
   } catch (err) {
@@ -222,20 +211,24 @@ const checkStatus = async () => {
 
 const handleLoginSuccess = async (cookie: string) => {
   try {
-    // 使用 cookie 获取用户信息
-    const res = await fetchNetease('/login/status', {}, cookie)
-    const profile = res?.body?.data?.profile || res?.body?.profile
+    // 通过登录凭证获取用户信息
+    const userRes = await fetch(`${BASE_URL}/login/status?timestamp=${Date.now()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cookie })
+    })
+    const res = await userRes.json()
 
     const userInfo = {
       cookie,
-      uid: profile?.userId,
-      nickname: profile?.nickname,
-      avatarUrl: profile?.avatarUrl,
-      userName: profile?.nickname
+      uid: res.data?.profile?.userId,
+      nickname: res.data?.profile?.nickname,
+      avatarUrl: res.data?.profile?.avatarUrl,
+      userName: res.data?.profile?.nickname
     }
 
-    // 即使获取用户信息失败，我们也有 cookie，可以认为部分成功
-    // 目前直接提交现有信息
     emit('login-success', userInfo)
     handleClose()
   } catch (err) {
