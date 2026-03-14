@@ -1,121 +1,123 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h3 class="modal-title">投票人员列表</h3>
-        <button class="close-btn" @click="closeModal">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <line x1="18" x2="6" y1="6" y2="18" />
-            <line x1="6" x2="18" y1="6" y2="18" />
-          </svg>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div v-if="songInfo" class="song-info">
-          <div class="song-main">
-            <h4 class="song-title">{{ songInfo.title }}</h4>
-            <p class="song-artist">{{ songInfo.artist }}</p>
-            <div class="vote-summary">
-              <svg class="heart-icon" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                />
-              </svg>
-              <span class="vote-count">{{ totalVotes }} 票</span>
-            </div>
-          </div>
-
-          <div class="vote-editor">
-            <label class="vote-editor-label" for="target-votes">调整投票人数</label>
-            <div class="vote-editor-row">
-              <input
-                id="target-votes"
-                v-model="targetVoteCountInput"
-                type="number"
-                min="0"
-                step="1"
-                class="vote-editor-input"
-                :disabled="updatingVoteCount"
-              >
-              <button
-                class="vote-editor-button"
-                :disabled="!canSubmitVoteCount || updatingVoteCount"
-                @click="updateVoteCount"
-              >
-                {{ updatingVoteCount ? '保存中...' : '保存票数' }}
-              </button>
-            </div>
-            <p v-if="voteEditorError" class="vote-editor-error">{{ voteEditorError }}</p>
-          </div>
+  <Teleport to="body">
+    <div v-if="show" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">投票人员列表</h3>
+          <button class="close-btn" @click="closeModal">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <line x1="18" x2="6" y1="6" y2="18" />
+              <line x1="6" x2="18" y1="6" y2="18" />
+            </svg>
+          </button>
         </div>
 
-        <div v-if="loading" class="loading-container">
-          <div class="spinner" />
-          <p>正在加载投票人员...</p>
-        </div>
-
-        <div v-else-if="error" class="error-container">
-          <svg
-            class="error-icon"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" x2="9" y1="9" y2="15" />
-            <line x1="9" x2="15" y1="9" y2="15" />
-          </svg>
-          <p class="error-message">{{ error }}</p>
-          <button class="retry-btn" @click="fetchVoters">重试</button>
-        </div>
-
-        <div v-else-if="voters.length > 0" class="voters-list">
-          <div class="voters-header">
-            <span class="voters-title">投票人员 ({{ voters.length }})</span>
-          </div>
-          <div class="voters-container">
-            <div
-              v-for="(voter, index) in voters"
-              :key="`${voter.id}-${voter.votedAt}-${index}`"
-              class="voter-item"
-            >
-              <div class="voter-info">
-                <div class="voter-avatar">
-                  {{ getAvatarText(voter.name) }}
-                </div>
-                <div class="voter-details">
-                  <span class="voter-name">{{ voter.name }}</span>
-                  <span class="vote-time">{{ formatVoteTime(voter.votedAt) }}</span>
-                </div>
+        <div class="modal-body">
+          <div v-if="songInfo" class="song-info">
+            <div class="song-main">
+              <h4 class="song-title">{{ songInfo.title }}</h4>
+              <p class="song-artist">{{ songInfo.artist }}</p>
+              <div class="vote-summary">
+                <svg class="heart-icon" fill="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                  />
+                </svg>
+                <span class="vote-count">{{ totalVotes }} 票</span>
               </div>
-              <div class="voter-number">#{{ index + 1 }}</div>
             </div>
+
+            <div class="vote-editor">
+              <label class="vote-editor-label" for="target-votes">调整投票人数</label>
+              <div class="vote-editor-row">
+                <input
+                  id="target-votes"
+                  v-model="targetVoteCountInput"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="vote-editor-input"
+                  :disabled="updatingVoteCount"
+                />
+                <button
+                  class="vote-editor-button"
+                  :disabled="!canSubmitVoteCount || updatingVoteCount"
+                  @click="updateVoteCount"
+                >
+                  {{ updatingVoteCount ? '保存中...' : '保存票数' }}
+                </button>
+              </div>
+              <p v-if="voteEditorError" class="vote-editor-error">{{ voteEditorError }}</p>
+            </div>
+          </div>
+
+          <div v-if="loading" class="loading-container">
+            <div class="spinner" />
+            <p>正在加载投票人员...</p>
+          </div>
+
+          <div v-else-if="error" class="error-container">
+            <svg
+              class="error-icon"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" x2="9" y1="9" y2="15" />
+              <line x1="9" x2="15" y1="9" y2="15" />
+            </svg>
+            <p class="error-message">{{ error }}</p>
+            <button class="retry-btn" @click="fetchVoters">重试</button>
+          </div>
+
+          <div v-else-if="voters.length > 0" class="voters-list">
+            <div class="voters-header">
+              <span class="voters-title">投票人员 ({{ voters.length }})</span>
+            </div>
+            <div class="voters-container">
+              <div
+                v-for="(voter, index) in voters"
+                :key="`${voter.id}-${voter.votedAt}-${index}`"
+                class="voter-item"
+              >
+                <div class="voter-info">
+                  <div class="voter-avatar">
+                    {{ getAvatarText(voter.name) }}
+                  </div>
+                  <div class="voter-details">
+                    <span class="voter-name">{{ voter.name }}</span>
+                    <span class="vote-time">{{ formatVoteTime(voter.votedAt) }}</span>
+                  </div>
+                </div>
+                <div class="voter-number">#{{ index + 1 }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <svg
+              class="empty-icon"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+              />
+            </svg>
+            <p>暂无投票</p>
           </div>
         </div>
 
-        <div v-else class="empty-state">
-          <svg
-            class="empty-icon"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-            />
-          </svg>
-          <p>暂无投票</p>
+        <div class="modal-footer">
+          <button class="close-button" @click="closeModal">关闭</button>
         </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="close-button" @click="closeModal">关闭</button>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -284,7 +286,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 3000;
   padding: 20px;
 }
 
