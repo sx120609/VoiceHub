@@ -2101,7 +2101,12 @@ onUnmounted(() => {
 }
 
 .playback-controls {
-  background: transparent !important;
+  background: linear-gradient(
+    to top,
+    rgba(248, 251, 246, 0.96) 0%,
+    rgba(248, 251, 246, 0.82) 56%,
+    rgba(248, 251, 246, 0) 100%
+  ) !important;
   box-shadow: none !important;
   border-top: none !important;
 }
