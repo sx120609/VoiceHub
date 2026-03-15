@@ -6,6 +6,7 @@ import { getBeijingTime } from '~/utils/timeUtils'
 import { verifyPendingEmailLoginCode } from '~~/server/utils/email-login-verification'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
+import { readUserCustomAvatar, resolvePreferredAvatar } from '~~/server/utils/user-avatar'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -102,6 +103,7 @@ export default defineEventHandler(async (event) => {
       path: '/'
     })
     const qqProfile = await resolveQQDisplayProfile(user.username, qqEmail)
+    const customAvatar = await readUserCustomAvatar(user.id)
 
     return {
       success: true,
@@ -113,7 +115,10 @@ export default defineEventHandler(async (event) => {
         grade: user.grade,
         class: user.class,
         role: normalizedRole,
-        avatar: qqProfile?.avatar || null,
+        avatar: resolvePreferredAvatar({
+          customAvatar,
+          qqAvatar: qqProfile?.avatar
+        }),
         needsPasswordChange: false
       }
     }

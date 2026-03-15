@@ -8,6 +8,7 @@ import { SmtpService } from '~~/server/services/smtpService'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { buildPublicAppUrl, getPublicOrigin } from '~~/server/utils/public-url'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
+import { readUserCustomAvatar, resolvePreferredAvatar } from '~~/server/utils/user-avatar'
 import {
   createRegistrationActivationToken,
   extractQQNumberFromEmail,
@@ -277,6 +278,7 @@ export default defineEventHandler(async (event) => {
       path: '/'
     })
     const qqProfile = await resolveQQDisplayProfile(newUser.username, qqEmail)
+    const customAvatar = await readUserCustomAvatar(newUser.id)
 
     return {
       success: true,
@@ -286,7 +288,10 @@ export default defineEventHandler(async (event) => {
         ...newUser,
         role: normalizedRole,
         name: newUser.name || qqProfile?.name || newUser.username,
-        avatar: qqProfile?.avatar || null,
+        avatar: resolvePreferredAvatar({
+          customAvatar,
+          qqAvatar: qqProfile?.avatar
+        }),
         needsPasswordChange: false
       }
     }

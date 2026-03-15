@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
 import { clearAuthTokenCookie } from '~~/server/utils/auth-cookie'
+import { readUserCustomAvatar, resolvePreferredAvatar } from '~~/server/utils/user-avatar'
 
 // 用户认证缓存（永久缓存，登出或权限变更时主动失效）
 
@@ -63,6 +64,8 @@ export default defineEventHandler(async (event) => {
         }
 
         // 为缓存的用户数据添加字段
+        const githubUsername = cachedUser.identities?.find((id: any) => id.provider === 'github')?.providerUsername
+        const customAvatar = await readUserCustomAvatar(cachedUser.id)
         const userWithDetails = {
           id: cachedUser.id,
           username: cachedUser.username,
@@ -72,16 +75,22 @@ export default defineEventHandler(async (event) => {
           role: normalizeRoleOrDefault(cachedUser.role, 'USER'),
           requirePasswordChange: cachedUser.forcePasswordChange || !cachedUser.passwordChangedAt,
           has2FA: false,
-          avatar: cachedUser.identities?.find((id: any) => id.provider === 'github')?.providerUsername
-            ? `https://github.com/${cachedUser.identities.find((id: any) => id.provider === 'github').providerUsername}.png`
-            : null
+          avatar: resolvePreferredAvatar({
+            customAvatar,
+            qqAvatar: null,
+            githubUsername
+          })
         }
         const qqProfile = await resolveQQDisplayProfile(cachedUser.username, cachedUser.email)
         return {
           user: {
             ...userWithDetails,
             name: userWithDetails.name || qqProfile?.name || userWithDetails.username,
-            avatar: qqProfile?.avatar || userWithDetails.avatar
+            avatar: resolvePreferredAvatar({
+              customAvatar,
+              qqAvatar: qqProfile?.avatar,
+              githubUsername
+            })
           },
           valid: true
         }
@@ -132,6 +141,7 @@ export default defineEventHandler(async (event) => {
 
     // 构建返回的用户对象，只包含需要的字段
     const githubIdentity = dbUser.identities?.find((id: any) => id.provider === 'github')
+    const customAvatar = await readUserCustomAvatar(dbUser.id)
     const qqProfile = await resolveQQDisplayProfile(dbUser.username, dbUser.email)
     const user = {
       id: dbUser.id,
@@ -142,10 +152,11 @@ export default defineEventHandler(async (event) => {
       role: normalizeRoleOrDefault(dbUser.role, 'USER'),
       requirePasswordChange: dbUser.forcePasswordChange || !dbUser.passwordChangedAt,
       has2FA: false,
-      // 动态生成 GitHub 头像 URL
-      avatar: qqProfile?.avatar || (githubIdentity?.providerUsername
-        ? `https://github.com/${githubIdentity.providerUsername}.png`
-        : null)
+      avatar: resolvePreferredAvatar({
+        customAvatar,
+        qqAvatar: qqProfile?.avatar,
+        githubUsername: githubIdentity?.providerUsername
+      })
     }
 
     // 将用户认证状态缓存到Redis（如果可用）- 永久缓存
