@@ -239,7 +239,8 @@ const hasDisplayNameChanged = computed(() => {
 
 const hasCustomAvatar = computed(() => {
   const avatar = auth.user.value?.avatar
-  return typeof avatar === 'string' && avatar.includes('/uploads/avatars/')
+  if (typeof avatar !== 'string') return false
+  return avatar.includes('/uploads/avatars/') || avatar.includes('/api/user/avatar-file/')
 })
 
 // 处理来自 OAuth 回调的消息

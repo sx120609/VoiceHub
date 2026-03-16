@@ -8,7 +8,7 @@ import { users } from '~/drizzle/schema'
 import { cacheService } from '~~/server/services/cacheService'
 import { cache } from '~~/server/utils/cache-helpers'
 
-const AVATAR_PUBLIC_PREFIX = '/uploads/avatars'
+const AVATAR_API_PREFIX = '/api/user/avatar-file/'
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MIME_EXTENSION_MAP: Record<string, string> = {
@@ -17,18 +17,34 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   'image/webp': 'webp'
 }
 
-const getPublicRootCandidates = (): string[] => {
+const AVATAR_FILENAME_REGEX = /^[A-Za-z0-9._-]+$/
+
+const getAvatarStorageDirs = (): string[] => {
   const root = process.cwd()
-  const devFirstCandidates = [path.join(root, 'public'), path.join(root, '.output', 'public')]
-  const prodFirstCandidates = [path.join(root, '.output', 'public'), path.join(root, 'public')]
-  return process.env.NODE_ENV === 'production' ? prodFirstCandidates : devFirstCandidates
+
+  const envDir = process.env.AVATAR_UPLOAD_DIR?.trim()
+  const resolvedEnvDir = envDir
+    ? path.isAbsolute(envDir)
+      ? envDir
+      : path.join(root, envDir)
+    : null
+
+  const ordered = [
+    resolvedEnvDir,
+    path.join(root, 'storage', 'uploads', 'avatars'),
+    path.join(root, '.output', 'public', 'uploads', 'avatars'),
+    path.join(root, 'public', 'uploads', 'avatars')
+  ].filter((item): item is string => Boolean(item))
+
+  return [...new Set(ordered)]
 }
 
-const resolveWritablePublicRoot = async (): Promise<string> => {
-  const candidates = getPublicRootCandidates()
+const resolvePrimaryAvatarStorageDir = async (): Promise<string> => {
+  const candidates = getAvatarStorageDirs()
 
   for (const candidate of candidates) {
     try {
+      await fs.mkdir(candidate, { recursive: true })
       await fs.access(candidate)
       return candidate
     } catch {
@@ -39,28 +55,44 @@ const resolveWritablePublicRoot = async (): Promise<string> => {
   return candidates[0]
 }
 
-const resolveStoredAvatarPaths = (avatar?: string | null): string[] => {
+const extractAvatarFileName = (avatar?: string | null): string | null => {
   if (typeof avatar !== 'string') {
-    return []
+    return null
   }
 
   const normalized = avatar.trim()
   if (!normalized) {
+    return null
+  }
+
+  const markers = ['/api/user/avatar-file/', '/uploads/avatars/']
+  for (const marker of markers) {
+    const markerIndex = normalized.indexOf(marker)
+    if (markerIndex === -1) {
+      continue
+    }
+
+    const maybeName = normalized.slice(markerIndex + marker.length).split('?')[0].split('#')[0].trim()
+    try {
+      const decodedName = decodeURIComponent(maybeName)
+      if (AVATAR_FILENAME_REGEX.test(decodedName)) {
+        return decodedName
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return null
+}
+
+const resolveStoredAvatarPaths = (avatar?: string | null): string[] => {
+  const fileName = extractAvatarFileName(avatar)
+  if (!fileName) {
     return []
   }
 
-  const marker = '/uploads/avatars/'
-  const markerIndex = normalized.indexOf(marker)
-  if (markerIndex === -1) {
-    return []
-  }
-
-  const relativePath = normalized.slice(markerIndex + 1)
-  if (!relativePath || relativePath.includes('..')) {
-    return []
-  }
-
-  return getPublicRootCandidates().map((root) => path.join(root, relativePath))
+  return getAvatarStorageDirs().map((dir) => path.join(dir, fileName))
 }
 
 const withAppBasePath = (event: H3Event, pathValue: string): string => {
@@ -162,10 +194,9 @@ export default defineEventHandler(async (event) => {
 
   const extension = MIME_EXTENSION_MAP[mimeType]
   const fileName = `${authUser.id}-${Date.now()}-${randomUUID().slice(0, 8)}.${extension}`
-  const publicRoot = await resolveWritablePublicRoot()
-  const avatarUploadDir = path.join(publicRoot, 'uploads', 'avatars')
+  const avatarUploadDir = await resolvePrimaryAvatarStorageDir()
   const fileAbsolutePath = path.join(avatarUploadDir, fileName)
-  const publicAvatarPath = withAppBasePath(event, `${AVATAR_PUBLIC_PREFIX}/${fileName}`)
+  const publicAvatarPath = withAppBasePath(event, `${AVATAR_API_PREFIX}${fileName}`)
 
   let dbUpdated = false
 
