@@ -24,6 +24,38 @@ DATABASE_URL=mysql://user:pass@127.0.0.1:3306/voicehub?charset=utf8mb4
 DB_URL="${DATABASE_URL}"
 ```
 
+可选方案 A：网页安装向导（install.php，推荐空库首次部署）
+
+先在宝塔 Nginx 里临时加入：
+
+```nginx
+location = /rareapp/install.php {
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /www/wwwroot/voicehub.example.com/VoiceHub/laravel/public/install.php;
+    fastcgi_param SCRIPT_NAME /install.php;
+    fastcgi_param DOCUMENT_ROOT /www/wwwroot/voicehub.example.com/VoiceHub/laravel/public;
+    fastcgi_param REQUEST_URI $request_uri;
+    fastcgi_param QUERY_STRING $query_string;
+    fastcgi_pass unix:/tmp/php-cgi-82.sock;
+}
+```
+
+重载 Nginx 后访问：
+
+`https://你的域名/rareapp/install.php`
+
+填入 MySQL 与管理员信息即可自动：
+
+1. 创建数据库（如不存在）  
+2. 导入 `laravel/database/mysql/voicehub_schema.sql`  
+3. 创建/更新管理员账号  
+4. 写入 `laravel/.env`  
+5. 创建安装锁 `laravel/storage/app/install.lock`
+
+安装完成后请删除该 location（或限制 IP 访问）。
+
+可选方案 B：手动导入 SQL
+
 空 MySQL 库初始化（建表）：
 
 ```bash
