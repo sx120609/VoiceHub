@@ -54,13 +54,23 @@
               :disabled="uploadingAvatar"
               @change="handleAvatarFileChange"
             >
-            <button
-              :disabled="uploadingAvatar"
-              class="px-4 py-2.5 bg-[#2f7d4f] hover:bg-[#246a41] text-white text-xs font-black rounded-xl transition-all active:scale-95 disabled:opacity-50"
-              @click="triggerAvatarUpload"
-            >
-              {{ uploadingAvatar ? '上传中...' : auth.user.value?.avatar ? '更换头像' : '上传头像' }}
-            </button>
+            <div class="mt-2 flex items-center gap-2">
+              <button
+                :disabled="uploadingAvatar || removingAvatar"
+                class="px-4 py-2.5 bg-[#2f7d4f] hover:bg-[#246a41] text-white text-xs font-black rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                @click="triggerAvatarUpload"
+              >
+                {{ uploadingAvatar ? '上传中...' : auth.user.value?.avatar ? '更换头像' : '上传头像' }}
+              </button>
+              <button
+                v-if="hasCustomAvatar"
+                :disabled="uploadingAvatar || removingAvatar"
+                class="px-4 py-2.5 bg-[#eef4e9] hover:bg-[#e1ebd8] text-[#4f614d] text-xs font-black rounded-xl border border-[#c8d7bd] transition-all active:scale-95 disabled:opacity-50"
+                @click="removeAvatar"
+              >
+                {{ removingAvatar ? '移除中...' : '移除头像' }}
+              </button>
+            </div>
             <p class="text-[11px] text-[#6b7b6b] mt-2">
               支持 JPG / PNG / WEBP，最大 2MB
             </p>
@@ -190,6 +200,7 @@ const hasOAuthProviders = computed(() => {
 const avatarError = ref(false)
 const avatarFileInput = ref(null)
 const uploadingAvatar = ref(false)
+const removingAvatar = ref(false)
 const avatarUploadError = ref('')
 const displayName = ref('')
 const originalDisplayName = ref('')
@@ -224,6 +235,11 @@ watch(
 
 const hasDisplayNameChanged = computed(() => {
   return displayName.value.trim() !== originalDisplayName.value.trim()
+})
+
+const hasCustomAvatar = computed(() => {
+  const avatar = auth.user.value?.avatar
+  return typeof avatar === 'string' && avatar.includes('/uploads/avatars/')
 })
 
 // 处理来自 OAuth 回调的消息
@@ -333,6 +349,45 @@ const handleAvatarFileChange = async (event) => {
   } finally {
     uploadingAvatar.value = false
     resetAvatarInput()
+  }
+}
+
+const removeAvatar = async () => {
+  if (!hasCustomAvatar.value || removingAvatar.value) {
+    return
+  }
+
+  if (import.meta.client && !window.confirm('确定要移除当前自定义头像吗？')) {
+    return
+  }
+
+  try {
+    removingAvatar.value = true
+    avatarUploadError.value = ''
+
+    const response = await $fetch('/api/user/avatar', {
+      method: 'DELETE'
+    })
+
+    if (!response?.success) {
+      throw new Error(response?.message || '移除头像失败')
+    }
+
+    if (auth.user.value) {
+      auth.user.value.avatar = response?.data?.avatar || null
+    }
+    avatarError.value = false
+    showToast(response.message || '头像已移除', 'success')
+
+    auth.refreshUser().catch((refreshError) => {
+      console.warn('刷新用户信息失败（已忽略）:', refreshError)
+    })
+  } catch (error) {
+    const message = extractDisplayErrorMessage(error, '移除头像失败')
+    avatarUploadError.value = message
+    showToast(message, 'error')
+  } finally {
+    removingAvatar.value = false
   }
 }
 
