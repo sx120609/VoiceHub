@@ -24,11 +24,15 @@ DATABASE_URL=mysql://user:pass@127.0.0.1:3306/voicehub?charset=utf8mb4
 DB_URL="${DATABASE_URL}"
 ```
 
-执行迁移（如果你已经有旧库，先确认结构再执行）：
+空 MySQL 库初始化（建表）：
 
 ```bash
-php artisan migrate --force
+cd /www/wwwroot/voicehub.example.com/VoiceHub
+mysql -u root -p voicehub < laravel/database/mysql/voicehub_schema.sql
 ```
+
+如果你需要从空库开始，建议同时参考：
+- `laravel/MYSQL_INIT.md`
 
 ## 2. 生成前端静态文件
 
