@@ -46,6 +46,28 @@
               </div>
             </div>
 
+            <input
+              ref="avatarFileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden"
+              :disabled="uploadingAvatar"
+              @change="handleAvatarFileChange"
+            >
+            <button
+              :disabled="uploadingAvatar"
+              class="px-4 py-2.5 bg-[#2f7d4f] hover:bg-[#246a41] text-white text-xs font-black rounded-xl transition-all active:scale-95 disabled:opacity-50"
+              @click="triggerAvatarUpload"
+            >
+              {{ uploadingAvatar ? '上传中...' : auth.user.value?.avatar ? '更换头像' : '上传头像' }}
+            </button>
+            <p class="text-[11px] text-[#6b7b6b] mt-2">
+              支持 JPG / PNG / WEBP，最大 2MB
+            </p>
+            <p v-if="avatarUploadError" class="text-xs text-rose-600">
+              {{ avatarUploadError }}
+            </p>
+
             <div class="space-y-2">
               <h2 class="text-2xl font-black text-[#1f2a1f] tracking-tight">
                 {{ auth.user.value?.name || auth.user.value?.username }}
@@ -166,10 +188,15 @@ const hasOAuthProviders = computed(() => {
 })
 
 const avatarError = ref(false)
+const avatarFileInput = ref(null)
+const uploadingAvatar = ref(false)
+const avatarUploadError = ref('')
 const displayName = ref('')
 const originalDisplayName = ref('')
 const savingDisplayName = ref(false)
 const displayNameError = ref('')
+const MAX_AVATAR_SIZE = 2 * 1024 * 1024
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 // 监听用户头像变化，重置错误状态
 watch(
@@ -237,6 +264,76 @@ const roleName = computed(() => {
 
 const goBack = () => {
   router.back()
+}
+
+const triggerAvatarUpload = () => {
+  avatarUploadError.value = ''
+  avatarFileInput.value?.click()
+}
+
+const resetAvatarInput = () => {
+  if (avatarFileInput.value) {
+    avatarFileInput.value.value = ''
+  }
+}
+
+const handleAvatarFileChange = async (event) => {
+  const input = event?.target
+  const file = input?.files?.[0]
+
+  if (!file) {
+    return
+  }
+
+  if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+    const message = '仅支持 JPG / PNG / WEBP 格式图片'
+    avatarUploadError.value = message
+    showToast(message, 'error')
+    resetAvatarInput()
+    return
+  }
+
+  if (file.size > MAX_AVATAR_SIZE) {
+    const message = '头像大小不能超过 2MB'
+    avatarUploadError.value = message
+    showToast(message, 'error')
+    resetAvatarInput()
+    return
+  }
+
+  try {
+    uploadingAvatar.value = true
+    avatarUploadError.value = ''
+
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    const response = await $fetch('/api/user/avatar', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response?.success || !response?.data?.avatar) {
+      throw new Error(response?.message || '头像上传失败')
+    }
+
+    if (auth.user.value) {
+      auth.user.value.avatar = response.data.avatar
+    }
+    avatarError.value = false
+    showToast(response.message || '头像上传成功', 'success')
+
+    auth.refreshUser().catch((refreshError) => {
+      console.warn('刷新用户信息失败（已忽略）:', refreshError)
+    })
+  } catch (error) {
+    const message = extractDisplayErrorMessage(error, '头像上传失败')
+    avatarUploadError.value = message
+    showToast(message, 'error')
+  } finally {
+    uploadingAvatar.value = false
+    resetAvatarInput()
+  }
 }
 
 const saveDisplayName = async () => {

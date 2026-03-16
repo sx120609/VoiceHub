@@ -245,6 +245,7 @@ export const user = pgTable("User", {
 	name: text(),
 	grade: text(),
 	class: text(),
+	avatar: text(),
 	role: text().default('USER').notNull(),
 	password: text().notNull(),
 	email: text(),

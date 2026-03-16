@@ -6,7 +6,7 @@ import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { isRegistrationEmailVerificationEnabled } from '~~/server/utils/registration-verification'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
-import { readUserCustomAvatar, resolvePreferredAvatar } from '~~/server/utils/user-avatar'
+import { resolvePreferredAvatar } from '~~/server/utils/user-avatar'
 
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
@@ -65,6 +65,7 @@ export default defineEventHandler(async (event) => {
         name: users.name,
         grade: users.grade,
         class: users.class,
+        avatar: users.avatar,
         password: users.password,
         role: users.role,
         lastLogin: users.lastLogin,
@@ -167,8 +168,6 @@ export default defineEventHandler(async (event) => {
     const processingTime = Date.now() - startTime
     console.log(`Login for ${user.username} processed in ${processingTime}ms`)
     const qqProfile = await resolveQQDisplayProfile(user.username, user.email)
-    const customAvatar = await readUserCustomAvatar(user.id)
-
     return {
       success: true,
       user: {
@@ -179,7 +178,7 @@ export default defineEventHandler(async (event) => {
         class: user.class,
         role: normalizedRole,
         avatar: resolvePreferredAvatar({
-          customAvatar,
+          customAvatar: user.avatar,
           qqAvatar: qqProfile?.avatar
         }),
         needsPasswordChange: !user.passwordChangedAt

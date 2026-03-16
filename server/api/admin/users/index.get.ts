@@ -4,6 +4,8 @@ import { users } from '~/drizzle/schema'
 import { and, asc, desc, count, eq, ilike, or, sql } from 'drizzle-orm'
 import { normalizeRole } from '~~/server/utils/role'
 import { sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
+import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
+import { resolvePreferredAvatar } from '~~/server/utils/user-avatar'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -95,6 +97,7 @@ export default defineEventHandler(async (event) => {
         role: true,
         grade: true,
         class: true,
+        avatar: true,
         status: true,
         statusChangedAt: true,
         lastLogin: true,
@@ -118,14 +121,21 @@ export default defineEventHandler(async (event) => {
     })
 
     // 处理用户列表，添加头像字段
-    const formattedUsers = usersList.map((user) => ({
-      ...user,
-      lastLoginIp: sanitizeStoredClientIP(user.lastLoginIp),
-      role: normalizeRole(user.role) || user.role,
-      avatar: user.identities?.[0]?.providerUsername
-        ? `https://github.com/${user.identities[0].providerUsername}.png`
-        : null
-    }))
+    const formattedUsers = await Promise.all(
+      usersList.map(async (user) => {
+        const qqProfile = await resolveQQDisplayProfile(user.username, user.email)
+        return {
+          ...user,
+          lastLoginIp: sanitizeStoredClientIP(user.lastLoginIp),
+          role: normalizeRole(user.role) || user.role,
+          avatar: resolvePreferredAvatar({
+            customAvatar: user.avatar,
+            qqAvatar: qqProfile?.avatar,
+            githubUsername: user.identities?.[0]?.providerUsername
+          })
+        }
+      })
+    )
 
     // 计算分页信息
     const totalPages = Math.ceil(total / limitNum)

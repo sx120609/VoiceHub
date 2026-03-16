@@ -6,7 +6,7 @@ import { getClientIP, sanitizeStoredClientIP } from '~~/server/utils/ip-utils'
 import { verifyRegistrationActivationToken } from '~~/server/utils/registration-verification'
 import { resolveQQDisplayProfile } from '~~/server/utils/qq-profile'
 import { normalizeRoleOrDefault } from '~~/server/utils/role'
-import { readUserCustomAvatar, resolvePreferredAvatar } from '~~/server/utils/user-avatar'
+import { resolvePreferredAvatar } from '~~/server/utils/user-avatar'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
       id: users.id,
       username: users.username,
       name: users.name,
+      avatar: users.avatar,
       grade: users.grade,
       class: users.class,
       role: users.role,
@@ -89,8 +90,6 @@ export default defineEventHandler(async (event) => {
     path: '/'
   })
   const qqProfile = await resolveQQDisplayProfile(user.username, qqEmail)
-  const customAvatar = await readUserCustomAvatar(user.id)
-
   return {
     success: true,
     message: '账号激活成功，已自动登录',
@@ -102,7 +101,7 @@ export default defineEventHandler(async (event) => {
       class: user.class,
       role: normalizedRole,
       avatar: resolvePreferredAvatar({
-        customAvatar,
+        customAvatar: user.avatar,
         qqAvatar: qqProfile?.avatar
       }),
       needsPasswordChange: false

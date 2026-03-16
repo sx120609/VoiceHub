@@ -120,6 +120,13 @@
       "when": 1773156000000,
       "tag": "20260310232000_add_comment_notification_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1773633736000,
+      "tag": "20260316120000_add_user_avatar",
+      "breakpoints": true
     }
   ]
 }
