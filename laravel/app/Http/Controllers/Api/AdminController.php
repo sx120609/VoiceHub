@@ -284,10 +284,11 @@ class AdminController extends Controller
         }
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
-                $builder->whereRaw('"name" ILIKE ?', ['%'.$search.'%'])
-                    ->orWhereRaw('"username" ILIKE ?', ['%'.$search.'%'])
-                    ->orWhereRaw('"email" ILIKE ?', ['%'.$search.'%'])
-                    ->orWhereRaw('"lastLoginIp" ILIKE ?', ['%'.$search.'%']);
+                $searchLike = '%'.mb_strtolower($search).'%';
+                $builder->whereRaw('LOWER(name) LIKE ?', [$searchLike])
+                    ->orWhereRaw('LOWER(username) LIKE ?', [$searchLike])
+                    ->orWhereRaw('LOWER(email) LIKE ?', [$searchLike])
+                    ->orWhereRaw('LOWER(lastLoginIp) LIKE ?', [$searchLike]);
             });
         }
 
@@ -665,9 +666,10 @@ class AdminController extends Controller
         }
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
-                $builder->whereRaw('"u"."name" ILIKE ?', ['%'.$search.'%'])
-                    ->orWhereRaw('"u"."username" ILIKE ?', ['%'.$search.'%'])
-                    ->orWhereRaw('"l"."reason" ILIKE ?', ['%'.$search.'%']);
+                $searchLike = '%'.mb_strtolower($search).'%';
+                $builder->whereRaw('LOWER(u.name) LIKE ?', [$searchLike])
+                    ->orWhereRaw('LOWER(u.username) LIKE ?', [$searchLike])
+                    ->orWhereRaw('LOWER(l.reason) LIKE ?', [$searchLike]);
             });
         }
 

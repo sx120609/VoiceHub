@@ -150,10 +150,10 @@ class UserSecurityController extends Controller
             $activeMonth = null;
             try {
                 $monthRow = DB::table('Song')
-                    ->select([DB::raw('EXTRACT(MONTH FROM "createdAt") as month'), DB::raw('COUNT(id) as count')])
+                    ->select([DB::raw('MONTH(createdAt) as month'), DB::raw('COUNT(id) as count')])
                     ->where('requesterId', $user->id)
                     ->whereBetween('createdAt', [$start, $end])
-                    ->groupBy(DB::raw('EXTRACT(MONTH FROM "createdAt")'))
+                    ->groupBy(DB::raw('MONTH(createdAt)'))
                     ->orderByDesc(DB::raw('COUNT(id)'))
                     ->first();
                 if ($monthRow !== null) {

@@ -91,8 +91,9 @@ class UserController extends Controller
             ->where('id', '<>', $user->id)
             ->where('status', 'active')
             ->where(function ($query) use ($keyword): void {
-                $query->whereRaw('"name" ILIKE ?', ['%'.$keyword.'%'])
-                    ->orWhereRaw('"username" ILIKE ?', ['%'.$keyword.'%']);
+                $searchLike = '%'.mb_strtolower($keyword).'%';
+                $query->whereRaw('LOWER(name) LIKE ?', [$searchLike])
+                    ->orWhereRaw('LOWER(username) LIKE ?', [$searchLike]);
             })
             ->limit(10)
             ->get()

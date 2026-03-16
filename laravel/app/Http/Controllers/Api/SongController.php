@@ -28,9 +28,10 @@ class SongController extends Controller
             ->leftJoin('User as u', 's.requesterId', '=', 'u.id');
 
         if ($search !== '') {
-            $query->where(function ($builder) use ($search): void {
-                $builder->whereRaw('"s"."title" ILIKE ?', ['%'.$search.'%'])
-                    ->orWhereRaw('"s"."artist" ILIKE ?', ['%'.$search.'%']);
+            $searchLike = '%'.mb_strtolower($search).'%';
+            $query->where(function ($builder) use ($searchLike): void {
+                $builder->whereRaw('LOWER(s.title) LIKE ?', [$searchLike])
+                    ->orWhereRaw('LOWER(s.artist) LIKE ?', [$searchLike]);
             });
         }
         if ($semester !== '') {
@@ -316,8 +317,8 @@ class SongController extends Controller
 
         $currentSemester = DB::table('Semester')->where('isActive', true)->value('name');
         $duplicate = DB::table('Song')
-            ->whereRaw('LOWER("title") = LOWER(?)', [$title])
-            ->whereRaw('LOWER("artist") = LOWER(?)', [$artist])
+            ->whereRaw('LOWER(title) = LOWER(?)', [$title])
+            ->whereRaw('LOWER(artist) = LOWER(?)', [$artist])
             ->where('played', false)
             ->when($currentSemester !== null, fn ($q) => $q->where('semester', $currentSemester))
             ->exists();
@@ -351,7 +352,7 @@ class SongController extends Controller
             DB::table('RequestTime')
                 ->where('id', $hitRequestId)
                 ->update([
-                    'accepted' => DB::raw('COALESCE("accepted", 0) + 1'),
+                    'accepted' => DB::raw('COALESCE(accepted, 0) + 1'),
                     'updatedAt' => now(),
                 ]);
         }
@@ -498,7 +499,7 @@ class SongController extends Controller
             DB::table('RequestTime')
                 ->where('id', $song->hitRequestId)
                 ->update([
-                    'accepted' => DB::raw('GREATEST(0, COALESCE("accepted", 0) - 1)'),
+                    'accepted' => DB::raw('GREATEST(0, COALESCE(accepted, 0) - 1)'),
                     'updatedAt' => now(),
                 ]);
         }

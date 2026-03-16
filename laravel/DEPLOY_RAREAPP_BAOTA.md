@@ -19,8 +19,8 @@ APP_DEBUG=false
 APP_BASE_PATH=/rareapp
 JWT_SECRET=替换成强随机字符串
 
-DB_CONNECTION=pgsql
-DATABASE_URL=postgresql://user:pass@127.0.0.1:5432/voicehub?sslmode=prefer
+DB_CONNECTION=mysql
+DATABASE_URL=mysql://user:pass@127.0.0.1:3306/voicehub?charset=utf8mb4
 DB_URL="${DATABASE_URL}"
 ```
 
@@ -34,7 +34,7 @@ php artisan migrate --force
 
 ```bash
 cd /www/wwwroot/voicehub.example.com/VoiceHub
-DATABASE_URL="postgresql://user:pass@127.0.0.1:5432/voicehub?sslmode=prefer" \
+DATABASE_URL="mysql://user:pass@127.0.0.1:3306/voicehub?charset=utf8mb4" \
 NUXT_APP_BASE_URL=/rareapp/ \
 NUXT_PUBLIC_API_BASE=/rareapp/api \
 npm run generate
