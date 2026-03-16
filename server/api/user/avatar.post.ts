@@ -8,7 +8,6 @@ import { users } from '~/drizzle/schema'
 import { cacheService } from '~~/server/services/cacheService'
 import { cache } from '~~/server/utils/cache-helpers'
 
-const AVATAR_UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'avatars')
 const AVATAR_PUBLIC_PREFIX = '/uploads/avatars'
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
@@ -18,28 +17,50 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   'image/webp': 'webp'
 }
 
-const resolveStoredAvatarPath = (avatar?: string | null): string | null => {
+const getPublicRootCandidates = (): string[] => {
+  const root = process.cwd()
+  const devFirstCandidates = [path.join(root, 'public'), path.join(root, '.output', 'public')]
+  const prodFirstCandidates = [path.join(root, '.output', 'public'), path.join(root, 'public')]
+  return process.env.NODE_ENV === 'production' ? prodFirstCandidates : devFirstCandidates
+}
+
+const resolveWritablePublicRoot = async (): Promise<string> => {
+  const candidates = getPublicRootCandidates()
+
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate)
+      return candidate
+    } catch {
+      // ignore
+    }
+  }
+
+  return candidates[0]
+}
+
+const resolveStoredAvatarPaths = (avatar?: string | null): string[] => {
   if (typeof avatar !== 'string') {
-    return null
+    return []
   }
 
   const normalized = avatar.trim()
   if (!normalized) {
-    return null
+    return []
   }
 
   const marker = '/uploads/avatars/'
   const markerIndex = normalized.indexOf(marker)
   if (markerIndex === -1) {
-    return null
+    return []
   }
 
   const relativePath = normalized.slice(markerIndex + 1)
   if (!relativePath || relativePath.includes('..')) {
-    return null
+    return []
   }
 
-  return path.join(process.cwd(), 'public', relativePath)
+  return getPublicRootCandidates().map((root) => path.join(root, relativePath))
 }
 
 const withAppBasePath = (event: H3Event, pathValue: string): string => {
@@ -141,13 +162,15 @@ export default defineEventHandler(async (event) => {
 
   const extension = MIME_EXTENSION_MAP[mimeType]
   const fileName = `${authUser.id}-${Date.now()}-${randomUUID().slice(0, 8)}.${extension}`
-  const fileAbsolutePath = path.join(AVATAR_UPLOAD_DIR, fileName)
+  const publicRoot = await resolveWritablePublicRoot()
+  const avatarUploadDir = path.join(publicRoot, 'uploads', 'avatars')
+  const fileAbsolutePath = path.join(avatarUploadDir, fileName)
   const publicAvatarPath = withAppBasePath(event, `${AVATAR_PUBLIC_PREFIX}/${fileName}`)
 
   let dbUpdated = false
 
   try {
-    await fs.mkdir(AVATAR_UPLOAD_DIR, { recursive: true })
+    await fs.mkdir(avatarUploadDir, { recursive: true })
     await fs.writeFile(fileAbsolutePath, avatarFile.data)
 
     const updatedUserResult = await db
@@ -172,9 +195,11 @@ export default defineEventHandler(async (event) => {
 
     dbUpdated = true
 
-    const oldAvatarPath = resolveStoredAvatarPath(currentUser.avatar)
-    if (oldAvatarPath && oldAvatarPath !== fileAbsolutePath) {
-      await fs.unlink(oldAvatarPath).catch(() => {})
+    const oldAvatarPaths = resolveStoredAvatarPaths(currentUser.avatar)
+    for (const oldAvatarPath of oldAvatarPaths) {
+      if (oldAvatarPath !== fileAbsolutePath) {
+        await fs.unlink(oldAvatarPath).catch(() => {})
+      }
     }
 
     try {
