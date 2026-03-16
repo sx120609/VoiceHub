@@ -177,12 +177,24 @@
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      v-model:show="showRemoveAvatarConfirmDialog"
+      title="移除头像"
+      message="确定要移除当前自定义头像吗？移除后将回退为QQ头像（如有）或默认头像。"
+      type="warning"
+      confirm-text="确认移除"
+      :loading="removingAvatar"
+      @confirm="confirmRemoveAvatar"
+      @cancel="closeRemoveAvatarConfirm"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, watch } from 'vue'
 import { ArrowLeft, User, Link as LinkIcon, Lock, Pencil } from 'lucide-vue-next'
+import ConfirmDialog from '~/components/UI/ConfirmDialog.vue'
 import { useAuth } from '~/composables/useAuth'
 import { useToast } from '~/composables/useToast'
 import { extractDisplayErrorMessage } from '~/utils/errorMessage'
@@ -201,6 +213,7 @@ const avatarError = ref(false)
 const avatarFileInput = ref(null)
 const uploadingAvatar = ref(false)
 const removingAvatar = ref(false)
+const showRemoveAvatarConfirmDialog = ref(false)
 const avatarUploadError = ref('')
 const displayName = ref('')
 const originalDisplayName = ref('')
@@ -358,7 +371,17 @@ const removeAvatar = async () => {
     return
   }
 
-  if (import.meta.client && !window.confirm('确定要移除当前自定义头像吗？')) {
+  showRemoveAvatarConfirmDialog.value = true
+}
+
+const closeRemoveAvatarConfirm = () => {
+  if (!removingAvatar.value) {
+    showRemoveAvatarConfirmDialog.value = false
+  }
+}
+
+const confirmRemoveAvatar = async () => {
+  if (removingAvatar.value) {
     return
   }
 
@@ -379,6 +402,7 @@ const removeAvatar = async () => {
     }
     avatarError.value = false
     showToast(response.message || '头像已移除', 'success')
+    showRemoveAvatarConfirmDialog.value = false
 
     auth.refreshUser().catch((refreshError) => {
       console.warn('刷新用户信息失败（已忽略）:', refreshError)
