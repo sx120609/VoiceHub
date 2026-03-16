@@ -2,6 +2,12 @@
 
 目标：不跑 `3000`，不走反向代理，直接访问 `https://你的域名/rareapp/`。
 
+现在 Laravel 的行为：
+
+1. 访问 `/` 会自动 `302` 跳转到 `/rareapp/`
+2. 健康检查地址改为 `/health`
+3. `/rareapp/*` 会优先读取 `laravel/public/rareapp` 下的静态文件，不存在则回退到 `index.html`（SPA 路由可用）
+
 ## 1. 初始化 Laravel API
 
 ```bash
@@ -78,7 +84,19 @@ npm run generate
 
 静态文件输出目录：`/www/wwwroot/voicehub.example.com/VoiceHub/.output/public`
 
-## 3. 宝塔 Nginx 配置
+发布到 Laravel 公共目录（推荐，最省事）：
+
+```bash
+cd /www/wwwroot/voicehub.example.com/VoiceHub
+mkdir -p laravel/public/rareapp
+rsync -a --delete .output/public/ laravel/public/rareapp/
+```
+
+## 3. 宝塔 Nginx 配置（可选）
+
+如果你的站点根目录已经指向 `VoiceHub/laravel/public`，且标准 `try_files` 到 `index.php` 已启用，一般不需要再额外配置 `/rareapp` 的 alias。
+
+你仍然可以使用下方专门的 Nginx `location`（性能更高一些）：
 
 将站点 Nginx 配置中加入（按实际 PHP 版本调整 `fastcgi_pass`）：
 
@@ -116,6 +134,8 @@ location ^~ /rareapp/ {
 
 ## 4. 验证
 
-1. 打开 `https://你的域名/rareapp/`，应返回前端页面。
-2. 打开 `https://你的域名/rareapp/api/auth/verify`，未登录应返回 `401` JSON。
-3. 登录后在账号页测试头像上传/移除，头像 URL 应为 `/rareapp/api/user/avatar-file/...`。
+1. 打开 `https://你的域名/`，应自动跳转到 `/rareapp/`。
+2. 打开 `https://你的域名/rareapp/`，应返回前端页面。
+3. 打开 `https://你的域名/rareapp/api/auth/verify`，未登录应返回 `401` JSON。
+4. 打开 `https://你的域名/health`，应返回 `{"name":"VoiceHub Laravel API","status":"ok"}`。
+5. 登录后在账号页测试头像上传/移除，头像 URL 应为 `/rareapp/api/user/avatar-file/...`。
